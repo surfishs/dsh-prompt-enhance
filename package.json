@@ -18,6 +18,8 @@
       "default": "./lib/client.js"
     },
     "./package.json": "./package.json",
+    "./locale/en.json": "./locale/en.json",
+    "./locale/zh.json": "./locale/zh.json",
     "./locale/*.json": "./locale/*.json"
   },
   "dsh": {
