@@ -82,7 +82,7 @@
     "locale/*.json",
     "docs",
     "README.md",
-    "README.zh-CN.md"
+    "README.en.md"
   ],
   "license": "Apache-2.0",
   "keywords": [
