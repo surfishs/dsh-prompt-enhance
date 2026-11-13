@@ -20,7 +20,7 @@
  * — a descriptor is `{ field, format, parse }`, and `parse` decides the JSON
  * value written, which is what keeps a switch writing `true` instead of the
  * string `"true"`.
- * @module @surfishs/dsh-prompt-enhance/client/settings-page
+ * @module dsh-prompt-enhance/client/settings-page
  */
 
 import type { CSSProperties, ReactElement } from 'react'
@@ -64,7 +64,7 @@ export const SETTINGS_ROW_CONFIG_SLOT = 'plugins.row.config'
 const SETTINGS_NAMESPACE = 'dsh-prompt-enhance'
 
 /** The bundle whose patch declares the row, and that row's id. */
-const SETTINGS_BUNDLE = '@surfishs/dsh-prompt-enhance'
+const SETTINGS_BUNDLE = 'dsh-prompt-enhance'
 const SETTINGS_ROW_ID = 'dsh-prompt-enhance'
 
 /**
@@ -689,7 +689,7 @@ export function installSettingsPages(ctx: ClientContext): void {
       console.warn('[dsh-prompt-enhance] settings form failed; both configuration pages stay off.', error)
       return
     }
-    ctx.effect(() => () => controller.dispose(), '@surfishs/dsh-prompt-enhance: settings form')
+    ctx.effect(() => () => controller.dispose(), 'dsh-prompt-enhance: settings form')
 
     // The Settings dialog's page, unchanged in behaviour: a fresh id puts it
     // beside the shipped sections, and the frame handles an unloaded plugin.
@@ -710,7 +710,7 @@ export function installSettingsPages(ctx: ClientContext): void {
           ),
       ) as () => void
       return stop
-    }, '@surfishs/dsh-prompt-enhance: settings section')
+    }, 'dsh-prompt-enhance: settings section')
 
     // The Plugins page's per-row configuration entry. `whileServed` keeps it
     // alive only while the namespace exists, so the control is never offered
@@ -733,10 +733,10 @@ export function installSettingsPages(ctx: ClientContext): void {
       return stop
     }
     if (whileServed !== undefined) {
-      ctx.effect(() => whileServed([SETTINGS_NAMESPACE], () => registerRowPage()), '@surfishs/dsh-prompt-enhance: settings row page')
+      ctx.effect(() => whileServed([SETTINGS_NAMESPACE], () => registerRowPage()), 'dsh-prompt-enhance: settings row page')
       return
     }
     // A host without `whileServed` (pre-0.2.1): register once.
-    ctx.effect(() => registerRowPage(), '@surfishs/dsh-prompt-enhance: settings row page')
+    ctx.effect(() => registerRowPage(), 'dsh-prompt-enhance: settings row page')
   })
 }

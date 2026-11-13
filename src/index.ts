@@ -5,7 +5,7 @@
  * header → harness default model), and the /enhance slash command. The
  * browser half (exports "./client") contributes the composer button, the
  * preview panel, and the undo bar.
- * @module @surfishs/dsh-prompt-enhance
+ * @module dsh-prompt-enhance
  */
 
 import type { Context } from '@deepseek-ai/cordis'

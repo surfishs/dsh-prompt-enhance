@@ -1,12 +1,7 @@
-# dsh-prompt-enhance
-
-[![CI](https://github.com/surfishs/dsh-prompt-enhance/actions/workflows/ci.yml/badge.svg)](https://github.com/surfishs/dsh-prompt-enhance/actions/workflows/ci.yml)
-[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
-
 > **个人维护版。** 本仓库是 `surfishs` 独立维护的版本，不是 GitHub fork；基于
 > [rongxingda/dsh-prompt-enhance](https://github.com/rongxingda/dsh-prompt-enhance)（Apache-2.0），
-> 保留原许可证与署名。包名 `@surfishs/dsh-prompt-enhance`（尚未发布到 npm，目前请从 GitHub
-> 或本地检出安装）。
+> 保留原许可证与署名。包名与上游相同：`dsh-prompt-enhance`；这个 npm 名字归上游所有，
+> 所以**本分支不发布到 npm**，请从 GitHub 或本地检出安装。
 
 **DeepSeek Harness Web GUI 的「提示词增强」插件** —— 一键把输入框里的草稿改写为结构化提示词:明确的角色与目标、可执行步骤、输出格式、验收标准、边界条件。不改变原意、不凭空编造需求,原文始终保留。
 
@@ -70,17 +65,11 @@ flowchart LR
 
 ## 安装
 
-从 npm(推荐):
-
-```bash
-dsh plugin --profile web add @surfishs/dsh-prompt-enhance
-# 重启 dsh web
-```
-
-从 GitHub(构建产物 `lib/` 已随仓库提交,安装无需本地构建):
+从 GitHub(推荐;构建产物 `lib/` 已随仓库提交,安装无需本地构建):
 
 ```bash
 dsh plugin --profile web add github:surfishs/dsh-prompt-enhance
+# 重启 dsh web
 ```
 
 从本地检出(开发用,改代码重建 + 重启即生效):
@@ -91,10 +80,12 @@ cd dsh-prompt-enhance && npm install && npm run build
 dsh plugin --profile web add link:C:\path\to\dsh-prompt-enhance
 ```
 
+npm 上不可用：`dsh-prompt-enhance` 这个名字归上游项目所有，本分支只从 GitHub 或本地检出安装。
+
 卸载:
 
 ```bash
-dsh plugin --profile web remove @surfishs/dsh-prompt-enhance
+dsh plugin --profile web remove dsh-prompt-enhance
 # 检查 profile 的 package.json 中 `dsh.profile.bundles` 数组是否残留
 # "dsh-prompt-enhance" 行,有则手动删除,然后重启 dsh web
 ```

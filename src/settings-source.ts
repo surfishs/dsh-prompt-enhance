@@ -20,7 +20,7 @@
  * them keeps the composition entry as its configuration. Nothing here may
  * throw: a settings integration is optional by design, and the host half must
  * still mount without it.
- * @module @surfishs/dsh-prompt-enhance/settings-source
+ * @module dsh-prompt-enhance/settings-source
  */
 
 import type { Context } from '@deepseek-ai/cordis'

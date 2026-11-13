@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve @surfishs/dsh-prompt-enhance! This is a [DeepSeek Harness](https://github.com/deepseek-ai) web plugin: one npm package with a Node (host) half and a browser half.
+Thanks for helping improve dsh-prompt-enhance! This is a [DeepSeek Harness](https://github.com/deepseek-ai) web plugin: one npm package with a Node (host) half and a browser half.
 
 ## Setup
 
@@ -23,7 +23,7 @@ npm run watch                                                     # keep rebuild
 ```
 
 When you're done, switch back to the npm install for daily use:
-`dsh plugin --profile web add @surfishs/dsh-prompt-enhance`.
+`dsh plugin --profile web add dsh-prompt-enhance`.
 
 ## Ground rules
 

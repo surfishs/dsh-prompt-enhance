@@ -4,7 +4,7 @@
  * free inside the web shell. Colors are declared as panel-scoped variables
  * with a dark default and a light `prefers-color-scheme` override, so the
  * panel follows the OS/shell theme without depending on host theme internals.
- * @module @surfishs/dsh-prompt-enhance/client/styles
+ * @module dsh-prompt-enhance/client/styles
  */
 
 const STYLE_ID = 'dsh-prompt-enhance-styles'

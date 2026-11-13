@@ -6,8 +6,9 @@
 > **Personal maintenance fork.** This repository is `surfishs`'s independently maintained
 > version of the plugin, not a GitHub fork. It is based on
 > [rongxingda/dsh-prompt-enhance](https://github.com/rongxingda/dsh-prompt-enhance) (Apache-2.0);
-> the original license and attribution are retained. Package name: `@surfishs/dsh-prompt-enhance`
-> (not yet published to npm — install from GitHub or a local checkout for now).
+> the original license and attribution are retained. The package name is the same as upstream,
+> `dsh-prompt-enhance`, because npm already owns that name — this edition is therefore **not
+> published to npm**; install it from GitHub or a local checkout.
 
 **Prompt enhancement for the [DeepSeek Harness](https://github.com/deepseek-ai) web GUI** — one click turns a rough composer draft into a well-structured prompt: explicit role and goal, executable steps, output format, acceptance criteria, and edge cases. Your intent is never changed, nothing is fabricated, and the original draft is always preserved.
 
@@ -86,17 +87,13 @@ cd dsh-prompt-enhance && npm install && npm run build
 dsh plugin --profile web add link:C:\path\to\dsh-prompt-enhance
 ```
 
-From npm (only once this fork has been published under its own scope):
-
-```bash
-dsh plugin --profile web add @surfishs/dsh-prompt-enhance
-# restart dsh web
-```
+From npm is **not available**: the name `dsh-prompt-enhance` belongs to the upstream project on
+the registry, so this edition ships only from GitHub or a local checkout (both above).
 
 Uninstall:
 
 ```bash
-dsh plugin --profile web remove @surfishs/dsh-prompt-enhance
+dsh plugin --profile web remove dsh-prompt-enhance
 # check the profile's package.json `dsh.profile.bundles` array for a leftover
 # "dsh-prompt-enhance" row and remove it if present, then restart dsh web
 ```

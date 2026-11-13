@@ -2,7 +2,7 @@
  * Per-session undo stack: remembers the original draft replaced by each
  * applied enhancement so one click restores it. Pure factory — the client
  * half owns one module-level instance; tests own their own.
- * @module @surfishs/dsh-prompt-enhance/client/undo-stack
+ * @module dsh-prompt-enhance/client/undo-stack
  */
 
 /** One rememberable replacement. */

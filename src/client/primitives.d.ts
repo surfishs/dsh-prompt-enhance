@@ -11,7 +11,7 @@
  *
  * Value types stay loose on purpose, because the real ones live in a package
  * this repository does not depend on.
- * @module @surfishs/dsh-prompt-enhance/client/primitives
+ * @module dsh-prompt-enhance/client/primitives
  */
 declare module '@deepseek-ai/dsh-client-ui-primitives' {
   /** What one parse answer tells the staged form to write. */

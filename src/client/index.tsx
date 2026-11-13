@@ -12,7 +12,7 @@
  * `@deepseek-ai/dsh-client-ui-slots` (which now only ships the contract
  * types), and a hard type import of the old home would tie this half to a
  * package the runtime no longer ships.
- * @module @surfishs/dsh-prompt-enhance/client
+ * @module dsh-prompt-enhance/client
  */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
@@ -95,7 +95,7 @@ export function apply(ctx: ClientContext): void {
       } catch (error) {
         return report('dictionary registration', error)
       }
-    }, '@surfishs/dsh-prompt-enhance: dictionaries')
+    }, 'dsh-prompt-enhance: dictionaries')
   })
 
   // Baseline before anything optional mounts: the bundled mirror equals the
@@ -171,5 +171,5 @@ export function apply(ctx: ClientContext): void {
     }
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
-  }, '@surfishs/dsh-prompt-enhance: shortcut')
+  }, 'dsh-prompt-enhance: shortcut')
 }

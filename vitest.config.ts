@@ -11,7 +11,7 @@
  *
  * Everything else keeps the defaults: suites opt into jsdom themselves with a
  * `@vitest-environment` pragma.
- * @module @surfishs/dsh-prompt-enhance/vitest.config
+ * @module dsh-prompt-enhance/vitest.config
  */
 
 import { fileURLToPath } from 'node:url'

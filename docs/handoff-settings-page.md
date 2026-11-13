@@ -35,7 +35,7 @@
 管理器画标题/图标/面包屑，传 `view: 'page' | 'summary'` 和该行的 `form`；离开页面丢弃暂存。
 
 本插件：包名 `dsh-prompt-enhance`，行 id `dsh-prompt-enhance`（见 `cordis.patch.yml`），
-注册 key **`@surfishs/dsh-prompt-enhance#dsh-prompt-enhance`**。这一页用 locale 文案（人话标题、单语提示），
+注册 key **`dsh-prompt-enhance#dsh-prompt-enhance`**。这一页用 locale 文案（人话标题、单语提示），
 `view === 'summary'` 返回「模型、上下文与资源限制」。
 
 **管理器怎么决定要不要画「配置」控件**（`plugin-manager/lib/client.js`）：
@@ -48,7 +48,7 @@ const configure = (pkg) => ({
 ```
 
 运行时验证：`cordis_inspect_query`（client `Slots.listSubTree`, root `plugins.row.config`）显示
-occupants 里已有 `@surfishs/dsh-prompt-enhance#dsh-prompt-enhance`，同槽还有 `dsh-free-search#web-search-free`、
+occupants 里已有 `dsh-prompt-enhance#dsh-prompt-enhance`，同槽还有 `dsh-free-search#web-search-free`、
 `@michengai/dsh-btw#michengai-btw`——说明注册是活的，第三方插件也用同一套。
 **注意入口位置**：是**侧边栏「插件」面板**（带安装/启停、组合包列表的那个），
 不是 **设置 → 插件**（那是 `settings.plugins.tab` 的标签页宿主，只有「全部 / dsh-market」两个清单页，
@@ -169,10 +169,10 @@ npm test                                  # CI 必过项：25 文件 / 265 用�
 npm run build
 ```
 
-运行目录是 `C:\Users\surfish\.dsh\profiles\desktop\node_modules\@surfishs\dsh-prompt-enhance`：
+运行目录是 `C:\Users\surfish\.dsh\profiles\desktop\node_modules\dsh-prompt-enhance`：
 
 ```powershell
-Copy-Item .\lib\client.js "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\@surfishs\dsh-prompt-enhance\lib\client.js" -Force
+Copy-Item .\lib\client.js "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\dsh-prompt-enhance\lib\client.js" -Force
 ```
 
 回滚文件（保留在运行目录）：

@@ -1,7 +1,7 @@
 /**
  * The `dsh-prompt-enhance` client locale namespace: zh (key-set source of truth)
  * and en dictionaries for the composer button, preview panel, and undo bar.
- * @module @surfishs/dsh-prompt-enhance/client/locales
+ * @module dsh-prompt-enhance/client/locales
  */
 
 /** Simplified Chinese dictionary (the key-set source of truth). */

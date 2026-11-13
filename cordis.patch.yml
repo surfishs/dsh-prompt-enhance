@@ -1,4 +1,4 @@
-# @surfishs/dsh-prompt-enhance bundle patch: inserts the dsh-prompt-enhance plugin row
+# dsh-prompt-enhance bundle patch: inserts the dsh-prompt-enhance plugin row
 # into the web profile roster. Applied as a profile bundle layer (the
 # `dsh.bundle.patch` manifest field); install with
 # `dsh plugin --profile web add link:<path-to-checkout>`.
@@ -12,4 +12,4 @@
 # panel, and the undo bar (conversation.input.dock).
 - insert:
     - id: dsh-prompt-enhance
-      name: "@surfishs/dsh-prompt-enhance"
+      name: "dsh-prompt-enhance"

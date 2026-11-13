@@ -17,7 +17,7 @@
  * Sources are probed in that order and ranked, so a host that mounts several
  * of them keeps the most authoritative one and never thrashes between two
  * documents. Absent all three, the bundled mirror keeps the UI working.
- * @module @surfishs/dsh-prompt-enhance/client/settings-source
+ * @module dsh-prompt-enhance/client/settings-source
  */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'

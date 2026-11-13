@@ -3,7 +3,7 @@
  * and the /enhance slash command): route resolution by precedence, LLM
  * service lookup, one enhanceText call. Keeping both entries on this path
  * prevents their behavior from drifting.
- * @module @surfishs/dsh-prompt-enhance/orchestrate
+ * @module dsh-prompt-enhance/orchestrate
  */
 
 import type { Context } from '@deepseek-ai/cordis'

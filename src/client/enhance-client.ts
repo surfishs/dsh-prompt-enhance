@@ -2,7 +2,7 @@
  * Browser-side client of the POST /dsh-prompt-enhance/enhance host route:
  * same-origin fetch with abort support and a typed error surface. Every
  * failure is a structured EnhanceError the panel renders verbatim.
- * @module @surfishs/dsh-prompt-enhance/client/enhance-client
+ * @module dsh-prompt-enhance/client/enhance-client
  */
 
 import { ENHANCE_ENDPOINT, ENHANCE_STREAM_ENDPOINT, type EnhanceError, type EnhanceErrorCode, type EnhanceRequestBody, type EnhanceResult, type EnhanceStreamEvent } from '../shared/protocol'
