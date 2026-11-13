@@ -12,7 +12,7 @@
 
 **Prompt enhancement for the [DeepSeek Harness](https://github.com/deepseek-ai) web GUI** — one click turns a rough composer draft into a well-structured prompt: explicit role and goal, executable steps, output format, acceptance criteria, and edge cases. Your intent is never changed, nothing is fabricated, and the original draft is always preserved.
 
-English | [简体中文](./README.md)
+[简体中文](./README.md) | English
 
 ---
 
