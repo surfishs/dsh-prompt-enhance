@@ -68,7 +68,7 @@ The plugin is one npm package with two halves, following the dsh plugin conventi
 |---|---|
 | dsh | `>= 0.1.1-rc.2 < 0.3.0` |
 | Node | `^22.19.0 \|\| >=24.0.0` |
-| Plugin | `0.3.x` |
+| Plugin | `0.0.x` |
 
 ## Install
 

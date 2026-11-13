@@ -2,7 +2,7 @@
 
 All notable changes are documented here. Versions follow [npm](https://www.npmjs.com/package/dsh-prompt-enhance); releases from **0.2.3** onward also have a [GitHub Release](https://github.com/surfishs/dsh-prompt-enhance/releases) page with notes (0.2.0–0.2.2 are tagged but have no Release page — see this file for their notes).
 
-## 0.3.5 (2026-11-13)
+## 0.0.1 (2026-11-13)
 
 **Personal maintenance edition.** The repository is now `surfishs/dsh-prompt-enhance` — an independently maintained project rather than a GitHub fork — and the npm package is scoped as `dsh-prompt-enhance`. Everything below the package identity follows the same name: the plugin row id, the settings namespace, the client locale namespace, the settings-section cell id and the HTTP route prefix are all `dsh-prompt-enhance` now, so a log line, a settings key or a request path cannot disagree about which plugin it belongs to. The old `prompt-enhance` entry ids stay in the settings-mirror probe list as fallbacks for a profile still running a previous build.
 
