@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "dsh-prompt-enhance",
+    "description": "提示词增强：个人维护版。设置页与插件页双配置入口，支持上下文感知、流式展示与推理预算。"
+  }
+}

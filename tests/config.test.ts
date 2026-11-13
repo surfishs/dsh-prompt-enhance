@@ -1,0 +1,177 @@
+import { describe, expect, it } from 'vitest'
+import { Config, DEFAULT_CONFIG, effectiveSystemPrompt, resolveConfig } from '../src/config'
+import { DEFAULT_SYSTEM_PROMPT } from '../src/prompts'
+
+describe('Config schema', () => {
+  it('marks every field volatile so the settings page exists at all', () => {
+    // Not cosmetic: the host builds the config page by projecting each entry
+    // through its internal `volatileForm()`, which returns undefined — and
+    // drops the whole entry — when no field carries `meta.volatile`. The
+    // visible symptom is a missing config page; the sharp one is that a write
+    // against such an entry throws `Plugin entry "…" has no volatile fields`.
+    const fields = Object.entries(Config.dict ?? {})
+    expect(fields.length).toBeGreaterThan(0)
+    const notVolatile = fields.filter(([, field]) => (field as { meta: { volatile?: boolean } }).meta.volatile !== true).map(([key]) => key)
+    expect(notVolatile).toEqual([])
+  })
+
+  it('covers every documented default, plus the optional route pair', () => {
+    // `provider`/`model` carry no default on purpose: absent means "follow the
+    // session's model", which is different from an empty override.
+    const fields = Object.keys(Config.dict ?? {})
+    for (const key of Object.keys(DEFAULT_CONFIG)) expect(fields).toContain(key)
+    expect(fields).toContain('provider')
+    expect(fields).toContain('model')
+  })
+
+  it('ships an 8192-token output budget, and the schema default agrees', () => {
+    // Why 8192: ordinary long prompts reached the old 2048 budget, the model
+    // stopped on `max-tokens`, and the enhancement was refused outright (no
+    // partial result is ever filled back), so a user had to find the setting
+    // before one long rewrite could succeed at all.
+    //
+    // The mirror half matters as much as the number: the settings page reads
+    // the schema `default(...)`, and the request path reads `DEFAULT_CONFIG`.
+    // A change to one that forgets the other ships a field whose displayed
+    // default is not what the code uses.
+    expect(DEFAULT_CONFIG.maxOutputTokens).toBe(8192)
+    const entry = Object.entries(Config.dict ?? {}).find(([key]) => key === 'maxOutputTokens')
+    const meta = (entry?.[1] as { meta?: { default?: unknown } } | undefined)?.meta
+    expect(meta?.default).toBe(DEFAULT_CONFIG.maxOutputTokens)
+  })
+})
+
+describe('resolveConfig', () => {
+  it('passes a paired provider/model override', () => {
+    const resolved = resolveConfig({ ...DEFAULT_CONFIG, provider: 'zhipu', model: 'glm-5.3' })
+    expect(resolved.provider).toBe('zhipu')
+    expect(resolved.model).toBe('glm-5.3')
+  })
+
+  it('passes an empty pair (session-follow mode)', () => {
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG })).not.toThrow()
+  })
+
+  it('rejects a half-filled pair', () => {
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG, provider: 'zhipu' })).toThrow(/成对/)
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG, model: 'glm-5.3' })).toThrow(/成对/)
+  })
+
+  it('rejects blank strings in the pair', () => {
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG, provider: ' ', model: 'glm' })).toThrow(/非空/)
+  })
+
+  it('runs deep runtime validation', () => {
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG, temperature: Number.NaN })).toThrow(/temperature/)
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG, maxInputChars: 4096.9 })).toThrow(/maxInputChars/)
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG, timeoutMs: -1 })).toThrow(/timeoutMs/)
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG, enabled: 'yes' as never })).toThrow(/enabled/)
+  })
+
+  it('stores provider/model trimmed', () => {
+    const resolved = resolveConfig({ ...DEFAULT_CONFIG, provider: ' zhipu ', model: ' glm ' })
+    expect(resolved.provider).toBe('zhipu')
+    expect(resolved.model).toBe('glm')
+  })
+
+  it('normalizes an absent or blank pair to undefined, not to an empty override', () => {
+    // `undefined` and `''` both mean "no explicit route"; a surviving `''`
+    // would read downstream as an override that exists.
+    const absent = resolveConfig({ ...DEFAULT_CONFIG })
+    expect(absent.provider).toBeUndefined()
+    expect(absent.model).toBeUndefined()
+    const blank = resolveConfig({ ...DEFAULT_CONFIG, provider: '', model: '' })
+    expect(blank.provider).toBeUndefined()
+    expect(blank.model).toBeUndefined()
+  })
+
+  it('defaults an absent or malformed strategyMode to replace-default', () => {
+    expect(resolveConfig({ ...DEFAULT_CONFIG }).strategyMode).toBe('replace-default')
+    expect(resolveConfig({ ...DEFAULT_CONFIG, strategyMode: 'bogus' as never }).strategyMode).toBe('replace-default')
+  })
+
+  it('keeps an explicit extend-default', () => {
+    expect(resolveConfig({ ...DEFAULT_CONFIG, strategyMode: 'extend-default' }).strategyMode).toBe('extend-default')
+  })
+
+  it('strips unknown keys left over from older versions', () => {
+    const legacy = { ...DEFAULT_CONFIG, legacySetting: 'old-value' } as typeof DEFAULT_CONFIG & Record<string, unknown>
+    const resolved = resolveConfig(legacy)
+    expect(resolved).not.toHaveProperty('legacySetting')
+    expect(resolved.enabled).toBe(DEFAULT_CONFIG.enabled)
+    expect(Object.keys(resolved).sort()).toEqual([
+      'contextAware', 'contextMaxChars', 'contextMaxMessages', 'enabled',
+      'maxConcurrent', 'maxInputChars', 'maxOutputTokens', 'model',
+      'provider', 'rateLimitPerMinute', 'reasoningEffort',
+      'shortcut', 'strategyMode', 'streaming', 'systemPrompt', 'temperature', 'timeoutMs',
+    ])
+  })
+
+  it('defaults the streaming and context window to their documented values', () => {
+    const resolved = resolveConfig({ ...DEFAULT_CONFIG })
+    expect(resolved.streaming).toBe(true)
+    expect(resolved.contextAware).toBe(true)
+    expect(resolved.contextMaxMessages).toBe(8)
+    expect(resolved.contextMaxChars).toBe(4000)
+  })
+
+  it('tolerates missing/absent streaming and context flags on older sections', () => {
+    const partial = { ...DEFAULT_CONFIG } as Partial<typeof DEFAULT_CONFIG> & Record<string, unknown>
+    delete partial.streaming
+    delete partial.contextAware
+    const resolved = resolveConfig(partial as typeof DEFAULT_CONFIG)
+    expect(resolved.streaming).toBe(true)
+    expect(resolved.contextAware).toBe(true)
+  })
+
+  it('accepts a zero-width context window (context disabled by budget)', () => {
+    const resolved = resolveConfig({ ...DEFAULT_CONFIG, contextMaxMessages: 0, contextMaxChars: 0 })
+    expect(resolved.contextMaxMessages).toBe(0)
+    expect(resolved.contextMaxChars).toBe(0)
+  })
+
+  it('rejects an out-of-range context window', () => {
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG, contextMaxMessages: 99 })).toThrow(/contextMaxMessages/)
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG, contextMaxChars: -1 })).toThrow(/contextMaxChars/)
+  })
+
+  it('defaults the reasoning effort to the cheapest shipped choice', () => {
+    expect(DEFAULT_CONFIG.reasoningEffort).toBe('off')
+    expect(resolveConfig({ ...DEFAULT_CONFIG }).reasoningEffort).toBe('off')
+  })
+
+  it('keeps an explicit reasoning effort', () => {
+    expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: 'inherit' }).reasoningEffort).toBe('inherit')
+    expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: 'low' }).reasoningEffort).toBe('low')
+  })
+
+  it('degrades an absent or hand-edited reasoning effort to the cheap default', () => {
+    // A section stored before the field existed, and a hand-edited value: both
+    // must resolve to a choice the adapter accepts, never to a rejected id.
+    const missing = { ...DEFAULT_CONFIG } as Partial<typeof DEFAULT_CONFIG>
+    delete missing.reasoningEffort
+    expect(resolveConfig(missing as typeof DEFAULT_CONFIG).reasoningEffort).toBe('off')
+    expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: 'turbo' as never }).reasoningEffort).toBe('off')
+  })
+})
+
+describe('effectiveSystemPrompt', () => {
+  it('uses the built-in strategy when the override is blank', () => {
+    expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: '' }, DEFAULT_SYSTEM_PROMPT)).toBe(DEFAULT_SYSTEM_PROMPT)
+    expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: '  \n' }, DEFAULT_SYSTEM_PROMPT)).toBe(DEFAULT_SYSTEM_PROMPT)
+  })
+
+  it('uses the configured override verbatim in the default (replace) mode', () => {
+    expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'You are terse.' }, DEFAULT_SYSTEM_PROMPT)).toBe('You are terse.')
+  })
+
+  it('appends the override after the built-in strategy in extend mode', () => {
+    const prompt = effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'Always answer in bullet points.', strategyMode: 'extend-default' }, DEFAULT_SYSTEM_PROMPT)
+    expect(prompt.startsWith(DEFAULT_SYSTEM_PROMPT)).toBe(true)
+    expect(prompt).toContain('Always answer in bullet points.')
+  })
+
+  it('falls back to the built-in strategy when the override is blank in either mode', () => {
+    expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, strategyMode: 'extend-default' }, DEFAULT_SYSTEM_PROMPT)).toBe(DEFAULT_SYSTEM_PROMPT)
+  })
+})
