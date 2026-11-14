@@ -225,8 +225,12 @@ describe('enhance → apply → undo loop', () => {
 
     fireEvent.click(enhanceButton())
     expect(await screen.findByText('增强文本')).toBeTruthy()
-    // The call's token total rides the meta line next to model and duration.
-    expect(screen.getByText(new RegExp('本次 1,545 tokens'))).toBeTruthy()
+    // The call's token total rides the meta line next to model and duration,
+    // with the input/output/cache breakdown on hover.
+    const tokenText = screen.getByText('1,545 tokens')
+    expect(tokenText).toBeTruthy()
+    expect(tokenText.getAttribute('title')).toContain('输入 10')
+    expect(tokenText.getAttribute('title')).toContain('输出 5')
     expect(requestEnhance).toHaveBeenCalledWith({ sessionId: 's1', text: '旧原文' }, expect.anything())
 
     fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))

@@ -214,7 +214,21 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
               {t('panel.model', { provider: state.result.provider, model: state.result.model })} · {t('panel.elapsed', { ms: formatMs(state.result.elapsedMs) })}
               {state.result.usage === undefined
                 ? null
-                : <> · {t('panel.tokens', { total: formatTokens(totalTokensOf(state.result.usage)) })}</>}
+                : (
+                    <>
+                      {' · '}
+                      <span
+                        title={t('panel.tokens.detail', {
+                          input: formatTokens(state.result.usage.inputTokens),
+                          output: formatTokens(state.result.usage.outputTokens),
+                          cacheRead: formatTokens(state.result.usage.cacheReadTokens ?? 0),
+                          cacheWrite: formatTokens(state.result.usage.cacheWriteTokens ?? 0),
+                        })}
+                      >
+                        {t('panel.tokens', { total: formatTokens(totalTokensOf(state.result.usage)) })}
+                      </span>
+                    </>
+                  )}
             </span>
           )}
           <button type="button" className="dsh-pe-close" aria-label={t('panel.close')} onClick={onCancel}>✕</button>
