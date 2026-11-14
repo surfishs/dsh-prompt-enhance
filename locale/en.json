@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "dsh-prompt-enhance",
-    "description": "Prompt enhancement for the DSH web GUI — personal maintenance edition with a Settings page and a plugin-page config, context-aware rewriting, streaming display and a reasoning budget."
+    "description": "Prompt enhancement for the DeepSeek Harness web GUI: a Settings page and a plugin-page config, context-aware rewriting, streaming display and a reasoning budget."
   }
 }

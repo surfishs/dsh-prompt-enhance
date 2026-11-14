@@ -1,6 +1,6 @@
 name: Publish
 
-# NOTE: this personal edition keeps the upstream package name `dsh-prompt-enhance`,
+# NOTE: this package keeps the upstream package name `dsh-prompt-enhance`,
 # which npm already owns. The tag-triggered publish below therefore cannot
 # succeed and is kept only as the original reference.
 

@@ -3,11 +3,6 @@
 [![CI](https://github.com/surfishs/dsh-prompt-enhance/actions/workflows/ci.yml/badge.svg)](https://github.com/surfishs/dsh-prompt-enhance/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 
-> **个人维护版。** 本仓库是 `surfishs` 独立维护的版本，不是 GitHub fork；基于
-> [rongxingda/dsh-prompt-enhance](https://github.com/rongxingda/dsh-prompt-enhance)（Apache-2.0），
-> 保留原许可证与署名。包名与上游相同：`dsh-prompt-enhance`；这个 npm 名字归上游所有，
-> 所以**本分支不发布到 npm**，请从 GitHub 或本地检出安装。
-
 **DeepSeek Harness Web GUI 的「提示词增强」插件** —— 一键把输入框里的草稿改写为结构化提示词:明确的角色与目标、可执行步骤、输出格式、验收标准、边界条件。不改变原意、不凭空编造需求,原文始终保留。
 
 简体中文 | [English](./README.en.md)
@@ -29,10 +24,10 @@
 | 💬 **`/enhance` 命令** | 斜杠面板直接改写任意文本;结果不进入模型历史 |
 | 🧠 **模型路由** | 设置成对覆盖 → 当前会话模型 → 全局默认模型,依次回退 |
 | 🔑 **零凭据配置** | 调用走 harness LLM 服务,密钥来自 harness 凭据存储 |
-| ⚙️ **配置热生效** | 模型覆盖、温度、预算、系统提示词、快捷键,全部在 设置 → 插件配置 即改即用 |
+| ⚙️ **配置热生效** | 模型覆盖、温度、预算、系统提示词、快捷键,全部在 设置 → 提示词增强（或 插件面板 → dsh-prompt-enhance → 配置）即改即用 |
 | 🛡️ **草稿安全** | 空输入、超长、仅图片、含命令块在本地拦截;上游失败映射为可读提示;失败绝不改动草稿 |
 
-![dsh web 中实机运行的预览面板:原文与增强结果并排,含模型信息与回填/复制操作](https://raw.githubusercontent.com/surfishs/dsh-prompt-enhance/main/docs/evidence-dsh-prompt-enhance-panel.png)
+![dsh web 中实机运行的预览面板:原文与增强结果并排,含模型信息与回填/复制操作](https://raw.githubusercontent.com/surfishs/dsh-prompt-enhance/main/docs/evidence-prompt-enhance-panel.png)
 
 ## 工作原理
 
@@ -85,7 +80,7 @@ cd dsh-prompt-enhance && npm install && npm run build
 dsh plugin --profile web add link:C:\path\to\dsh-prompt-enhance
 ```
 
-npm 上不可用：`dsh-prompt-enhance` 这个名字归上游项目所有，本分支只从 GitHub 或本地检出安装。
+npm 上不可用：`dsh-prompt-enhance` 这个名字归上游项目所有，本项目只从 GitHub 或本地检出安装。
 
 卸载:
 
@@ -110,7 +105,7 @@ dsh plugin --profile web remove dsh-prompt-enhance
 
 ## 配置
 
-全部配置位于 `dsh-prompt-enhance` 设置命名空间,在 Web GUI 的 **设置 → 插件配置** 页编辑。改动作用于下一次调用——无需重启。每次增强都是一次计费的 LLM 调用——`reasoningEffort` 与 `maxOutputTokens` 约束单次花多少 token,并发/限流字段约束调用频率。
+全部配置位于 `dsh-prompt-enhance` 设置命名空间,在 Web GUI 的 **设置 → 提示词增强** 页（或 插件面板 → dsh-prompt-enhance → **配置**）编辑。改动作用于下一次调用——无需重启。每次增强都是一次计费的 LLM 调用——`reasoningEffort` 与 `maxOutputTokens` 约束单次花多少 token,并发/限流字段约束调用频率。
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
@@ -187,7 +182,7 @@ dsh plugin --profile web remove dsh-prompt-enhance
 ## 故障排查
 
 **按钮不出现 / 快捷键无响应**
-设置 → 插件配置 → `dsh-prompt-enhance` 节的 `enabled` 是否为 `true`;插件是否成功安装(`dsh plugin --profile web list`)并重启了 `dsh web`;浏览器控制台是否有插件应用报错。
+设置 → 提示词增强（或 插件面板 → dsh-prompt-enhance → 配置）→ `enabled` 是否为 `true`;插件是否成功安装(`dsh plugin --profile web list`)并重启了 `dsh web`;浏览器控制台是否有插件应用报错。
 
 **「尚未确定增强用的模型」**
 插件遵循设置成对覆盖 → 当前会话模型 → 全局默认模型的路由优先级,三者都为空时无法调用。在设置中成对填写 `provider`/`model`,或先在当前会话发一条消息让会话带上模型路由。检查 `agent-default-model` 设置节是否配置。
@@ -298,7 +293,7 @@ CI 在每次 push/PR 上运行类型检查 + 测试 + 构建,并在 `lib/` 与�
 
 安装并重启 `dsh web` 后:
 
-1. 设置 → 插件配置 出现 `dsh-prompt-enhance` 配置节。
+1. 设置左侧出现「提示词增强」;或 插件面板 → `dsh-prompt-enhance` → 行 `dsh-prompt-enhance` 出现「配置」。
 2. 发送键旁出现 ✨ 按钮;`Ctrl+Alt+E` 触发相同流程。
 3. 空输入 → 拒绝面板;有效草稿 → 预览含模型信息;回填生效;撤销恢复;复制可用。
 4. `/enhance <文本>` 输出可复制结果,且不进入模型历史。
@@ -307,6 +302,8 @@ CI 在每次 push/PR 上运行类型检查 + 测试 + 构建,并在 `lib/` 与�
 ## 致谢
 
 插件结构、回环栅栏与设置节模式遵循 dsh 插件家族的既有惯例——特别是 [`@linxin666/dsh-tool-describe-image`](https://www.npmjs.com/package/@linxin666/dsh-tool-describe-image)。
+
+代码与设计建立在 [rongxingda/dsh-prompt-enhance](https://github.com/rongxingda/dsh-prompt-enhance)（Apache-2.0）之上，原始许可证保留。
 
 ## 许可证
 

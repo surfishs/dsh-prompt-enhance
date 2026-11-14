@@ -1,12 +1,12 @@
 # Changelog
 
-All notable changes are documented here. Versions follow [npm](https://www.npmjs.com/package/dsh-prompt-enhance); releases from **0.2.3** onward also have a [GitHub Release](https://github.com/surfishs/dsh-prompt-enhance/releases) page with notes (0.2.0–0.2.2 are tagged but have no Release page — see this file for their notes).
+All notable changes are documented here. This repository starts its own release line at 0.0.1; notes from the earlier 0.2.x–0.3.x history are kept below as the basis this line was built from.
 
 ## 0.0.1 (2026-11-13)
 
-**Personal maintenance edition.** The repository is now `surfishs/dsh-prompt-enhance` — an independently maintained project rather than a GitHub fork — and the npm package is scoped as `dsh-prompt-enhance`. Everything below the package identity follows the same name: the plugin row id, the settings namespace, the client locale namespace, the settings-section cell id and the HTTP route prefix are all `dsh-prompt-enhance` now, so a log line, a settings key or a request path cannot disagree about which plugin it belongs to. The old `prompt-enhance` entry ids stay in the settings-mirror probe list as fallbacks for a profile still running a previous build.
+**First release of this line.** The `surfishs/dsh-prompt-enhance` line starts at `0.0.1` under the plain package name `dsh-prompt-enhance`. The plugin row id, settings namespace, client locale namespace, settings-section cell id and HTTP route prefix all share that name, so a log line, a settings key or a request path cannot disagree about which plugin it belongs to. The old `prompt-enhance` entry ids stay in the settings-mirror probe list as fallbacks for a profile still running a previous build.
 
-The user-visible name is unchanged: `locale/zh.json` and `locale/en.json` declare `meta.title` = `dsh-prompt-enhance`, so the Plugins page and Settings show that name instead of the scoped package id. No stored configuration needed migration on the maintainer's profile (`cordis.patch.yml` carried no overrides for this plugin), and the code is based on `rongxingda/dsh-prompt-enhance@0.3.4` under Apache-2.0, with the original license and attribution retained.
+The configuration page has two entry points over one staged form: a section in the Settings dialog and a per-row configuration entry on the Plugins page. The rewrite engine, context awareness, streaming display and the reasoning budget carry over from the 0.3.4 basis (`rongxingda/dsh-prompt-enhance`, Apache-2.0; original license retained). No stored configuration needed migration on this profile (`cordis.patch.yml` carried no overrides for this plugin).
 
 Suite: **25 files / 265 cases green**; typecheck clean; `lib/` rebuilt.
 
