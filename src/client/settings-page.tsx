@@ -337,22 +337,8 @@ const STATUS_STYLE: CSSProperties = {
   lineHeight: 1.5,
   color: 'var(--dsw-alias-label-secondary, inherit)',
 }
-/** The manual tier-refresh action, styled as a quiet link. */
-const REFRESH_STYLE: CSSProperties = {
-  flex: 'none',
-  border: 'none',
-  background: 'none',
-  padding: 0,
-  font: 'inherit',
-  fontSize: 12,
-  lineHeight: 1.5,
-  color: 'var(--dsw-alias-label-secondary, inherit)',
-  textDecoration: 'underline',
-  textUnderlineOffset: 2,
-  cursor: 'pointer',
-}
-/** The reset action: the neutral chip surface, with an underline for affordance. */
-const RESET_STYLE: CSSProperties = {
+/** The neutral chip surface shared by the row's quiet actions. */
+const CHIP_STYLE: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   padding: '1px 8px',
@@ -368,6 +354,10 @@ const RESET_STYLE: CSSProperties = {
   textUnderlineOffset: 2,
   cursor: 'pointer',
 }
+/** The tier refetch action, in the same chip surface. */
+const REFRESH_STYLE: CSSProperties = { ...CHIP_STYLE, flex: 'none' }
+/** The reset action: the neutral chip surface, with an underline for affordance. */
+const RESET_STYLE: CSSProperties = CHIP_STYLE
 /** The form input, mirroring the host's `input` metrics for a native control. */
 const INPUT_STYLE: CSSProperties = {
   boxSizing: 'border-box',
