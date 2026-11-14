@@ -340,6 +340,7 @@ interface ValueFieldProps {
   id: string
   label: string
   hint?: string
+  placeholder?: string
   text: string
   numeric?: boolean
   disabled?: boolean
@@ -370,6 +371,7 @@ export function SettingsValueField(props: ValueFieldProps): ReactElement {
       id: props.id,
       type: 'text',
       inputMode: props.numeric === true ? 'numeric' : undefined,
+      placeholder: props.placeholder,
       value: props.text,
       disabled: props.disabled,
       'aria-invalid': props.invalid === true ? true : undefined,

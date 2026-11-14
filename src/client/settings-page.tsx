@@ -158,6 +158,11 @@ interface Row {
   readonly label: PromptEnhanceKey
   /** Dictionary key of the hint under the row. */
   readonly hint: PromptEnhanceKey
+  /**
+   * Dictionary key of an example shown greyed out while the input is empty.
+   * It teaches the expected format without writing any value into the config.
+   */
+  readonly placeholder?: PromptEnhanceKey
 }
 
 /**
@@ -169,8 +174,8 @@ const ROWS: readonly Row[] = [
   { key: 'enabled', kind: 'boolean', label: 'settings.row.enabled.label', hint: 'settings.row.enabled.hint' },
   { key: 'contextAware', kind: 'boolean', label: 'settings.row.contextAware.label', hint: 'settings.row.contextAware.hint' },
   { key: 'streaming', kind: 'boolean', label: 'settings.row.streaming.label', hint: 'settings.row.streaming.hint' },
-  { key: 'provider', kind: 'text', label: 'settings.row.provider.label', hint: 'settings.row.provider.hint' },
-  { key: 'model', kind: 'text', label: 'settings.row.model.label', hint: 'settings.row.model.hint' },
+  { key: 'provider', kind: 'text', label: 'settings.row.provider.label', hint: 'settings.row.provider.hint', placeholder: 'settings.row.provider.placeholder' },
+  { key: 'model', kind: 'text', label: 'settings.row.model.label', hint: 'settings.row.model.hint', placeholder: 'settings.row.model.placeholder' },
   { key: 'temperature', kind: 'number', label: 'settings.row.temperature.label', hint: 'settings.row.temperature.hint' },
   { key: 'reasoningEffort', kind: 'reasoning', label: 'settings.row.reasoningEffort.label', hint: 'settings.row.reasoningEffort.hint' },
   { key: 'maxOutputTokens', kind: 'number', label: 'settings.row.maxOutputTokens.label', hint: 'settings.row.maxOutputTokens.hint' },
@@ -248,6 +253,8 @@ interface RowCopy {
   readonly title: (row: Row) => string
   /** The hint under the row. */
   readonly hint: (row: Row) => string
+  /** An example shown greyed out while the input is empty, when the row has one. */
+  readonly placeholder: (row: Row) => string | undefined
   /** One choice label of a segmented control. */
   readonly choice: (key: PromptEnhanceKey) => string
 }
@@ -275,6 +282,7 @@ function sectionCopy(t: Translate, chinese: boolean): RowCopy {
     },
     title: (row) => (chinese ? `${row.key}（${t(row.label)}）` : row.key),
     hint: (row) => t(row.hint),
+    placeholder: (row) => (row.placeholder === undefined ? undefined : t(row.placeholder)),
     choice: (key) => t(key),
   }
 }
@@ -299,6 +307,7 @@ function pageCopy(t: Translate): RowCopy {
     },
     title: (row) => t(row.label),
     hint: (row) => t(row.hint),
+    placeholder: (row) => (row.placeholder === undefined ? undefined : t(row.placeholder)),
     choice: (key) => t(key),
   }
 }
@@ -617,6 +626,7 @@ function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled
           numeric={props.row.kind === 'number'}
           disabled={props.disabled}
           text={props.view.text}
+          placeholder={props.copy.placeholder(props.row)}
           overridden={props.view.overridden}
           invalid={props.view.invalid}
           onEdit={props.onEdit}

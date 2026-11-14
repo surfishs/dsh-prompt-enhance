@@ -232,6 +232,13 @@ describe('settings dialog page', () => {
     expect(screen.getByRole('link', { name: 'GitHub' })).toBeTruthy()
     expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy()
     expect(screen.getByText(/把输入框草稿改写为结构化提示词/)).toBeTruthy()
+    // Empty routing fields teach the expected format without writing a value.
+    expect((screen.getByLabelText(sectionTitle('provider')) as HTMLInputElement).placeholder).toBe(
+      zhCopy('settings.row.provider.placeholder'),
+    )
+    expect((screen.getByLabelText(sectionTitle('model')) as HTMLInputElement).placeholder).toBe(
+      zhCopy('settings.row.model.placeholder'),
+    )
   })
 
   it('switches to English and drops the parenthesized Chinese name', () => {
@@ -239,6 +246,7 @@ describe('settings dialog page', () => {
     expect(screen.getByText('enabled')).toBeTruthy()
     expect(screen.queryByText(sectionTitle('enabled'))).toBeNull()
     expect(screen.getByText(enCopy('settings.row.enabled.hint'))).toBeTruthy()
+    expect((screen.getByLabelText('provider') as HTMLInputElement).placeholder).toBe(enCopy('settings.row.provider.placeholder'))
     expect(screen.getByRole('button', { name: enCopy('settings.save') })).toBeTruthy()
   })
 
