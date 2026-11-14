@@ -31,7 +31,16 @@ function stubFetch(answer: (url: string) => Response): Call[] {
 }
 
 /** A successful one-shot envelope, used by the fallback case. */
-const ONESHOT_OK = { ok: true, value: { text: '增强后', provider: 'zhipu', model: 'glm-5.3', elapsedMs: 12 } }
+const ONESHOT_OK = {
+  ok: true,
+  value: {
+    text: '增强后',
+    provider: 'zhipu',
+    model: 'glm-5.3',
+    elapsedMs: 12,
+    usage: { inputTokens: 10, outputTokens: 5, totalTokens: 42, cacheReadTokens: 27 },
+  },
+}
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -70,6 +79,9 @@ describe('requestEnhanceStream: refusal handling', () => {
 
     const result = await requestEnhanceStream({ text: '写个爬虫' }, { onDelta: (): void => {} })
     expect(result.text).toBe('增强后')
+    // The client keeps the usage block instead of narrowing the result down to
+    // text/provider/model/elapsedMs; the panel reads it for the token count.
+    expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 5, totalTokens: 42, cacheReadTokens: 27 })
     expect(calls).toHaveLength(2)
     expect(calls[1]?.url).toBe(ENHANCE_ENDPOINT)
   })

@@ -5,7 +5,7 @@
  * @module dsh-prompt-enhance/client/enhance-client
  */
 
-import { ENHANCE_ENDPOINT, ENHANCE_STREAM_ENDPOINT, type EnhanceError, type EnhanceErrorCode, type EnhanceRequestBody, type EnhanceResult, type EnhanceStreamEvent } from '../shared/protocol'
+import { ENHANCE_ENDPOINT, ENHANCE_STREAM_ENDPOINT, type EnhanceError, type EnhanceErrorCode, type EnhanceRequestBody, type EnhanceResult, type EnhanceStreamEvent, type EnhanceUsage } from '../shared/protocol'
 
 /** Typed fetch failure carrying the wire error. */
 export class EnhanceClientError extends Error {
@@ -56,6 +56,35 @@ function parseError(value: unknown): EnhanceError {
   return { code: 'internal', message: '宿主服务返回异常。' }
 }
 
+/** One finite, non-negative token count, or undefined when absent/malformed. */
+function tokenCount(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined
+}
+
+/**
+ * Narrow the optional usage block. A malformed block is dropped rather than
+ * failing the whole result: the rewrite itself is still usable without it.
+ * @param value - the `usage` field of a success value.
+ * @returns the validated usage, or undefined.
+ */
+function parseUsage(value: unknown): EnhanceUsage | undefined {
+  if (value === null || typeof value !== 'object') return undefined
+  const record = value as Record<string, unknown>
+  const inputTokens = tokenCount(record.inputTokens)
+  const outputTokens = tokenCount(record.outputTokens)
+  if (inputTokens === undefined || outputTokens === undefined) return undefined
+  const totalTokens = tokenCount(record.totalTokens)
+  const cacheReadTokens = tokenCount(record.cacheReadTokens)
+  const cacheWriteTokens = tokenCount(record.cacheWriteTokens)
+  return {
+    inputTokens,
+    outputTokens,
+    ...totalTokens === undefined ? {} : { totalTokens },
+    ...cacheReadTokens === undefined ? {} : { cacheReadTokens },
+    ...cacheWriteTokens === undefined ? {} : { cacheWriteTokens },
+  }
+}
+
 /** Strictly narrow one success value; anything malformed is a client-visible error. */
 function parseResult(value: unknown): EnhanceResult {
   const record = value as Partial<EnhanceResult> | null
@@ -66,7 +95,14 @@ function parseResult(value: unknown): EnhanceResult {
     && typeof record.model === 'string' && record.model !== ''
     && typeof record.elapsedMs === 'number' && Number.isFinite(record.elapsedMs)
   ) {
-    return { text: record.text, provider: record.provider, model: record.model, elapsedMs: record.elapsedMs }
+    const usage = parseUsage((record as { usage?: unknown }).usage)
+    return {
+      text: record.text,
+      provider: record.provider,
+      model: record.model,
+      elapsedMs: record.elapsedMs,
+      ...usage === undefined ? {} : { usage },
+    }
   }
   throw new EnhanceClientError({ code: 'internal', message: '宿主服务返回了无法解析的结果。' })
 }
