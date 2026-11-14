@@ -350,28 +350,49 @@ const GITHUB_MARK =
 const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ === 'string' ? __PLUGIN_VERSION__ : '0.0.0'
 
 /** Header block: title, repository link, version, and one description line. */
-const HEADER_STYLE: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6 }
-const HEADER_ROW_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }
-const HEADER_TITLE_STYLE: CSSProperties = { fontSize: 15, fontWeight: 600, color: 'var(--dsw-alias-label-primary, inherit)' }
+const HEADER_STYLE: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 12, padding: '2px 0' }
+const HEADER_ROW_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }
+const HEADER_TITLE_STYLE: CSSProperties = {
+  fontSize: 18,
+  fontWeight: 600,
+  letterSpacing: '-0.012em',
+  lineHeight: 1.3,
+  color: 'var(--dsw-alias-label-primary, inherit)',
+}
 const HEADER_LINK_STYLE: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
-  gap: 4,
-  height: 24,
-  padding: '0 10px',
-  border: '0.5px solid var(--dsw-alias-border-l4, rgba(128, 128, 128, 0.35))',
+  gap: 3,
+  height: 18,
+  padding: '0 7px',
+  border: '1px solid var(--dsw-alias-border-l4, rgba(128, 128, 128, 0.35))',
   borderRadius: 999,
-  fontSize: 12,
-  lineHeight: '20px',
+  background: 'var(--dsw-alias-bg-layer-3, transparent)',
+  fontSize: 10.5,
+  fontWeight: 500,
+  lineHeight: 1,
   color: 'var(--dsw-alias-label-secondary, inherit)',
   textDecoration: 'none',
 }
-const HEADER_VERSION_STYLE: CSSProperties = { fontSize: 12, color: 'var(--dsw-alias-label-tertiary, inherit)' }
+const HEADER_VERSION_STYLE: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  height: 18,
+  padding: '0 7px',
+  borderRadius: 999,
+  background: 'var(--dsw-alias-bg-layer-4, transparent)',
+  fontSize: 10.5,
+  lineHeight: 1,
+  color: 'var(--dsw-alias-label-tertiary, inherit)',
+  fontVariantNumeric: 'tabular-nums',
+}
 const HEADER_DESCRIPTION_STYLE: CSSProperties = {
   margin: 0,
-  fontSize: 12,
-  lineHeight: 1.6,
+  fontSize: 13,
+  lineHeight: 1.65,
   color: 'var(--dsw-alias-label-tertiary, inherit)',
+  textWrap: 'pretty',
+  maxWidth: '72ch',
 }
 
 /**
@@ -386,7 +407,7 @@ function PageHeader(props: { title: string; description: string; version: string
       <div style={HEADER_ROW_STYLE}>
         <span style={HEADER_TITLE_STYLE}>{props.title}</span>
         <a href={REPOSITORY_URL} target="_blank" rel="noreferrer" style={HEADER_LINK_STYLE}>
-          <svg width={14} height={14} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <svg width={11} height={11} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
             <path fill="currentColor" d={GITHUB_MARK} />
           </svg>
           GitHub
