@@ -26,7 +26,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
-import { isDeepSeekProvider, type ReasoningCapabilities } from '../shared/reasoning'
+import type { ReasoningCapabilities } from '../shared/reasoning'
 import { fetchReasoningCapabilities } from './reasoning-options'
 import {
   SegmentedControl,
@@ -660,18 +660,14 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pair, refreshToken])
 
-  // DeepSeek tiers keep the existing localized labels; every other provider's
-  // names are shown verbatim.
-  const localized = capabilities?.source === 'default' || isDeepSeekProvider(props.provider)
-  const knownDeepSeekId = (id: string): id is 'off' | 'low' | 'high' | 'max' => id === 'off' || id === 'low' || id === 'high' || id === 'max'
+  // Every provider — DeepSeek included — shows the adapter's own tier names;
+  // only the "follow provider default" sentinel is plugin copy.
   const options: { value: string; label: string; title?: string }[] = []
   if (phase === 'ready' && capabilities !== undefined && capabilities.source !== 'unavailable') {
     for (const effort of capabilities.efforts) {
       options.push({
         value: effort.id,
-        label: localized && knownDeepSeekId(effort.id)
-          ? props.copy.choice(`settings.reasoning.${effort.id}` as PromptEnhanceKey)
-          : effort.name,
+        label: effort.name,
         ...effort.description === undefined ? {} : { title: effort.description },
       })
     }
