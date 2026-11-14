@@ -309,6 +309,23 @@ describe('settings dialog page', () => {
     expect(screen.queryByRole('tab', { name: 'High' })).toBeNull()
   })
 
+  it('pins the refresh action to the right and reports its outcome', async () => {
+    let calls = 0
+    vi.stubGlobal('fetch', vi.fn(async (_url: URL) => {
+      calls += 1
+      return new Response(JSON.stringify(calls <= 2
+        ? { ok: true, value: { efforts: [{ id: 'off', name: 'Off' }], source: 'resolved' } }
+        : { ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } }), { status: 200 })
+    }))
+    renderSection({ user: { provider: 'zhipu', model: 'glm-4.6' } })
+    expect(await screen.findByRole('tab', { name: 'Off' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.reasoning.refresh') }))
+    expect(await screen.findByText(zhCopy('settings.reasoning.refreshOk'))).toBeTruthy()
+    // A refresh that comes back unavailable must say so instead of looking quiet.
+    fireEvent.click(await screen.findByRole('button', { name: zhCopy('settings.reasoning.refresh') }))
+    expect(await screen.findByText(zhCopy('settings.reasoning.refreshFailed'))).toBeTruthy()
+  })
+
   it('resets an overridden row by clearing the stored value', async () => {
     const { mutate } = renderSection({ user: { streaming: false } })
     fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.reset') }))

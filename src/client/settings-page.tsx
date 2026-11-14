@@ -334,6 +334,9 @@ const HINT_STYLE: CSSProperties = {
   lineHeight: 1.5,
   color: 'var(--dsw-alias-label-tertiary, inherit)',
 }
+/** The hint line with the tier-refresh action pinned to its right edge. */
+const HINT_ROW_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, margin: 0 }
+const HINT_TEXT_STYLE: CSSProperties = { ...HINT_STYLE, flex: 1, minWidth: 0 }
 /** Dynamic-tier status line under the reasoning control. */
 const STATUS_STYLE: CSSProperties = {
   margin: 0,
@@ -343,7 +346,7 @@ const STATUS_STYLE: CSSProperties = {
 }
 /** The manual tier-refresh action, styled as a quiet link. */
 const REFRESH_STYLE: CSSProperties = {
-  alignSelf: 'flex-start',
+  flex: 'none',
   border: 'none',
   background: 'none',
   padding: 0,
@@ -632,14 +635,30 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
   const [phase, setPhase] = useState<'loading' | 'ready'>('loading')
   const [capabilities, setCapabilities] = useState<ReasoningCapabilities | undefined>(undefined)
   const [refreshToken, setRefreshToken] = useState(0)
+  const [feedback, setFeedback] = useState<'idle' | 'refreshing' | 'ok' | 'failed'>('idle')
   const forceRef = useRef(false)
+  const feedbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     const controller = new AbortController()
-    setPhase('loading')
-    setCapabilities(undefined)
     const force = forceRef.current
     forceRef.current = false
+    setPhase('loading')
+    setCapabilities(undefined)
+    setFeedback(force ? 'refreshing' : 'idle')
+    if (feedbackTimer.current !== undefined) {
+      clearTimeout(feedbackTimer.current)
+      feedbackTimer.current = undefined
+    }
+    /** Settle the manual-refresh feedback; initial loads show no outcome. */
+    const settle = (result: 'ok' | 'failed'): void => {
+      if (!force) return
+      setFeedback(result)
+      feedbackTimer.current = setTimeout(() => {
+        setFeedback('idle')
+        feedbackTimer.current = undefined
+      }, 3000)
+    }
     fetchReasoningCapabilities(
       props.provider === '' ? undefined : props.provider,
       props.model === '' ? undefined : props.model,
@@ -649,13 +668,21 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
         if (controller.signal.aborted) return
         setCapabilities(answer)
         setPhase('ready')
+        settle(answer.source === 'unavailable' ? 'failed' : 'ok')
       })
       .catch(() => {
         if (controller.signal.aborted) return
         setCapabilities({ efforts: [], source: 'unavailable', reason: 'resolve-failed' })
         setPhase('ready')
+        settle('failed')
       })
-    return () => controller.abort()
+    return () => {
+      controller.abort()
+      if (feedbackTimer.current !== undefined) {
+        clearTimeout(feedbackTimer.current)
+        feedbackTimer.current = undefined
+      }
+    }
     // `pair` covers both ids; the default path reuses the empty string.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pair, refreshToken])
@@ -676,6 +703,7 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
   const known = phase === 'ready' && capabilities?.source !== 'unavailable'
   const unsupported = known && props.view.text !== '' && props.view.text !== 'inherit'
     && !options.some((option) => option.value === props.view.text)
+  const refreshing = feedback === 'refreshing'
   const refresh = (): void => {
     forceRef.current = true
     setRefreshToken((token) => token + 1)
@@ -696,7 +724,21 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
         label={props.label}
         onChange={(next: string) => props.onEdit(next)}
       />
-      <p style={HINT_STYLE}>{props.hint}</p>
+      <div style={HINT_ROW_STYLE}>
+        <p style={HINT_TEXT_STYLE}>{props.hint}</p>
+        {phase === 'ready' || refreshing
+          ? (
+              <button
+                type="button"
+                style={{ ...REFRESH_STYLE, opacity: props.disabled || refreshing ? 0.5 : 1 }}
+                disabled={props.disabled || refreshing}
+                onClick={refresh}
+              >
+                {props.copy.choice(refreshing ? 'settings.reasoning.refreshing' : 'settings.reasoning.refresh')}
+              </button>
+            )
+          : null}
+      </div>
       {phase === 'loading' ? <p style={STATUS_STYLE}>{props.copy.choice('settings.reasoning.loading')}</p> : null}
       {phase === 'ready' && capabilities?.source === 'unavailable'
         ? <p style={STATUS_STYLE}>{props.copy.choice('settings.reasoning.unavailable')}</p>
@@ -704,13 +746,8 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
       {unsupported ? (
         <p style={STATUS_STYLE}>{props.copy.interpolate('settings.reasoning.unsupported', { effort: props.view.text })}</p>
       ) : null}
-      {phase === 'ready'
-        ? (
-            <button type="button" style={REFRESH_STYLE} disabled={props.disabled} onClick={refresh}>
-              {props.copy.choice('settings.reasoning.refresh')}
-            </button>
-          )
-        : null}
+      {feedback === 'ok' ? <p style={STATUS_STYLE} aria-live="polite">{props.copy.choice('settings.reasoning.refreshOk')}</p> : null}
+      {feedback === 'failed' ? <p style={STATUS_STYLE} aria-live="polite">{props.copy.choice('settings.reasoning.refreshFailed')}</p> : null}
     </div>
   )
 }
