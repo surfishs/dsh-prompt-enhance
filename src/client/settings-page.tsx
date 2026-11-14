@@ -13,13 +13,12 @@
  *   chrome, asks for `view: 'page' | 'summary'`, and the row gains a configure
  *   control. Copy there is single-language, read through the locale seat.
  *
- * Both surfaces share one staged form: text and numeric rows ride the shell's
- * `SettingsValueField`, boolean rows its `Switch`, enum rows its
- * `SegmentedControl`. The primitives package ships field helpers only for text
- * and numbers, so this module supplies the boolean and enum descriptors itself
- * — a descriptor is `{ field, format, parse }`, and `parse` decides the JSON
- * value written, which is what keeps a switch writing `true` instead of the
- * string `"true"`.
+ * Both surfaces share one staged form: value rows draw a native input, boolean
+ * rows the shell's `Switch`, enum rows its `SegmentedControl`. The primitives
+ * package ships field helpers only for text and numbers, so this module
+ * supplies the boolean and enum descriptors itself — a descriptor is
+ * `{ field, format, parse }`, and `parse` decides the JSON value written,
+ * which is what keeps a switch writing `true` instead of the string `"true"`.
  * @module dsh-prompt-enhance/client/settings-page
  */
 
@@ -33,9 +32,7 @@ import {
   SegmentedControl,
   SettingsForm,
   SettingsFormModel,
-  SettingsValueField,
   Switch,
-  Tag,
   settingsNumberField,
   settingsTextField,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -276,7 +273,6 @@ function sectionCopy(t: Translate, chinese: boolean): RowCopy {
       saveFailed: t('settings.saveFailed'),
       save: t('settings.save'),
       saving: t('settings.saving'),
-      overridden: t('settings.overridden'),
       reset: t('settings.reset'),
       invalidNumber: t('settings.invalidNumber'),
     },
@@ -302,7 +298,6 @@ function pageCopy(t: Translate): RowCopy {
       saveFailed: t('settings.saveFailed'),
       save: t('settings.save'),
       saving: t('settings.saving'),
-      overridden: t('settings.overridden'),
       reset: t('settings.reset'),
       invalidNumber: t('settings.invalidNumber'),
     },
@@ -356,16 +351,43 @@ const REFRESH_STYLE: CSSProperties = {
   textUnderlineOffset: 2,
   cursor: 'pointer',
 }
-const BADGES_STYLE: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8 }
+/** The reset action: the neutral chip surface, with an underline for affordance. */
 const RESET_STYLE: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '1px 8px',
   border: 'none',
-  background: 'none',
-  padding: 0,
+  borderRadius: 999,
+  background: 'var(--dsw-alias-bg-module-platform, rgba(128, 128, 128, 0.12))',
+  fontFamily: 'inherit',
+  fontSize: 11,
+  fontWeight: 500,
+  lineHeight: '17px',
+  color: 'var(--dsw-alias-label-secondary, inherit)',
+  textDecoration: 'underline',
+  textUnderlineOffset: 2,
+  cursor: 'pointer',
+}
+/** The form input, mirroring the host's `input` metrics for a native control. */
+const INPUT_STYLE: CSSProperties = {
+  boxSizing: 'border-box',
+  width: '100%',
+  height: 34,
+  padding: '0 12px',
+  border: '0.5px solid var(--dsw-alias-border-l4, rgba(128, 128, 128, 0.35))',
+  borderRadius: 'var(--dsw-radius-md, 8px)',
+  background: 'var(--dsw-alias-bg-layer-3, transparent)',
   font: 'inherit',
+  fontSize: 13,
+  lineHeight: 1.5,
+  color: 'var(--dsw-alias-label-primary, inherit)',
+}
+/** The error line under an invalid numeric row. */
+const INVALID_STYLE: CSSProperties = {
+  margin: 0,
   fontSize: 12,
   lineHeight: 1.5,
-  color: 'var(--dsw-alias-label-secondary, inherit)',
-  cursor: 'pointer',
+  color: 'var(--dsw-alias-state-error-primary, #f85149)',
 }
 const SEPARATOR_STYLE: CSSProperties = {
   borderTop: '0.5px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.24))',
@@ -581,12 +603,14 @@ function atDefaultValue(key: string, text: string): boolean {
  */
 function OverrideActions(props: { copy: RowCopy; disabled: boolean; onReset: () => void }): ReactElement {
   return (
-    <span style={BADGES_STYLE}>
-      <Tag tone="neutral">{props.copy.labels.overridden}</Tag>
-      <button type="button" style={RESET_STYLE} disabled={props.disabled} onClick={props.onReset}>
-        {props.copy.labels.reset}
-      </button>
-    </span>
+    <button
+      type="button"
+      style={{ ...RESET_STYLE, ...props.disabled ? { opacity: 0.5, cursor: 'default' } : {} }}
+      disabled={props.disabled}
+      onClick={props.onReset}
+    >
+      {props.copy.labels.reset}
+    </button>
   )
 }
 
@@ -773,6 +797,49 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
 }
 
 /**
+ * A text/number row: the title and the reset chip on one line, a native input,
+ * then the hint. The host's `SettingsValueField` draws its own badge and reset
+ * link, which would diverge from the chip the other rows use, so value rows
+ * share this control instead.
+ * @param props - the row, its copy, state, and whether it is numeric.
+ * @returns the row element.
+ */
+function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string }): ReactElement {
+  const [focused, setFocused] = useState(false)
+  const invalid = props.view.invalid
+  const borderColor = invalid
+    ? 'var(--dsw-alias-state-error-primary, #f85149)'
+    : focused ? 'var(--dsw-alias-state-business-primary, #4f8cff)' : undefined
+  return (
+    <div style={ROW_STYLE}>
+      <div style={HEAD_STYLE}>
+        <label htmlFor={props.id} style={LABEL_STYLE}>{props.label}</label>
+        {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
+      </div>
+      <input
+        id={props.id}
+        type="text"
+        inputMode={props.numeric ? 'numeric' : undefined}
+        aria-invalid={invalid || undefined}
+        disabled={props.disabled}
+        placeholder={props.placeholder}
+        value={props.view.text}
+        style={{
+          ...INPUT_STYLE,
+          ...props.disabled ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {},
+          ...borderColor === undefined ? {} : { borderColor },
+        }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onChange={(event) => props.onEdit(event.target.value)}
+      />
+      <p style={HINT_STYLE}>{props.hint}</p>
+      {invalid ? <p style={INVALID_STYLE}>{props.copy.labels.invalidNumber}</p> : null}
+    </div>
+  )
+}
+
+/**
  * One row, rendered as the control its kind asks for.
  * @param props - the row, its copy, its state, its actions, and the pinned pair.
  * @returns the row element.
@@ -796,24 +863,7 @@ function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled
     case 'reasoning':
       return <ReasoningRow {...shared} provider={props.reasoningPair.provider} model={props.reasoningPair.model} />
     default:
-      return (
-        <SettingsValueField
-          id={shared.id}
-          label={shared.label}
-          hint={shared.hint}
-          overriddenLabel={props.copy.labels.overridden}
-          resetLabel={props.copy.labels.reset}
-          invalidLabel={props.copy.labels.invalidNumber}
-          numeric={props.row.kind === 'number'}
-          disabled={props.disabled}
-          text={props.view.text}
-          placeholder={props.copy.placeholder(props.row)}
-          overridden={props.view.overridden}
-          invalid={props.view.invalid}
-          onEdit={props.onEdit}
-          onReset={props.onReset}
-        />
-      )
+      return <ValueRow {...shared} numeric={props.row.kind === 'number'} placeholder={props.copy.placeholder(props.row)} />
   }
 }
 

@@ -326,20 +326,21 @@ describe('settings dialog page', () => {
     expect(await screen.findByText(zhCopy('settings.reasoning.refreshFailed'))).toBeTruthy()
   })
 
-  it('hides the override badge when a manual edit returns to the default', () => {
+  it('hides the reset action when a manual edit returns to the default', () => {
     const { model } = renderSection({
       values: { enabled: false, timeoutMs: 30000 },
       user: { enabled: true, timeoutMs: true },
     })
-    expect(screen.getAllByText(zhCopy('settings.overridden'))).toHaveLength(2)
+    const resetButtons = (): HTMLElement[] => screen.queryAllByRole('button', { name: zhCopy('settings.reset') })
+    expect(resetButtons()).toHaveLength(2)
     // Toggle the switch and type the number back to their shipped defaults.
     fireEvent.click(switchOf(sectionTitle('enabled')))
     fireEvent.change(screen.getByLabelText(sectionTitle('timeoutMs')), { target: { value: '60000' } })
     // The form still stages an explicit value (the host flag stays true)…
     expect(model.field('enabled').overridden).toBe(true)
     expect(model.field('timeoutMs').overridden).toBe(true)
-    // …but there is nothing left to reset, so the badge and action disappear.
-    expect(screen.queryByText(zhCopy('settings.overridden'))).toBeNull()
+    // …but there is nothing left to reset, so the action disappears.
+    expect(resetButtons()).toHaveLength(0)
   })
 
   it('resets an overridden row by clearing the stored value', async () => {
