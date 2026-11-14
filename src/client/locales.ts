@@ -6,7 +6,7 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
-  'button.title': '提示词增强（重写为结构化提示词）',
+  'button.title': '提示词增强',
   'button.busy': '正在增强…',
   'button.otherBusy': '另一个会话正在增强中；请等它完成或先关闭其结果面板。',
   'panel.title': '提示词增强',
@@ -118,7 +118,7 @@ export type PromptEnhanceKey = keyof typeof zh
 
 /** English dictionary. */
 export const en: Record<PromptEnhanceKey, string> = {
-  'button.title': 'Enhance prompt (rewrite into a structured prompt)',
+  'button.title': 'Enhance prompt',
   'button.busy': 'Enhancing…',
   'button.otherBusy': 'Another session is enhancing right now — wait for it, or close its result panel first.',
   'panel.title': 'Prompt Enhance',
