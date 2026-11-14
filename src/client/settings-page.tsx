@@ -334,9 +334,6 @@ const HINT_STYLE: CSSProperties = {
   lineHeight: 1.5,
   color: 'var(--dsw-alias-label-tertiary, inherit)',
 }
-/** The hint line with the tier-refresh action pinned to its right edge. */
-const HINT_ROW_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, margin: 0 }
-const HINT_TEXT_STYLE: CSSProperties = { ...HINT_STYLE, flex: 1, minWidth: 0 }
 /** Dynamic-tier status line under the reasoning control. */
 const STATUS_STYLE: CSSProperties = {
   margin: 0,
@@ -712,20 +709,6 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
     <div style={ROW_STYLE}>
       <div style={HEAD_STYLE}>
         <span style={LABEL_STYLE}>{props.label}</span>
-        {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
-      </div>
-      <SegmentedControl
-        id={props.id}
-        value={props.view.text}
-        options={options}
-        // "Follow provider default" stays selectable while the tier list is
-        // still loading; the tier choices themselves only appear once known.
-        disabled={props.disabled}
-        label={props.label}
-        onChange={(next: string) => props.onEdit(next)}
-      />
-      <div style={HINT_ROW_STYLE}>
-        <p style={HINT_TEXT_STYLE}>{props.hint}</p>
         {phase === 'ready' || refreshing
           ? (
               <button
@@ -738,7 +721,19 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
               </button>
             )
           : null}
+        {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
       </div>
+      <SegmentedControl
+        id={props.id}
+        value={props.view.text}
+        options={options}
+        // "Follow provider default" stays selectable while the tier list is
+        // still loading; the tier choices themselves only appear once known.
+        disabled={props.disabled}
+        label={props.label}
+        onChange={(next: string) => props.onEdit(next)}
+      />
+      <p style={HINT_STYLE}>{props.hint}</p>
       {phase === 'loading' ? <p style={STATUS_STYLE}>{props.copy.choice('settings.reasoning.loading')}</p> : null}
       {phase === 'ready' && capabilities?.source === 'unavailable'
         ? <p style={STATUS_STYLE}>{props.copy.choice('settings.reasoning.unavailable')}</p>
