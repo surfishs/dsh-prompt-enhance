@@ -1,77 +1,15 @@
 /**
- * Browser-side reasoning-effort capabilities: fetch once per provider/model,
- * then persist the answer in `localStorage` so reopening the settings page does
- * not ask again.
+ * Browser-side reasoning-effort lookup.
  *
- * The freshness policy is deliberately NOT time based: the user asked for the
- * options to change only when the pinned pair changes or the user presses
- * refresh. A pair keyed cache therefore has no TTL; a cache entry is replaced
- * only by an explicit refresh or by a different pair.
+ * The durable cache belongs to the host (a JSON file under the Harness home),
+ * because the browser origin — and therefore `localStorage` — changes whenever
+ * the desktop app restarts on another port. The client therefore asks the
+ * read-only route every time the settings page mounts; a cache hit is a fast
+ * disk read on the host and is never re-resolved. `refresh` bypasses that cache.
  * @module dsh-prompt-enhance/client/reasoning-options
  */
 
 import { REASONING_EFFORTS_ENDPOINT, type ReasoningCapabilities, type ReasoningEffortInfo } from '../shared/reasoning'
-
-/** Cache namespace; bumping the suffix invalidates every stored answer. */
-const CACHE_KEY = 'dsh-prompt-enhance:reasoning-efforts:v1'
-
-/** One cached capability answer for one provider/model pair. */
-interface CacheEntry {
-  provider: string
-  model: string
-  capabilities: ReasoningCapabilities
-  savedAt: number
-}
-
-/** The whole cache document (pair → answer). */
-type CacheDocument = Record<string, CacheEntry>
-
-/** Stable key of one pair. */
-function pairKey(provider: string, model: string): string {
-  return `${provider}/${model}`
-}
-
-/** Read the cache document, tolerating absent/corrupt storage. */
-function readDocument(): CacheDocument {
-  try {
-    const raw = globalThis.localStorage?.getItem(CACHE_KEY)
-    if (typeof raw !== 'string' || raw === '') return {}
-    const parsed: unknown = JSON.parse(raw)
-    return parsed !== null && typeof parsed === 'object' ? parsed as CacheDocument : {}
-  } catch {
-    return {}
-  }
-}
-
-/** Write the cache document, ignoring quota/disabled-storage failures. */
-function writeDocument(document: CacheDocument): void {
-  try {
-    globalThis.localStorage?.setItem(CACHE_KEY, JSON.stringify(document))
-  } catch {
-    // Storage is a convenience, never a requirement.
-  }
-}
-
-/** Read the cached answer for one pair. */
-export function readCachedCapabilities(provider: string, model: string): ReasoningCapabilities | undefined {
-  const entry = readDocument()[pairKey(provider, model)]
-  return entry !== undefined && entry.capabilities !== undefined ? entry.capabilities : undefined
-}
-
-/** Persist one resolved answer; only resolved lists are cached. */
-export function writeCachedCapabilities(provider: string, model: string, capabilities: ReasoningCapabilities): void {
-  if (capabilities.source !== 'resolved') return
-  const document = readDocument()
-  document[pairKey(provider, model)] = { provider, model, capabilities, savedAt: Date.now() }
-  writeDocument(document)
-}
-
-/** Drop the cached answer for one pair (manual refresh). */
-export function clearCachedCapabilities(provider: string, model: string): void {
-  const document = readDocument()
-  delete document[pairKey(provider, model)]
-  writeDocument(document)
-}
 
 /** Narrow one effort from the wire. */
 function effortOf(value: unknown): ReasoningEffortInfo | undefined {
@@ -109,17 +47,22 @@ function capabilitiesOf(value: unknown): ReasoningCapabilities {
  * Ask the host for one route's declared efforts.
  * @param provider - pinned provider, or undefined to follow the default model.
  * @param model - pinned model, or undefined to follow the default model.
- * @param signal - aborts an in-flight lookup when the pair changes.
+ * @param options - `refresh` bypasses the host cache; `signal` cancels.
  * @returns the validated answer; transport failures surface as `unavailable`.
  */
-export async function fetchReasoningCapabilities(provider: string | undefined, model: string | undefined, signal?: AbortSignal): Promise<ReasoningCapabilities> {
+export async function fetchReasoningCapabilities(
+  provider: string | undefined,
+  model: string | undefined,
+  options: { refresh?: boolean; signal?: AbortSignal } = {},
+): Promise<ReasoningCapabilities> {
   const url = new URL(REASONING_EFFORTS_ENDPOINT, globalThis.location?.origin ?? 'http://127.0.0.1')
   if (provider !== undefined && model !== undefined) {
     url.searchParams.set('provider', provider)
     url.searchParams.set('model', model)
   }
+  if (options.refresh === true) url.searchParams.set('refresh', '1')
   try {
-    const response = await fetch(url, { signal, headers: { accept: 'application/json' } })
+    const response = await fetch(url, { signal: options.signal, headers: { accept: 'application/json' } })
     if (!response.ok) return { efforts: [], source: 'unavailable', reason: 'resolve-failed' }
     const body: unknown = await response.json()
     const envelope = body as { ok?: unknown; value?: unknown } | null
@@ -130,32 +73,4 @@ export async function fetchReasoningCapabilities(provider: string | undefined, m
   } catch {
     return { efforts: [], source: 'unavailable', reason: 'resolve-failed' }
   }
-}
-
-/**
- * Load one pair's capabilities, using the persistent cache unless forced.
- *
- * A pinned pair is cached; the default-model path is never cached because its
- * answer depends on a selection the settings page cannot observe.
- * @param provider - pinned provider, or undefined.
- * @param model - pinned model, or undefined.
- * @param options - `force` bypasses and replaces the cache; `signal` cancels.
- * @returns the capability answer.
- */
-export async function loadReasoningCapabilities(
-  provider: string | undefined,
-  model: string | undefined,
-  options: { force?: boolean; signal?: AbortSignal } = {},
-): Promise<ReasoningCapabilities> {
-  const pinned = provider !== undefined && model !== undefined
-  if (pinned && options.force !== true) {
-    const cached = readCachedCapabilities(provider, model)
-    if (cached !== undefined) return cached
-  }
-  const answer = await fetchReasoningCapabilities(provider, model, options.signal)
-  if (pinned) {
-    if (answer.source === 'resolved') writeCachedCapabilities(provider, model, answer)
-    else clearCachedCapabilities(provider, model)
-  }
-  return answer
 }

@@ -44,12 +44,13 @@ export async function serveReasoningEfforts(ctx: Context, req: IncomingMessage, 
   }
   const provider = queryParam(url, 'provider')
   const model = queryParam(url, 'model')
+  const refresh = queryParam(url, 'refresh')
   // A pair is all-or-nothing: an unpaired value would describe a route that
   // cannot be called, so the panel never renders options for it.
   if ((provider === undefined) !== (model === undefined)) {
     writeJson(res, 422, { ok: false, error: { code: 'rejected', message: 'provider 与 model 必须成对填写。' } })
     return
   }
-  const value = await resolveReasoningCapabilities(ctx, provider, model)
+  const value = await resolveReasoningCapabilities(ctx, provider, model, { refresh: refresh === '1' || refresh === 'true' })
   writeJson(res, 200, { ok: true, value })
 }

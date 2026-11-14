@@ -65,7 +65,7 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | `enabled` | `true` | Master switch |
 | `provider` + `model` | empty | Pinned route override, set as a pair; empty follows the session model |
 | `temperature` | `0.3` | Lower stays closer to the original |
-| `reasoningEffort` | Provider default | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`); a custom model is read on demand and cached locally. `inherit` means "follow provider default" |
+| `reasoningEffort` | Provider default | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`); a custom model is read on demand and cached under the Harness home (`DSH_HOME` or `~/.dsh`). `inherit` means "follow provider default" |
 | `maxOutputTokens` | `8192` | Output token budget per call |
 | `maxInputChars` | `12000` | Input character cap; over-limit is rejected, never truncated |
 | `timeoutMs` | `60000` | End-to-end timeout per call (ms) |

@@ -7,7 +7,10 @@
  * @module tests/reasoning-route
  */
 
-import { describe, expect, it, vi } from 'vitest'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
 import { resolveReasoningCapabilities } from '../src/reasoning-efforts'
 import { serveReasoningEfforts } from '../src/reasoning-route'
@@ -38,6 +41,21 @@ function fakeRes(): { status: number; body: string; writeHead: (status: number) 
   return res
 }
 
+/** Isolate the persistent cache from the developer's real Harness home. */
+let home = ''
+const previousHome = process.env.DSH_HOME
+
+beforeEach(async () => {
+  home = await mkdtemp(join(tmpdir(), 'dpe-reasoning-'))
+  process.env.DSH_HOME = home
+})
+
+afterEach(async () => {
+  if (previousHome === undefined) delete process.env.DSH_HOME
+  else process.env.DSH_HOME = previousHome
+  await rm(home, { recursive: true, force: true })
+})
+
 describe('resolveReasoningCapabilities', () => {
   it('maps the route’s declared efforts and default', async () => {
     const resolveModelInfo = vi.fn(async () => ({
@@ -53,6 +71,26 @@ describe('resolveReasoningCapabilities', () => {
       source: 'resolved',
     })
     expect(resolveModelInfo).toHaveBeenCalledWith('zhipu', 'glm-4.6', expect.any(AbortSignal))
+  })
+
+  it('answers a pinned pair from the host cache until a refresh is requested', async () => {
+    const resolveModelInfo = vi.fn(async () => ({ reasoning: { efforts: [{ id: 'low', name: 'Low' }], defaultEffort: 'low' } }))
+    const ctx = ctxOf({ resolveModelInfo })
+    const first = await resolveReasoningCapabilities(ctx, 'zhipu', 'glm-4.6')
+    expect(first).toEqual({ efforts: [{ id: 'low', name: 'Low' }], defaultEffort: 'low', source: 'resolved' })
+    // A second mount reads the disk cache instead of resolving again.
+    expect(await resolveReasoningCapabilities(ctx, 'zhipu', 'glm-4.6')).toEqual(first)
+    expect(resolveModelInfo).toHaveBeenCalledTimes(1)
+    await resolveReasoningCapabilities(ctx, 'zhipu', 'glm-4.6', { refresh: true })
+    expect(resolveModelInfo).toHaveBeenCalledTimes(2)
+  })
+
+  it('persists the cache under the Harness home', async () => {
+    const resolveModelInfo = async () => ({ reasoning: { efforts: [{ id: 'off', name: 'Off' }] } })
+    await resolveReasoningCapabilities(ctxOf({ resolveModelInfo }), 'zhipu', 'glm-4.6')
+    const raw = await readFile(join(home, 'dsh-prompt-enhance', 'reasoning-efforts.json'), 'utf8')
+    const parsed = JSON.parse(raw) as { entries: Record<string, { efforts: Array<{ id: string }> }> }
+    expect(parsed.entries['zhipu/glm-4.6']?.efforts[0]?.id).toBe('off')
   })
 
   it('answers from the static DeepSeek catalog when following a DeepSeek default', async () => {

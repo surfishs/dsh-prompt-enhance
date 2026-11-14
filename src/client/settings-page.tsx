@@ -27,7 +27,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactElement } fr
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { isDeepSeekProvider, type ReasoningCapabilities } from '../shared/reasoning'
-import { loadReasoningCapabilities } from './reasoning-options'
+import { fetchReasoningCapabilities } from './reasoning-options'
 import {
   SegmentedControl,
   SettingsForm,
@@ -640,10 +640,10 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
     setCapabilities(undefined)
     const force = forceRef.current
     forceRef.current = false
-    loadReasoningCapabilities(
+    fetchReasoningCapabilities(
       props.provider === '' ? undefined : props.provider,
       props.model === '' ? undefined : props.model,
-      { force, signal: controller.signal },
+      { refresh: force, signal: controller.signal },
     )
       .then((answer) => {
         if (controller.signal.aborted) return

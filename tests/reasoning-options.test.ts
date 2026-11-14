@@ -1,73 +1,57 @@
 // @vitest-environment jsdom
 /**
- * The reasoning-capability client cache.
- *
- * The freshness policy is explicit: a pinned pair is cached with NO TTL and is
- * only replaced by a pair change or a manual refresh; the default-model path is
- * never cached because the settings page cannot observe that selection.
+ * The browser-side reasoning lookup. The durable cache lives on the host, so
+ * these tests only pin the request shape: the pinned pair, the refresh flag,
+ * and the tolerant decoding of the answer.
  * @module tests/reasoning-options
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { loadReasoningCapabilities, readCachedCapabilities } from '../src/client/reasoning-options'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fetchReasoningCapabilities } from '../src/client/reasoning-options'
 
 /** Build one JSON response. */
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 }
 
-const RESOLVED = {
-  efforts: [{ id: 'low', name: 'Low' }, { id: 'max', name: 'Max', description: 'hardest' }],
-  defaultEffort: 'high',
-  source: 'resolved' as const,
-}
-
-beforeEach(() => {
-  localStorage.clear()
+afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('reasoning capability cache', () => {
-  it('persists a resolved answer and serves it without another request', async () => {
-    const fetchMock = vi.fn(async () => json({ ok: true, value: RESOLVED }))
+describe('fetchReasoningCapabilities', () => {
+  it('sends the pinned pair and no refresh flag by default', async () => {
+    const fetchMock = vi.fn(async (_url: URL) => json({
+      ok: true,
+      value: { efforts: [{ id: 'max', name: 'Max' }], defaultEffort: 'high', source: 'resolved' },
+    }))
     vi.stubGlobal('fetch', fetchMock)
-    expect(await loadReasoningCapabilities('zhipu', 'glm-4.6')).toEqual(RESOLVED)
-    expect(await loadReasoningCapabilities('zhipu', 'glm-4.6')).toEqual(RESOLVED)
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const capabilities = await fetchReasoningCapabilities('zhipu', 'glm-4.6')
+    expect(capabilities).toEqual({ efforts: [{ id: 'max', name: 'Max' }], defaultEffort: 'high', source: 'resolved' })
+    const url = fetchMock.mock.calls[0]?.[0]
+    expect(url?.searchParams.get('provider')).toBe('zhipu')
+    expect(url?.searchParams.get('model')).toBe('glm-4.6')
+    expect(url?.searchParams.has('refresh')).toBe(false)
   })
 
-  it('bypasses and replaces the cache on an explicit refresh', async () => {
-    const fetchMock = vi.fn(async () => json({ ok: true, value: RESOLVED }))
+  it('asks the host to bypass its cache on refresh', async () => {
+    const fetchMock = vi.fn(async (_url: URL) => json({ ok: true, value: { efforts: [{ id: 'low', name: 'Low' }], source: 'resolved' } }))
     vi.stubGlobal('fetch', fetchMock)
-    await loadReasoningCapabilities('zhipu', 'glm-4.6')
-    await loadReasoningCapabilities('zhipu', 'glm-4.6', { force: true })
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(readCachedCapabilities('zhipu', 'glm-4.6')).toEqual(RESOLVED)
+    await fetchReasoningCapabilities('zhipu', 'glm-4.6', { refresh: true })
+    expect(fetchMock.mock.calls[0]?.[0]?.searchParams.get('refresh')).toBe('1')
   })
 
-  it('does not cache an unavailable answer', async () => {
-    const fetchMock = vi.fn(async () => json({ ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } }))
-    vi.stubGlobal('fetch', fetchMock)
-    await loadReasoningCapabilities('p', 'm')
-    expect(readCachedCapabilities('p', 'm')).toBeUndefined()
-    await loadReasoningCapabilities('p', 'm')
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-  })
-
-  it('never caches the default-model path and sends no pair', async () => {
+  it('omits the pair when following the default model', async () => {
     const fetchMock = vi.fn(async (_url: URL) => json({ ok: true, value: { efforts: [{ id: 'off', name: 'Off' }], source: 'default' } }))
     vi.stubGlobal('fetch', fetchMock)
-    await loadReasoningCapabilities(undefined, undefined)
-    await loadReasoningCapabilities(undefined, undefined)
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    await fetchReasoningCapabilities(undefined, undefined)
     const url = fetchMock.mock.calls[0]?.[0]
     expect(url?.searchParams.has('provider')).toBe(false)
+    expect(url?.searchParams.has('refresh')).toBe(false)
   })
 
-  it('maps a malformed payload to unavailable without caching it', async () => {
+  it('maps a malformed payload to unavailable', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => json({ ok: true, value: { efforts: 'nope', source: 'resolved' } })))
-    const capabilities = await loadReasoningCapabilities('p', 'm')
+    const capabilities = await fetchReasoningCapabilities('p', 'm')
     expect(capabilities.source).toBe('unavailable')
-    expect(readCachedCapabilities('p', 'm')).toBeUndefined()
   })
 })
