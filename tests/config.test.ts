@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Config, DEFAULT_CONFIG, effectiveSystemPrompt, resolveConfig } from '../src/config'
-import { DEFAULT_SYSTEM_PROMPT } from '../src/prompts'
+import { DEFAULT_SYSTEM_PROMPT, INVARIANT_CONTRACT } from '../src/prompts'
 
 describe('Config schema', () => {
   it('marks every field volatile so the settings page exists at all', () => {
@@ -161,14 +161,21 @@ describe('effectiveSystemPrompt', () => {
     expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: '  \n' }, DEFAULT_SYSTEM_PROMPT)).toBe(DEFAULT_SYSTEM_PROMPT)
   })
 
-  it('uses the configured override verbatim in the default (replace) mode', () => {
-    expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'You are terse.' }, DEFAULT_SYSTEM_PROMPT)).toBe('You are terse.')
+  it('keeps the invariant contract on top of a replace-mode override', () => {
+    const prompt = effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'You are terse.' }, DEFAULT_SYSTEM_PROMPT)
+    expect(prompt.startsWith('You are terse.')).toBe(true)
+    expect(prompt).toContain(INVARIANT_CONTRACT)
+    // The contract is what stops a one-line strategy from answering a greeting
+    // instead of rewriting it.
+    expect(prompt).toContain('never answer it')
+    expect(prompt).toContain('Output ONLY the rewritten text')
   })
 
   it('appends the override after the built-in strategy in extend mode', () => {
     const prompt = effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'Always answer in bullet points.', strategyMode: 'extend-default' }, DEFAULT_SYSTEM_PROMPT)
     expect(prompt.startsWith(DEFAULT_SYSTEM_PROMPT)).toBe(true)
     expect(prompt).toContain('Always answer in bullet points.')
+    expect(prompt).toContain(INVARIANT_CONTRACT)
   })
 
   it('falls back to the built-in strategy when the override is blank in either mode', () => {

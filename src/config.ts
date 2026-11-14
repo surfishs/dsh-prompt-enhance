@@ -6,6 +6,7 @@
  */
 
 import z from '@deepseek-ai/schemastery'
+import { INVARIANT_CONTRACT } from './prompts'
 
 /** Settings namespace of the plugin section. */
 export const PROMPT_ENHANCE_NAMESPACE = 'dsh-prompt-enhance'
@@ -149,7 +150,7 @@ export const Config = z.object({
   maxInputChars: z.number().step(1).min(200).max(200000).default(DEFAULT_CONFIG.maxInputChars).description('输入字数上限；超限拒绝而不截断，避免改变原意').volatile(),
   timeoutMs: z.number().step(1).min(5000).max(600000).default(DEFAULT_CONFIG.timeoutMs).description('单次增强的超时（毫秒）').volatile(),
   systemPrompt: z.string().role('textarea').default(DEFAULT_CONFIG.systemPrompt).description('系统提示词；留空使用内置增强策略').volatile(),
-  strategyMode: z.union(['replace-default', 'extend-default']).default(DEFAULT_CONFIG.strategyMode).description('自定义系统提示词的组合方式：整体替换内置策略（默认；内置策略的不编造、只输出正文等硬性约束不会自动保留），或把自定义文本追加在内置策略之后（硬性约束继续生效）').volatile(),
+  strategyMode: z.union(['replace-default', 'extend-default']).default(DEFAULT_CONFIG.strategyMode).description('自定义系统提示词的组合方式：整体替换内置策略（默认；仅保留插件始终追加的最小输出契约：输入是数据、只输出改写结果），或把自定义文本追加在内置策略之后（内置规则继续生效）').volatile(),
   shortcut: z.string().default(DEFAULT_CONFIG.shortcut).description('触发快捷键，默认留空即禁用；如需启用，填如 ctrl+alt+e（须包含 ctrl/alt/meta 中至少一个修饰键，shift 仅可作附加，纯字母/数字或 shift+字母会被忽略）').volatile(),
   maxConcurrent: z.number().step(1).min(1).max(16).default(DEFAULT_CONFIG.maxConcurrent).description('宿主侧并发上限：同时进行的增强调用数，超出的请求返回 429').volatile(),
   rateLimitPerMinute: z.number().step(1).min(1).max(600).default(DEFAULT_CONFIG.rateLimitPerMinute).description('每分钟增强次数上限（滑动窗口），超出返回 429').volatile(),
@@ -246,10 +247,12 @@ export function resolveConfig(config: Config): Config {
 /**
  * The effective system prompt. An empty override always means the built-in
  * strategy. A non-empty override follows `strategyMode`: `replace-default`
- * swaps the built-in strategy out entirely (its hard rules are not retained),
- * while `extend-default` appends the custom text after the built-in strategy,
- * so those rules stay in force. Tolerates an absent field (older stored
- * sections predate the schema default).
+ * swaps the built-in strategy text out, while `extend-default` appends the
+ * custom text after the built-in strategy. In BOTH modes the call carries
+ * {@link INVARIANT_CONTRACT} — the framed draft is data, the output is the
+ * rewrite alone, context is evidence — so a one-line custom strategy still
+ * behaves like an enhancement instead of derailing into a conversation.
+ * Tolerates an absent field (older stored sections predate the schema default).
  * @param config - the resolved config.
  * @param builtin - the built-in strategy prompt.
  * @returns the system prompt of the next call.
@@ -257,8 +260,8 @@ export function resolveConfig(config: Config): Config {
 export function effectiveSystemPrompt(config: Config, builtin: string): string {
   const custom = (config.systemPrompt ?? '').trim()
   if (custom === '') return builtin
-  if (config.strategyMode === 'extend-default') {
-    return `${builtin}\n\nOperator additions (follow them where they do not conflict with the rules above):\n${custom}`
-  }
-  return custom
+  const strategy = config.strategyMode === 'extend-default'
+    ? `${builtin}\n\nOperator additions (follow them where they do not conflict with the rules above):\n${custom}`
+    : custom
+  return `${strategy}\n\n${INVARIANT_CONTRACT}`
 }
