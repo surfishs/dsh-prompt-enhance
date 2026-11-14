@@ -220,7 +220,7 @@ describe('enhance → apply → undo loop', () => {
       provider: 'p',
       model: 'm',
       elapsedMs: 5,
-      usage: { inputTokens: 10, outputTokens: 5, totalTokens: 1545 },
+      usage: { inputTokens: 10, outputTokens: 5, totalTokens: 1545, cacheReadTokens: 3 },
     })
 
     fireEvent.click(enhanceButton())
@@ -231,6 +231,10 @@ describe('enhance → apply → undo loop', () => {
     expect(tokenText).toBeTruthy()
     expect(tokenText.getAttribute('title')).toContain('输入 10')
     expect(tokenText.getAttribute('title')).toContain('输出 5')
+    // A cache counter appears only when the provider reported one above zero:
+    // cache reads show here, cache writes stay hidden.
+    expect(tokenText.getAttribute('title')).toContain('缓存读取 3')
+    expect(tokenText.getAttribute('title')).not.toContain('缓存写入')
     expect(requestEnhance).toHaveBeenCalledWith({ sessionId: 's1', text: '旧原文' }, expect.anything())
 
     fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))

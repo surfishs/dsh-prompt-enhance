@@ -197,6 +197,25 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
   const totalTokensOf = (usage: EnhanceUsage): number =>
     usage.totalTokens ?? usage.inputTokens + usage.outputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0)
 
+  /**
+   * The tooltip under the token total. Input and output always appear; a cache
+   * counter only appears when the provider reported one above zero, so a route
+   * without explicit cache writes does not print a meaningless 0.
+   */
+  const tokenDetail = (usage: EnhanceUsage): string => {
+    const parts = [
+      t('panel.tokens.input', { count: formatTokens(usage.inputTokens) }),
+      t('panel.tokens.output', { count: formatTokens(usage.outputTokens) }),
+    ]
+    if ((usage.cacheReadTokens ?? 0) > 0) {
+      parts.push(t('panel.tokens.cacheRead', { count: formatTokens(usage.cacheReadTokens ?? 0) }))
+    }
+    if ((usage.cacheWriteTokens ?? 0) > 0) {
+      parts.push(t('panel.tokens.cacheWrite', { count: formatTokens(usage.cacheWriteTokens ?? 0) }))
+    }
+    return parts.join(' · ')
+  }
+
   return (
     <div className="dsh-pe-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel() }}>
       <section
@@ -218,12 +237,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
                     <>
                       {' · '}
                       <span
-                        title={t('panel.tokens.detail', {
-                          input: formatTokens(state.result.usage.inputTokens),
-                          output: formatTokens(state.result.usage.outputTokens),
-                          cacheRead: formatTokens(state.result.usage.cacheReadTokens ?? 0),
-                          cacheWrite: formatTokens(state.result.usage.cacheWriteTokens ?? 0),
-                        })}
+                        title={tokenDetail(state.result.usage)}
                       >
                         {t('panel.tokens', { total: formatTokens(totalTokensOf(state.result.usage)) })}
                       </span>
