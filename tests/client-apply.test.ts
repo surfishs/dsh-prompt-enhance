@@ -23,7 +23,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { apply, inject } from '../src/client/index'
 import * as ui from '../src/client/ui-state'
-import { getClientSettings, setClientSettings } from '../src/client/settings'
+import { DEFAULT_CLIENT_SETTINGS, getClientSettings, setClientSettings } from '../src/client/settings'
 
 beforeEach(() => {
   // The mirror is module-level state; start every case from the shipped default.
@@ -93,7 +93,9 @@ describe('browser half boot', () => {
     apply(ctx)
     const settings = getClientSettings()
     expect(settings.enabled).toBe(true)
-    expect(settings.shortcut).toBe('ctrl+alt+e')
+    // Compare against the shipped mirror rather than a literal, so a default
+    // change updates one place.
+    expect(settings.shortcut).toBe(DEFAULT_CLIENT_SETTINGS.shortcut)
     expect(settings.maxInputChars).toBeGreaterThan(1000)
   })
 })

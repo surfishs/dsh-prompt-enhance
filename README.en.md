@@ -11,7 +11,7 @@
 
 ## Features
 
-- **One-click enhance**: the ✨ button beside send, or `Ctrl+Alt+E` (configurable).
+- **One-click enhance**: the ✨ button beside send; the shortcut is off by default and can be set in the settings.
 - **Side-by-side preview**: original and result together, with model and timing; apply, copy, or cancel.
 - **One-click undo**: an undo bar appears under the composer after applying.
 - **`/enhance <text>`**: rewrite any text from the slash menu; the result never enters model history.
@@ -52,7 +52,7 @@ dsh plugin --profile web remove dsh-prompt-enhance
 
 ## Usage
 
-Leave a draft in the composer, then click ✨ or press `Ctrl+Alt+E`. Empty, over-length, images-only, and command/reference drafts are rejected locally (over-length is never truncated). A valid draft opens the preview; Apply writes it back and raises the undo bar, Copy puts it on the clipboard, `Esc` cancels, and a poor result can be retried.
+Leave a draft in the composer, then click ✨ (or your configured shortcut). Empty, over-length, images-only, and command/reference drafts are rejected locally (over-length is never truncated). A valid draft opens the preview; Apply writes it back and raises the undo bar, Copy puts it on the clipboard, `Esc` cancels, and a poor result can be retried.
 
 `/enhance <text>` rewrites any text from the slash menu; the result is copyable and never enters model history.
 
@@ -70,7 +70,7 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | `maxInputChars` | `12000` | Input character cap; over-limit is rejected, never truncated |
 | `timeoutMs` | `60000` | End-to-end timeout per call (ms) |
 | `systemPrompt` / `strategyMode` | empty / `replace-default` | Custom strategy; `extend-default` appends it after the built-in one |
-| `shortcut` | `ctrl+alt+e` | Trigger shortcut; empty disables it |
+| `shortcut` | empty (disabled) | Trigger shortcut; set it to enable, e.g. `ctrl+alt+e` |
 | `streaming` | `true` | Show the result as it is written (display only) |
 | `contextAware` | `true` | Use recent conversation; turn it off for sensitive sessions |
 

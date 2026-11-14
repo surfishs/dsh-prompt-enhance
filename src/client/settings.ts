@@ -26,7 +26,7 @@ void _assertMirror
 export const DEFAULT_CLIENT_SETTINGS: ClientSettings = {
   enabled: true,
   maxInputChars: 12000,
-  shortcut: 'ctrl+alt+e',
+  shortcut: '',
   streaming: true,
 }
 
