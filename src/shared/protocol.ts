@@ -48,6 +48,27 @@ export interface EnhanceRequestBody {
   text: string
 }
 
+/**
+ * Token accounting of one enhancement call, copied from the harness's
+ * `TokenUsage` so the browser half needs no dependency on it.
+ *
+ * Counts are disjoint: `inputTokens` is uncached input only, cached input sits
+ * in the cache fields, and `totalTokens` is the provider's own total when it
+ * reports one.
+ */
+export interface EnhanceUsage {
+  /** Uncached input tokens. */
+  inputTokens: number
+  /** Output tokens. */
+  outputTokens: number
+  /** Provider-reported full-call total, when available. */
+  totalTokens?: number
+  /** Input tokens served from the prompt cache. */
+  cacheReadTokens?: number
+  /** Input tokens written to the prompt cache. */
+  cacheWriteTokens?: number
+}
+
 /** One successful enhancement. */
 export interface EnhanceResult {
   /** The rewritten prompt body (already normalized: no fences, trimmed). */
@@ -58,6 +79,8 @@ export interface EnhanceResult {
   model: string
   /** Wall-clock duration of the model call in milliseconds. */
   elapsedMs: number
+  /** Token accounting, when the route reported any. */
+  usage?: EnhanceUsage
 }
 
 /**

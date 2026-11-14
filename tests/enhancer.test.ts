@@ -89,6 +89,8 @@ describe('enhanceText', () => {
     const result = await enhanceText(llm, baseOptions)
     expect(result.text).toBe('角色：Python 工程师…')
     expect(result.provider).toBe('zhipu')
+    // The usage chunk is copied verbatim so the panel can show the call cost.
+    expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 5 })
     expect(result.model).toBe('glm-5.3')
     expect(llm.calls[0]?.system).toBe('SYS')
     expect(llm.calls[0]?.temperature).toBe(0.3)

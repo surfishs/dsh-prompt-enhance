@@ -215,10 +215,18 @@ describe('enhance → apply → undo loop', () => {
     const input = makeFakeInput({ draft: '旧原文' })
     const setDraft = vi.fn((text: string) => input.set({ draft: text }))
     renderComposer(input, { setDraft } as never, 's1')
-    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+    vi.mocked(requestEnhance).mockResolvedValue({
+      text: '增强文本',
+      provider: 'p',
+      model: 'm',
+      elapsedMs: 5,
+      usage: { inputTokens: 10, outputTokens: 5, totalTokens: 1545 },
+    })
 
     fireEvent.click(enhanceButton())
     expect(await screen.findByText('增强文本')).toBeTruthy()
+    // The call's token total rides the meta line next to model and duration.
+    expect(screen.getByText(new RegExp('本次 1,545 tokens'))).toBeTruthy()
     expect(requestEnhance).toHaveBeenCalledWith({ sessionId: 's1', text: '旧原文' }, expect.anything())
 
     fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))

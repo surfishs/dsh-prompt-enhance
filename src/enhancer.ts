@@ -222,7 +222,7 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
     // downgrade below, so it can never spin more than twice.
     let retriedWithoutEffort = false
     const readAttempt = async (): Promise<
-      { ok: true; blocks: ReturnType<BlockAssembler['blocks']> } | { ok: false; detail: EnhanceError }
+      { ok: true; blocks: ReturnType<BlockAssembler['blocks']>; usage: BlockAssembler['usage'] } | { ok: false; detail: EnhanceError }
     > => {
       while (true) {
         let attempt: { assembler: BlockAssembler; exhausted: boolean }
@@ -256,7 +256,7 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
         const rejected = isEffortRejectionFinish(attempt.assembler.finish)
         if (retriedWithoutEffort || requestedEffort === 'inherit' || !rejected) {
           const detail = finishToDetail(attempt.assembler.finish)
-          return detail === undefined ? { ok: true, blocks: attempt.assembler.blocks() } : { ok: false, detail }
+          return detail === undefined ? { ok: true, blocks: attempt.assembler.blocks(), usage: attempt.assembler.usage } : { ok: false, detail }
         }
         retriedWithoutEffort = true
       }
@@ -274,7 +274,23 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
     if (text === '') {
       fail({ code: 'upstream', params: { reason: 'empty' } })
     }
-    return { text, provider: options.route.provider, model: options.route.model, elapsedMs: Date.now() - started }
+    const usage = outcome.usage
+    const reportedUsage = usage === undefined
+      ? undefined
+      : {
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+          ...usage.totalTokens === undefined ? {} : { totalTokens: usage.totalTokens },
+          ...usage.cacheReadTokens === undefined ? {} : { cacheReadTokens: usage.cacheReadTokens },
+          ...usage.cacheWriteTokens === undefined ? {} : { cacheWriteTokens: usage.cacheWriteTokens },
+        }
+    return {
+      text,
+      provider: options.route.provider,
+      model: options.route.model,
+      elapsedMs: Date.now() - started,
+      ...reportedUsage === undefined ? {} : { usage: reportedUsage },
+    }
   } catch (error) {
     if (error instanceof EnhanceFailure) throw error
     if (timedOut) {

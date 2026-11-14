@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
-import type { EnhanceError } from '../shared/protocol'
+import type { EnhanceError, EnhanceUsage } from '../shared/protocol'
 import type { PromptEnhanceKey } from './locales'
 import type { PanelState } from './ui-state'
 
@@ -187,6 +187,15 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
   }, [state.result])
 
   const formatMs = (ms: number): string => (ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`)
+  /** Group thousands so a five-digit token count stays readable. */
+  const formatTokens = (tokens: number): string => tokens.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  /**
+   * The call's billed total: the provider's own number when it reported one,
+   * otherwise the disjoint counters added up (uncached input + output +
+   * cache reads/writes).
+   */
+  const totalTokensOf = (usage: EnhanceUsage): number =>
+    usage.totalTokens ?? usage.inputTokens + usage.outputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0)
 
   return (
     <div className="dsh-pe-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel() }}>
@@ -203,6 +212,9 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
           {state.phase === 'result' && state.result !== undefined && (
             <span className="dsh-pe-meta">
               {t('panel.model', { provider: state.result.provider, model: state.result.model })} · {t('panel.elapsed', { ms: formatMs(state.result.elapsedMs) })}
+              {state.result.usage === undefined
+                ? null
+                : <> · {t('panel.tokens', { total: formatTokens(totalTokensOf(state.result.usage)) })}</>}
             </span>
           )}
           <button type="button" className="dsh-pe-close" aria-label={t('panel.close')} onClick={onCancel}>✕</button>
