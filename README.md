@@ -63,7 +63,7 @@ dsh plugin --profile web remove dsh-prompt-enhance
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `enabled` | `true` | 总开关 |
-| `provider` + `model` | 空 | 成对覆盖模型路由；都留空则跟随当前会话 |
+| `provider` + `model` | 空 | 从 DSH 已注册的 LLM provider / 模型中选择；模型可切「自定义…」手填；都留空则跟随当前会话。未配置的 provider 会置灰，需先在 DSH 模型服务中配置 |
 | `temperature` | `0.3` | 越低越忠实原文 |
 | `reasoningEffort` | 跟随提供方默认 | 档位来自当前 provider/model 的声明；DeepSeek 为 `off` / `low` / `high` / `max`。自定义模型按需读取并缓存在 DSH home 下（`DSH_HOME` 或 `~/.dsh`），`inherit` 即「跟随提供方默认」 |
 | `maxOutputTokens` | `8192` | 单次调用的输出 token 预算 |

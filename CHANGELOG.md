@@ -10,7 +10,9 @@ The configuration page has two entry points over one staged form: a section in t
 
 **Dynamic reasoning tiers.** The tier choices now come from the configured route instead of a hardcoded list. The settings page asks the read-only `GET /dsh-prompt-enhance/reasoning-efforts` endpoint, which answers from `ctx.llm.resolveModelInfo`; a pinned provider/model is cached in a JSON file under the Harness home (`DSH_HOME` or `~/.dsh`) with no TTL and is replaced only when the pair changes or the operator presses refresh, while the default-model path answers from the static DeepSeek catalog only when the followed default really is DeepSeek. DeepSeek's `max` tier is now offered, `inherit` reads "follow provider default", and a rejected non-default effort surfaces as `effort-unsupported` instead of being silently replaced by the provider default; the shipped `off` default keeps the historical one-shot downgrade for routes that declare no reasoning.
 
-Suite: **27 files / 285 cases green**; typecheck clean; `lib/` rebuilt.
+**Routing selects instead of free text.** `provider`/`model` are now dropdowns fed by the harness LLM registry (`GET /dsh-prompt-enhance/llm-providers`, `.../llm-models`, `.../llm-route-check`): registered providers first, declared-but-unconfigured ones in a disabled group, a free-text “custom model” fallback, and the empty option keeps the follow-the-session semantics. A warning-only route check marks a pair the registry cannot resolve — the save is still allowed, matching the plugin's advisory catalog policy. The old placeholders are gone with the text inputs.
+
+Suite: **28 files / 303 cases green**; typecheck clean; `lib/` rebuilt.
 
 ## 0.3.4 (2026-11-03)
 

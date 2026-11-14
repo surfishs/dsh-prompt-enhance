@@ -63,7 +63,7 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | Field | Default | Notes |
 |---|---|---|
 | `enabled` | `true` | Master switch |
-| `provider` + `model` | empty | Pinned route override, set as a pair; empty follows the session model |
+| `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; empty follows the session. Unconfigured providers are greyed out until set up in DSH model services |
 | `temperature` | `0.3` | Lower stays closer to the original |
 | `reasoningEffort` | Provider default | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`); a custom model is read on demand and cached under the Harness home (`DSH_HOME` or `~/.dsh`). `inherit` means "follow provider default" |
 | `maxOutputTokens` | `8192` | Output token budget per call |

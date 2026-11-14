@@ -28,6 +28,7 @@ import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ReasoningCapabilities } from '../shared/reasoning'
 import { DEFAULT_VALUES } from '../shared/defaults'
 import { fetchReasoningCapabilities } from './reasoning-options'
+import { useLlmRouting, type LlmRoutingState } from './llm-catalog'
 import {
   SegmentedControl,
   SettingsForm,
@@ -138,7 +139,7 @@ const STRATEGY_OPTIONS: readonly { value: string; label: PromptEnhanceKey }[] = 
 ]
 
 /** How one row is edited, which picks both its control and its descriptor. */
-type RowKind = 'text' | 'number' | 'boolean' | 'strategy' | 'reasoning'
+type RowKind = 'text' | 'number' | 'boolean' | 'strategy' | 'reasoning' | 'provider' | 'model'
 
 /** One row of both pages, in display order. */
 interface Row {
@@ -166,8 +167,8 @@ const ROWS: readonly Row[] = [
   { key: 'enabled', kind: 'boolean', label: 'settings.row.enabled.label', hint: 'settings.row.enabled.hint' },
   { key: 'contextAware', kind: 'boolean', label: 'settings.row.contextAware.label', hint: 'settings.row.contextAware.hint' },
   { key: 'streaming', kind: 'boolean', label: 'settings.row.streaming.label', hint: 'settings.row.streaming.hint' },
-  { key: 'provider', kind: 'text', label: 'settings.row.provider.label', hint: 'settings.row.provider.hint', placeholder: 'settings.row.provider.placeholder' },
-  { key: 'model', kind: 'text', label: 'settings.row.model.label', hint: 'settings.row.model.hint', placeholder: 'settings.row.model.placeholder' },
+  { key: 'provider', kind: 'provider', label: 'settings.row.provider.label', hint: 'settings.row.provider.hint' },
+  { key: 'model', kind: 'model', label: 'settings.row.model.label', hint: 'settings.row.model.hint' },
   { key: 'temperature', kind: 'number', label: 'settings.row.temperature.label', hint: 'settings.row.temperature.hint' },
   { key: 'reasoningEffort', kind: 'reasoning', label: 'settings.row.reasoningEffort.label', hint: 'settings.row.reasoningEffort.hint' },
   { key: 'maxOutputTokens', kind: 'number', label: 'settings.row.maxOutputTokens.label', hint: 'settings.row.maxOutputTokens.hint' },
@@ -379,6 +380,15 @@ const INVALID_STYLE: CSSProperties = {
   lineHeight: 1.5,
   color: 'var(--dsw-alias-state-error-primary, #f85149)',
 }
+/** The warning line under the routing rows; saves are not blocked by it. */
+const WARN_STYLE: CSSProperties = {
+  margin: 0,
+  fontSize: 12,
+  lineHeight: 1.5,
+  color: 'var(--dsw-alias-state-error-primary, #f85149)',
+}
+/** The provider/model select, sharing the value input's metrics. */
+const SELECT_STYLE: CSSProperties = { ...INPUT_STYLE, cursor: 'pointer' }
 const SEPARATOR_STYLE: CSSProperties = {
   borderTop: '0.5px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.24))',
 }
@@ -787,6 +797,132 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
 }
 
 /**
+ * The provider select: registered providers plus dormant ones rendered
+ * disabled, and a synthetic entry for a stored value outside the registry.
+ * @param props - the row, its state, and the catalog reads.
+ * @returns the row element.
+ */
+function ProviderRow(props: RowProps & { routing: LlmRoutingState }): ReactElement {
+  const current = props.view.text
+  const known = props.routing.providers.entries.find((entry) => entry.id === current)
+  const missing = current !== '' && known === undefined
+  const unconfigured = known !== undefined && !known.registered
+  return (
+    <div style={ROW_STYLE}>
+      <div style={HEAD_STYLE}>
+        <label htmlFor={props.id} style={LABEL_STYLE}>{props.label}</label>
+        {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
+      </div>
+      <select
+        id={props.id}
+        style={SELECT_STYLE}
+        value={current}
+        disabled={props.disabled}
+        onChange={(event) => props.onEdit(event.target.value)}
+      >
+        <option value="">{props.copy.choice('settings.routing.followSession')}</option>
+        {missing ? <option value={current} title={current}>{props.copy.interpolate('settings.routing.currentProvider', { value: current })}</option> : null}
+        <optgroup label={props.copy.choice('settings.routing.groupRegistered')}>
+          {props.routing.providers.entries.filter((entry) => entry.registered).map((entry) => (
+            <option key={entry.id} value={entry.id} title={entry.id}>{entry.name}</option>
+          ))}
+        </optgroup>
+        {props.routing.providers.entries.some((entry) => !entry.registered)
+          ? (
+              <optgroup label={props.copy.choice('settings.routing.groupDormant')}>
+                {props.routing.providers.entries.filter((entry) => !entry.registered).map((entry) => (
+                  <option key={entry.id} value={entry.id} disabled title={props.copy.choice('settings.routing.unconfiguredTitle')}>
+                    {entry.name}{props.copy.choice('settings.routing.unconfiguredSuffix')}
+                  </option>
+                ))}
+              </optgroup>
+            )
+          : null}
+      </select>
+      <p style={HINT_STYLE}>{props.hint}</p>
+      {props.routing.providers.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.providersLoading')}</p> : null}
+      {props.routing.providers.failed ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.providersFailed')}</p> : null}
+      {props.routing.providers.failed ? (
+        <button type="button" style={REFRESH_STYLE} onClick={props.routing.providers.reload}>
+          {props.copy.choice('settings.routing.retry')}
+        </button>
+      ) : null}
+      {missing ? <p style={WARN_STYLE}>{props.copy.interpolate('settings.routing.providerMissing', { value: current })}</p> : null}
+      {unconfigured ? <p style={WARN_STYLE}>{props.copy.interpolate('settings.routing.providerUnconfigured', { name: known.name })}</p> : null}
+    </div>
+  )
+}
+
+/**
+ * The model select: the provider's advertised models, a "custom…" entry that
+ * reveals a free-text input, and warnings (incomplete pair / unresolvable
+ * route) that never block saving.
+ * @param props - the row, its state, the catalog reads, and the provider value.
+ * @returns the row element.
+ */
+function ModelRow(props: RowProps & { routing: LlmRoutingState; providerValue: string }): ReactElement {
+  const current = props.view.text
+  const provider = props.providerValue
+  const [customMode, setCustomMode] = useState(false)
+  const known = props.routing.models.entries.some((entry) => entry.id === current)
+  // A stored model outside the advertised catalog is still editable, so the
+  // custom input opens automatically for it instead of hiding the value.
+  const showCustom = provider !== '' && (customMode || (current !== '' && !known))
+  const pairIncomplete = provider !== '' && current === ''
+  const routeUnavailable = provider !== '' && current !== '' && props.routing.route.available === false
+  return (
+    <div style={ROW_STYLE}>
+      <div style={HEAD_STYLE}>
+        <label htmlFor={props.id} style={LABEL_STYLE}>{props.label}</label>
+        {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
+      </div>
+      <select
+        id={props.id}
+        style={SELECT_STYLE}
+        value={showCustom ? '__custom__' : current}
+        disabled={props.disabled || provider === ''}
+        onChange={(event) => {
+          if (event.target.value === '__custom__') {
+            setCustomMode(true)
+            return
+          }
+          setCustomMode(false)
+          props.onEdit(event.target.value)
+        }}
+      >
+        <option value="">{provider === '' ? props.copy.choice('settings.routing.followSession') : props.copy.choice('settings.routing.selectModel')}</option>
+        {props.routing.models.entries.map((entry) => (
+          <option key={entry.id} value={entry.id} title={entry.id}>{entry.name}</option>
+        ))}
+        {provider !== '' && current !== '' && !known
+          ? <option value={current} title={current}>{props.copy.interpolate('settings.routing.currentModel', { value: current })}</option>
+          : null}
+        {provider !== '' ? <option value="__custom__">{props.copy.choice('settings.routing.custom')}</option> : null}
+      </select>
+      {showCustom ? (
+        <input
+          style={INPUT_STYLE}
+          value={current}
+          placeholder={props.copy.choice('settings.routing.customPlaceholder')}
+          disabled={props.disabled}
+          onChange={(event) => props.onEdit(event.target.value)}
+        />
+      ) : null}
+      {showCustom && props.routing.models.entries.length > 0 ? (
+        <button type="button" style={REFRESH_STYLE} onClick={() => setCustomMode(false)}>
+          {props.copy.choice('settings.routing.pickFromList')}
+        </button>
+      ) : null}
+      <p style={HINT_STYLE}>{props.hint}</p>
+      {props.routing.models.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsLoading')}</p> : null}
+      {props.routing.models.failed && !showCustom ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsFailed')}</p> : null}
+      {pairIncomplete ? <p style={WARN_STYLE}>{props.copy.choice('settings.routing.pairIncomplete')}</p> : null}
+      {routeUnavailable ? <p style={WARN_STYLE}>{props.copy.choice('settings.routing.routeUnavailable')}</p> : null}
+    </div>
+  )
+}
+
+/**
  * A text/number row: the title and the reset chip on one line, a native input,
  * then the hint. The host's `SettingsValueField` draws its own badge and reset
  * link, which would diverge from the chip the other rows use, so value rows
@@ -834,7 +970,7 @@ function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string }):
  * @param props - the row, its copy, its state, its actions, and the pinned pair.
  * @returns the row element.
  */
-function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled: boolean; reasoningPair: { provider: string; model: string }; onEdit: (text: string) => void; onReset: () => void }): ReactElement {
+function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled: boolean; reasoningPair: { provider: string; model: string }; routing: LlmRoutingState; providerValue: string; onEdit: (text: string) => void; onReset: () => void }): ReactElement {
   const shared = {
     id: `dsh-prompt-enhance-${props.row.key}`,
     label: props.copy.title(props.row),
@@ -852,6 +988,10 @@ function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled
       return <ChoiceRow {...shared} options={STRATEGY_OPTIONS.map((option) => ({ value: option.value, label: props.copy.choice(option.label) }))} />
     case 'reasoning':
       return <ReasoningRow {...shared} provider={props.reasoningPair.provider} model={props.reasoningPair.model} />
+    case 'provider':
+      return <ProviderRow {...shared} routing={props.routing} />
+    case 'model':
+      return <ModelRow {...shared} routing={props.routing} providerValue={props.providerValue} />
     default:
       return <ValueRow {...shared} numeric={props.row.kind === 'number'} placeholder={props.copy.placeholder(props.row)} />
   }
@@ -874,6 +1014,7 @@ function SettingsRows(props: {
   // they are saved (typing a custom model refreshes them on its own).
   const provider = viewOf(props.state, 'provider').text.trim()
   const model = viewOf(props.state, 'model').text.trim()
+  const routing = useLlmRouting(provider, model)
   return (
     <SettingsForm labels={props.copy.labels} state={props.state} onSave={props.save} onDiscard={props.discard}>
       {ROWS.map((row, index) => {
@@ -889,6 +1030,8 @@ function SettingsRows(props: {
               view={view}
               disabled={!props.state.writable}
               reasoningPair={{ provider, model }}
+              routing={routing}
+              providerValue={provider}
               onEdit={(text: string) => props.edit(row.key, text)}
               onReset={() => props.resetField(row.key)}
             />

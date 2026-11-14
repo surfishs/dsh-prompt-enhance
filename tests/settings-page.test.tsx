@@ -206,6 +206,26 @@ function switchOf(title: string): HTMLElement {
   return screen.getByRole('switch', { name: title })
 }
 
+/** One JSON success response. */
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })
+}
+
+/** Install a catalog-aware fetch: providers/models/route-check, then reasoning. */
+function stubCatalogFetch(options: {
+  providers?: { id: string; name: string; registered: boolean }[]
+  models?: { id: string; name: string }[]
+  routeAvailable?: boolean
+} = {}): void {
+  vi.stubGlobal('fetch', vi.fn(async (url: URL) => {
+    const href = String(url)
+    if (href.includes('llm-providers')) return jsonResponse({ ok: true, value: { providers: options.providers ?? [] } })
+    if (href.includes('llm-models')) return jsonResponse({ ok: true, value: { models: options.models ?? [] } })
+    if (href.includes('llm-route-check')) return jsonResponse({ ok: true, value: { available: options.routeAvailable ?? true } })
+    return jsonResponse({ ok: true, value: { efforts: [], source: 'unavailable' } })
+  }))
+}
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
@@ -233,13 +253,12 @@ describe('settings dialog page', () => {
     expect(screen.getByRole('link', { name: 'GitHub' })).toBeTruthy()
     expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy()
     expect(screen.getByText(/把输入框草稿改写为结构化提示词/)).toBeTruthy()
-    // Empty routing fields teach the expected format without writing a value.
-    expect((screen.getByLabelText(sectionTitle('provider')) as HTMLInputElement).placeholder).toBe(
-      zhCopy('settings.row.provider.placeholder'),
-    )
-    expect((screen.getByLabelText(sectionTitle('model')) as HTMLInputElement).placeholder).toBe(
-      zhCopy('settings.row.model.placeholder'),
-    )
+    // Routing rows are selects fed by the registration catalog; their first
+    // option is the empty "follow session" value.
+    const providerSelect = screen.getByLabelText(sectionTitle('provider')) as HTMLSelectElement
+    expect(providerSelect.tagName).toBe('SELECT')
+    expect(providerSelect.querySelector('option')?.textContent).toBe(zhCopy('settings.routing.followSession'))
+    expect(screen.getByLabelText(sectionTitle('model'))).toBeTruthy()
     expect((screen.getByLabelText(sectionTitle('systemPrompt')) as HTMLInputElement).placeholder).toBe(
       zhCopy('settings.row.systemPrompt.placeholder'),
     )
@@ -253,8 +272,68 @@ describe('settings dialog page', () => {
     expect(screen.getByText('enabled')).toBeTruthy()
     expect(screen.queryByText(sectionTitle('enabled'))).toBeNull()
     expect(screen.getByText(enCopy('settings.row.enabled.hint'))).toBeTruthy()
-    expect((screen.getByLabelText('provider') as HTMLInputElement).placeholder).toBe(enCopy('settings.row.provider.placeholder'))
+    const providerSelect = screen.getByLabelText('provider') as HTMLSelectElement
+    expect(providerSelect.tagName).toBe('SELECT')
+    expect(providerSelect.querySelector('option')?.textContent).toBe(enCopy('settings.routing.followSession'))
     expect(screen.getByRole('button', { name: enCopy('settings.save') })).toBeTruthy()
+  })
+
+  it('lists registered providers and greys out unconfigured ones', async () => {
+    stubCatalogFetch({
+      providers: [
+        { id: 'deepseek-official', name: 'DeepSeek', registered: true },
+        { id: 'qwen', name: 'Qwen', registered: false },
+      ],
+    })
+    renderSection()
+    const select = screen.getByLabelText(sectionTitle('provider')) as HTMLSelectElement
+    await waitFor(() => expect(select.querySelector('option[value="deepseek-official"]')).toBeTruthy())
+    const dormant = select.querySelector('option[value="qwen"]') as HTMLOptionElement
+    expect(dormant.disabled).toBe(true)
+    expect(dormant.textContent).toContain(zhCopy('settings.routing.unconfiguredSuffix'))
+  })
+
+  it('loads the chosen provider’s models and accepts a custom model', async () => {
+    stubCatalogFetch({
+      providers: [{ id: 'deepseek-official', name: 'DeepSeek', registered: true }],
+      models: [{ id: 'deepseek-flash', name: 'DeepSeek Flash' }],
+    })
+    renderSection()
+    const provider = screen.getByLabelText(sectionTitle('provider')) as HTMLSelectElement
+    await waitFor(() => expect(provider.querySelector('option[value="deepseek-official"]')).toBeTruthy())
+    fireEvent.change(provider, { target: { value: 'deepseek-official' } })
+    const model = screen.getByLabelText(sectionTitle('model')) as HTMLSelectElement
+    await waitFor(() => expect(model.querySelector('option[value="deepseek-flash"]')).toBeTruthy())
+    fireEvent.change(model, { target: { value: '__custom__' } })
+    const input = screen.getByPlaceholderText(zhCopy('settings.routing.customPlaceholder'))
+    fireEvent.change(input, { target: { value: 'my-model' } })
+    expect(screen.getByDisplayValue('my-model')).toBeTruthy()
+  })
+
+  it('warns about an incomplete pair without blocking save', async () => {
+    stubCatalogFetch({ providers: [{ id: 'deepseek-official', name: 'DeepSeek', registered: true }] })
+    renderSection()
+    const provider = screen.getByLabelText(sectionTitle('provider')) as HTMLSelectElement
+    await waitFor(() => expect(provider.querySelector('option[value="deepseek-official"]')).toBeTruthy())
+    fireEvent.change(provider, { target: { value: 'deepseek-official' } })
+    expect(await screen.findByText(zhCopy('settings.routing.pairIncomplete'))).toBeTruthy()
+    expect((screen.getByRole('button', { name: zhCopy('settings.save') }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('warns when the selected route does not resolve', async () => {
+    stubCatalogFetch({
+      providers: [{ id: 'deepseek-official', name: 'DeepSeek', registered: true }],
+      models: [{ id: 'deepseek-flash', name: 'DeepSeek Flash' }],
+      routeAvailable: false,
+    })
+    renderSection()
+    const provider = screen.getByLabelText(sectionTitle('provider')) as HTMLSelectElement
+    await waitFor(() => expect(provider.querySelector('option[value="deepseek-official"]')).toBeTruthy())
+    fireEvent.change(provider, { target: { value: 'deepseek-official' } })
+    const model = screen.getByLabelText(sectionTitle('model')) as HTMLSelectElement
+    await waitFor(() => expect(model.querySelector('option[value="deepseek-flash"]')).toBeTruthy())
+    fireEvent.change(model, { target: { value: 'deepseek-flash' } })
+    expect(await screen.findByText(zhCopy('settings.routing.routeUnavailable'), undefined, { timeout: 3000 })).toBeTruthy()
   })
 
   it('stages a switch as a JSON boolean, and writes it on save', async () => {
@@ -310,12 +389,19 @@ describe('settings dialog page', () => {
   })
 
   it('pins the refresh action to the right and reports its outcome', async () => {
-    let calls = 0
-    vi.stubGlobal('fetch', vi.fn(async (_url: URL) => {
-      calls += 1
-      return new Response(JSON.stringify(calls <= 2
+    const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
+    let reasoningCalls = 0
+    vi.stubGlobal('fetch', vi.fn(async (url: URL) => {
+      const href = String(url)
+      // The routing rows read their own catalog endpoints; only the reasoning
+      // endpoint participates in this test's success/failure sequence.
+      if (href.includes('llm-providers')) return json({ ok: true, value: { providers: [{ id: 'zhipu', name: 'Zhipu', registered: true }] } })
+      if (href.includes('llm-models')) return json({ ok: true, value: { models: [{ id: 'glm-4.6', name: 'GLM-4.6' }] } })
+      if (href.includes('llm-route-check')) return json({ ok: true, value: { available: true } })
+      reasoningCalls += 1
+      return json(reasoningCalls <= 2
         ? { ok: true, value: { efforts: [{ id: 'off', name: 'Off' }], source: 'resolved' } }
-        : { ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } }), { status: 200 })
+        : { ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } })
     }))
     renderSection({ user: { provider: 'zhipu', model: 'glm-4.6' } })
     expect(await screen.findByRole('tab', { name: 'Off' })).toBeTruthy()

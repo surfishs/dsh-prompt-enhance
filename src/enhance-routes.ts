@@ -19,6 +19,8 @@ import { isTrustedRequest } from './loopback'
 import { readBoundedJson, writeJson, endResponse } from './http'
 import { REASONING_EFFORTS_ENDPOINT } from './shared/reasoning'
 import { serveReasoningEfforts } from './reasoning-route'
+import { LLM_MODELS_ENDPOINT, LLM_PROVIDERS_ENDPOINT, LLM_ROUTE_CHECK_ENDPOINT } from './shared/catalog'
+import { serveCatalog } from './catalog-route'
 
 /** Envelope slack over the UTF-8 text cap: JSON quoting can inflate ~2-6x in the worst case. */
 const bodyCapOf = (maxInputChars: number): number => maxInputChars * 6 + 4096
@@ -362,6 +364,9 @@ export function registerEnhanceRoute(ctx: Context, readConfig: () => Config): vo
           // what tiers the configured route declares. It shares the fence and
           // the per-mount lifetime, and never touches the admission gate.
           if (pathname === REASONING_EFFORTS_ENDPOINT) return serveReasoningEfforts(ctx, req, res)
+          if (pathname === LLM_PROVIDERS_ENDPOINT || pathname === LLM_MODELS_ENDPOINT || pathname === LLM_ROUTE_CHECK_ENDPOINT) {
+            return serveCatalog(ctx, req, res, pathname)
+          }
           return serveEnhance(ctx, readConfig, gate, pathname, req, res, pathname === ENHANCE_STREAM_ENDPOINT)
         },
       })
