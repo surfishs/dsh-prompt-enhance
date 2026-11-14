@@ -239,6 +239,12 @@ describe('settings dialog page', () => {
     expect((screen.getByLabelText(sectionTitle('model')) as HTMLInputElement).placeholder).toBe(
       zhCopy('settings.row.model.placeholder'),
     )
+    expect((screen.getByLabelText(sectionTitle('systemPrompt')) as HTMLInputElement).placeholder).toBe(
+      zhCopy('settings.row.systemPrompt.placeholder'),
+    )
+    expect((screen.getByLabelText(sectionTitle('shortcut')) as HTMLInputElement).placeholder).toBe(
+      zhCopy('settings.row.shortcut.placeholder'),
+    )
   })
 
   it('switches to English and drops the parenthesized Chinese name', () => {

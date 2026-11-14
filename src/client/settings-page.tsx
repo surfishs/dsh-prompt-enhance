@@ -182,12 +182,12 @@ const ROWS: readonly Row[] = [
   { key: 'maxInputChars', kind: 'number', label: 'settings.row.maxInputChars.label', hint: 'settings.row.maxInputChars.hint' },
   { key: 'timeoutMs', kind: 'number', label: 'settings.row.timeoutMs.label', hint: 'settings.row.timeoutMs.hint' },
   { key: 'strategyMode', kind: 'strategy', label: 'settings.row.strategyMode.label', hint: 'settings.row.strategyMode.hint' },
-  { key: 'systemPrompt', kind: 'text', label: 'settings.row.systemPrompt.label', hint: 'settings.row.systemPrompt.hint' },
+  { key: 'systemPrompt', kind: 'text', label: 'settings.row.systemPrompt.label', hint: 'settings.row.systemPrompt.hint', placeholder: 'settings.row.systemPrompt.placeholder' },
   { key: 'contextMaxMessages', kind: 'number', label: 'settings.row.contextMaxMessages.label', hint: 'settings.row.contextMaxMessages.hint' },
   { key: 'contextMaxChars', kind: 'number', label: 'settings.row.contextMaxChars.label', hint: 'settings.row.contextMaxChars.hint' },
   { key: 'maxConcurrent', kind: 'number', label: 'settings.row.maxConcurrent.label', hint: 'settings.row.maxConcurrent.hint' },
   { key: 'rateLimitPerMinute', kind: 'number', label: 'settings.row.rateLimitPerMinute.label', hint: 'settings.row.rateLimitPerMinute.hint' },
-  { key: 'shortcut', kind: 'text', label: 'settings.row.shortcut.label', hint: 'settings.row.shortcut.hint' },
+  { key: 'shortcut', kind: 'text', label: 'settings.row.shortcut.label', hint: 'settings.row.shortcut.hint', placeholder: 'settings.row.shortcut.placeholder' },
 ]
 
 /**
