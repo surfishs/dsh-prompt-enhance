@@ -111,10 +111,10 @@ export const zh = {
   'settings.reasoning.loading': '正在读取该模型的档位…',
   'settings.reasoning.unavailable': '无法读取该模型的档位，仅可跟随提供方默认。',
   'settings.reasoning.unsupported': '当前值「{effort}」不在该模型支持的档位中。',
-  'settings.reasoning.refresh': '刷新档位',
-  'settings.reasoning.refreshing': '刷新中…',
-  'settings.reasoning.refreshOk': '档位已刷新',
-  'settings.reasoning.refreshFailed': '刷新失败，请重试。',
+  'settings.reasoning.refresh': '重新获取档位信息',
+  'settings.reasoning.refreshing': '正在获取档位信息…',
+  'settings.reasoning.refreshOk': '档位信息已更新',
+  'settings.reasoning.refreshFailed': '获取档位信息失败，请重试。',
 } as const
 
 /** Dictionary key union. */
@@ -227,10 +227,10 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.reasoning.loading': 'Reading this model’s tiers…',
   'settings.reasoning.unavailable': 'Could not read this model’s tiers; only “follow provider default” is available.',
   'settings.reasoning.unsupported': 'The current value “{effort}” is not one of this model’s tiers.',
-  'settings.reasoning.refresh': 'Refresh tiers',
-  'settings.reasoning.refreshing': 'Refreshing…',
-  'settings.reasoning.refreshOk': 'Tiers refreshed',
-  'settings.reasoning.refreshFailed': 'Refresh failed — please retry.',
+  'settings.reasoning.refresh': 'Reload tier info',
+  'settings.reasoning.refreshing': 'Loading tier info…',
+  'settings.reasoning.refreshOk': 'Tier info updated',
+  'settings.reasoning.refreshFailed': 'Could not load tier info — please retry.',
 }
 
 /** Both shipped dictionaries, keyed by locale id. */
