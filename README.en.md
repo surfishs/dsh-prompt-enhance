@@ -303,8 +303,6 @@ After installing and restarting `dsh web`:
 
 ## Acknowledgments
 
-Plugin structure, the loopback fence, and the settings-section pattern follow the conventions established by the dsh plugin family — in particular [`@linxin666/dsh-tool-describe-image`](https://www.npmjs.com/package/@linxin666/dsh-tool-describe-image).
-
 The code and design build on [rongxingda/dsh-prompt-enhance](https://github.com/rongxingda/dsh-prompt-enhance) (Apache-2.0); the original license is retained.
 
 ## License

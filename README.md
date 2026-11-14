@@ -301,8 +301,6 @@ CI 在每次 push/PR 上运行类型检查 + 测试 + 构建,并在 `lib/` 与�
 
 ## 致谢
 
-插件结构、回环栅栏与设置节模式遵循 dsh 插件家族的既有惯例——特别是 [`@linxin666/dsh-tool-describe-image`](https://www.npmjs.com/package/@linxin666/dsh-tool-describe-image)。
-
 代码与设计建立在 [rongxingda/dsh-prompt-enhance](https://github.com/rongxingda/dsh-prompt-enhance)（Apache-2.0）之上，原始许可证保留。
 
 ## 许可证
