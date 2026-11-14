@@ -52,6 +52,7 @@ const clientOptions = {
   legalComments: 'none',
   sourcemap: false,
   logLevel: 'info',
+  define: { __PLUGIN_VERSION__: JSON.stringify(pkg.version) },
   banner: {
     js: `window.__ModuleLoader__.load({\n\tid: ${JSON.stringify(pkg.name)},\n\tfactory: (require) => {\n\t\tvar module = { exports: {} };\n\t\tvar exports = module.exports;\n\t\tObject.defineProperty(exports, Symbol.toStringTag, { value: "Module" });\n`,
   },

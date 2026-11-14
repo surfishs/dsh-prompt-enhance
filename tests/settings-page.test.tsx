@@ -227,8 +227,11 @@ describe('settings dialog page', () => {
     expect(screen.getByText(zhCopy('settings.row.enabled.hint'))).toBeTruthy()
     expect(screen.queryByText(enCopy('settings.row.enabled.hint'))).toBeNull()
     expect(screen.queryByText(/｜/)).toBeNull()
-    // The page keeps its framing sentence.
-    expect(screen.getByText(/这些设置写入宿主侧 dsh-prompt-enhance 配置节/)).toBeTruthy()
+    // The header carries the title, the repository link, the version and the description.
+    expect(screen.getByText('提示词增强')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'GitHub' })).toBeTruthy()
+    expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy()
+    expect(screen.getByText(/把输入框草稿改写为结构化提示词/)).toBeTruthy()
   })
 
   it('switches to English and drops the parenthesized Chinese name', () => {

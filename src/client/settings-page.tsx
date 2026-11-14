@@ -339,6 +339,65 @@ const SEPARATOR_STYLE: CSSProperties = {
   borderTop: '0.5px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.24))',
 }
 
+/** Public repository behind this build, linked from the page header. */
+const REPOSITORY_URL = 'https://github.com/surfishs/dsh-prompt-enhance'
+
+/** The GitHub mark (16×16), painted with the current text color. */
+const GITHUB_MARK =
+  'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z'
+
+/** The version this bundle was built from; guarded for environments without the define. */
+const PLUGIN_VERSION = typeof __PLUGIN_VERSION__ === 'string' ? __PLUGIN_VERSION__ : '0.0.0'
+
+/** Header block: title, repository link, version, and one description line. */
+const HEADER_STYLE: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6 }
+const HEADER_ROW_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }
+const HEADER_TITLE_STYLE: CSSProperties = { fontSize: 15, fontWeight: 600, color: 'var(--dsw-alias-label-primary, inherit)' }
+const HEADER_LINK_STYLE: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  height: 24,
+  padding: '0 10px',
+  border: '0.5px solid var(--dsw-alias-border-l4, rgba(128, 128, 128, 0.35))',
+  borderRadius: 999,
+  fontSize: 12,
+  lineHeight: '20px',
+  color: 'var(--dsw-alias-label-secondary, inherit)',
+  textDecoration: 'none',
+}
+const HEADER_VERSION_STYLE: CSSProperties = { fontSize: 12, color: 'var(--dsw-alias-label-tertiary, inherit)' }
+const HEADER_DESCRIPTION_STYLE: CSSProperties = {
+  margin: 0,
+  fontSize: 12,
+  lineHeight: 1.6,
+  color: 'var(--dsw-alias-label-tertiary, inherit)',
+}
+
+/**
+ * The page header the settings dialog shows above the form: the plugin title,
+ * a repository link chip and the shipped version, with one description line.
+ * @param props - the localized title and description, plus the version.
+ * @returns the header element.
+ */
+function PageHeader(props: { title: string; description: string; version: string }): ReactElement {
+  return (
+    <div style={HEADER_STYLE}>
+      <div style={HEADER_ROW_STYLE}>
+        <span style={HEADER_TITLE_STYLE}>{props.title}</span>
+        <a href={REPOSITORY_URL} target="_blank" rel="noreferrer" style={HEADER_LINK_STYLE}>
+          <svg width={14} height={14} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d={GITHUB_MARK} />
+          </svg>
+          GitHub
+        </a>
+        <span style={HEADER_VERSION_STYLE}>v{props.version}</span>
+      </div>
+      <p style={HEADER_DESCRIPTION_STYLE}>{props.description}</p>
+    </div>
+  )
+}
+
 /** One projection of the pages' form store. */
 interface SettingsSnapshot {
   writable?: boolean
@@ -601,7 +660,7 @@ export function SettingsSection(props: SectionProps): unknown {
   const resetField = props.resetField ?? ((): void => {})
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, opacity: 0.72 }}>{t('settings.intro')}</p>
+      <PageHeader title={t('settings.title')} description={t('settings.description')} version={PLUGIN_VERSION} />
       <SettingsRows
         copy={sectionCopy(t, chinese)}
         state={state}
