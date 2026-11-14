@@ -22,7 +22,7 @@
  * @module dsh-prompt-enhance/client/settings-page
  */
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ReasoningCapabilities } from '../shared/reasoning'
@@ -388,7 +388,13 @@ const WARN_STYLE: CSSProperties = {
   color: 'var(--dsw-alias-state-error-primary, #f85149)',
 }
 /** The provider/model select, sharing the value input's metrics. */
-const SELECT_STYLE: CSSProperties = { ...INPUT_STYLE, cursor: 'pointer' }
+const SELECT_STYLE: CSSProperties = {
+  ...INPUT_STYLE,
+  // A hairline border can vanish on some scale factors; 1px keeps the control's
+  // outline stable at rest, with the focus colour applied by the component.
+  border: '1px solid var(--dsw-alias-border-l4, rgba(128, 128, 128, 0.45))',
+  cursor: 'pointer',
+}
 const SEPARATOR_STYLE: CSSProperties = {
   borderTop: '0.5px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.24))',
 }
@@ -797,6 +803,28 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
 }
 
 /**
+ * The shared select control: a 1px resting border (a hairline can vanish at
+ * some scale factors) and a business-colour border while focused, so the
+ * control's outline never depends on the browser's focus ring.
+ */
+function SelectControl(props: { id: string; value: string; disabled?: boolean; onChange: (value: string) => void; children: ReactNode }): ReactElement {
+  const [focused, setFocused] = useState(false)
+  return (
+    <select
+      id={props.id}
+      style={{ ...SELECT_STYLE, ...focused ? { borderColor: 'var(--dsw-alias-state-business-primary, #4f8cff)' } : {} }}
+      value={props.value}
+      disabled={props.disabled}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onChange={(event) => props.onChange(event.target.value)}
+    >
+      {props.children}
+    </select>
+  )
+}
+
+/**
  * The provider select: registered providers plus dormant ones rendered
  * disabled, and a synthetic entry for a stored value outside the registry.
  * @param props - the row, its state, and the catalog reads.
@@ -813,13 +841,7 @@ function ProviderRow(props: RowProps & { routing: LlmRoutingState }): ReactEleme
         <label htmlFor={props.id} style={LABEL_STYLE}>{props.label}</label>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
       </div>
-      <select
-        id={props.id}
-        style={SELECT_STYLE}
-        value={current}
-        disabled={props.disabled}
-        onChange={(event) => props.onEdit(event.target.value)}
-      >
+      <SelectControl id={props.id} value={current} disabled={props.disabled} onChange={(value) => props.onEdit(value)}>
         <option value="">{props.copy.choice('settings.routing.followSession')}</option>
         {missing ? <option value={current} title={current}>{props.copy.interpolate('settings.routing.currentProvider', { value: current })}</option> : null}
         <optgroup label={props.copy.choice('settings.routing.groupRegistered')}>
@@ -838,7 +860,7 @@ function ProviderRow(props: RowProps & { routing: LlmRoutingState }): ReactEleme
               </optgroup>
             )
           : null}
-      </select>
+      </SelectControl>
       <p style={HINT_STYLE}>{props.hint}</p>
       {props.routing.providers.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.providersLoading')}</p> : null}
       {props.routing.providers.failed ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.providersFailed')}</p> : null}
@@ -876,18 +898,17 @@ function ModelRow(props: RowProps & { routing: LlmRoutingState; providerValue: s
         <label htmlFor={props.id} style={LABEL_STYLE}>{props.label}</label>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
       </div>
-      <select
+      <SelectControl
         id={props.id}
-        style={SELECT_STYLE}
         value={showCustom ? '__custom__' : current}
         disabled={props.disabled || provider === ''}
-        onChange={(event) => {
-          if (event.target.value === '__custom__') {
+        onChange={(value) => {
+          if (value === '__custom__') {
             setCustomMode(true)
             return
           }
           setCustomMode(false)
-          props.onEdit(event.target.value)
+          props.onEdit(value)
         }}
       >
         <option value="">{provider === '' ? props.copy.choice('settings.routing.followSession') : props.copy.choice('settings.routing.selectModel')}</option>
@@ -898,7 +919,7 @@ function ModelRow(props: RowProps & { routing: LlmRoutingState; providerValue: s
           ? <option value={current} title={current}>{props.copy.interpolate('settings.routing.currentModel', { value: current })}</option>
           : null}
         {provider !== '' ? <option value="__custom__">{props.copy.choice('settings.routing.custom')}</option> : null}
-      </select>
+      </SelectControl>
       {showCustom ? (
         <input
           style={INPUT_STYLE}
