@@ -165,15 +165,22 @@ function setup(options: { user?: Record<string, unknown>; writable?: boolean } =
 
 /**
  * Render the Settings dialog's page.
- * @param options - stored user layer and writability.
+ * @param options - stored user layer, writability, and the active language.
  * @returns the write spy and the staged model.
  */
-function renderSection(options: { user?: Record<string, unknown>; writable?: boolean } = {}): {
+function renderSection(options: { user?: Record<string, unknown>; writable?: boolean; lang?: 'zh' | 'en' } = {}): {
   mutate: ReturnType<typeof vi.fn>
   model: ReturnType<typeof createSettingsForm>
 } {
   const { mutate, model, props } = setup(options)
-  render(<SettingsSection {...props} />)
+  const lang = options.lang ?? 'zh'
+  render(
+    <SettingsSection
+      {...props}
+      translate={lang === 'en' ? (enCopy as never) : (zhCopy as never)}
+      usePromptEnhanceLocale={(selector) => selector({ active: lang })}
+    />,
+  )
   return { mutate, model }
 }
 
@@ -204,7 +211,7 @@ afterEach(() => {
 })
 
 describe('settings dialog page', () => {
-  it('renders every config row with its raw key, Chinese name, and bilingual hint', () => {
+  it('renders every config row with its raw key, Chinese name, and a Chinese-only hint', () => {
     renderSection()
     for (const key of ROW_KEYS) {
       expect(screen.getByText(sectionTitle(key))).toBeTruthy()
@@ -215,10 +222,21 @@ describe('settings dialog page', () => {
     expect(switchOf(sectionTitle('enabled')).getAttribute('aria-checked')).toBe('true')
     expect(switchOf(sectionTitle('contextAware')).getAttribute('aria-checked')).toBe('true')
     expect(switchOf(sectionTitle('streaming')).getAttribute('aria-checked')).toBe('true')
-    // The bilingual hint keeps both languages in one row.
-    expect(screen.getByText(`${zhCopy('settings.row.enabled.hint')}｜${enCopy('settings.row.enabled.hint')}`)).toBeTruthy()
+    // Chinese mode keeps one language per row: English copy lives in the
+    // English locale and must not be concatenated here.
+    expect(screen.getByText(zhCopy('settings.row.enabled.hint'))).toBeTruthy()
+    expect(screen.queryByText(enCopy('settings.row.enabled.hint'))).toBeNull()
+    expect(screen.queryByText(/｜/)).toBeNull()
     // The page keeps its framing sentence.
     expect(screen.getByText(/这些设置写入宿主侧 dsh-prompt-enhance 配置节/)).toBeTruthy()
+  })
+
+  it('switches to English and drops the parenthesized Chinese name', () => {
+    renderSection({ lang: 'en' })
+    expect(screen.getByText('enabled')).toBeTruthy()
+    expect(screen.queryByText(sectionTitle('enabled'))).toBeNull()
+    expect(screen.getByText(enCopy('settings.row.enabled.hint'))).toBeTruthy()
+    expect(screen.getByRole('button', { name: enCopy('settings.save') })).toBeTruthy()
   })
 
   it('stages a switch as a JSON boolean, and writes it on save', async () => {
@@ -276,7 +294,7 @@ describe('plugins page entry', () => {
     }
     expect(screen.getAllByRole('switch')).toHaveLength(3)
     expect(screen.getAllByRole('tablist')).toHaveLength(2)
-    // No raw keys and no bilingual hint: this surface speaks the active locale.
+    // No raw keys and no parenthesized name: this surface speaks the active locale.
     expect(screen.queryByText(sectionTitle('enabled'))).toBeNull()
     expect(screen.queryByText(/｜/)).toBeNull()
   })

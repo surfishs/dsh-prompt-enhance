@@ -33,7 +33,7 @@ import { ensureStyles } from './styles'
 import { matchesShortcut, parseShortcut } from './shortcut'
 import { decodeClientSettings, getClientSettings, setClientSettings } from './settings'
 import { installClientSettingsSource } from './settings-source'
-import { installSettingsPages } from './settings-page'
+import { installSettingsPages, type LocaleFaceLike } from './settings-page'
 import { PROMPT_ENHANCE_ROW_IDS } from '../shared/protocol'
 
 /** Locale namespace of the browser half. */
@@ -87,8 +87,11 @@ export function apply(ctx: ClientContext): void {
 
   // Dictionaries arrive with the locale service, which is optional here: a
   // profile without it renders dictionary keys instead of localized copy, but
-  // the plugin must not block boot over that.
+  // the plugin must not block boot over that. The service is also handed to
+  // the configuration pages, which follow the active language live.
+  let localeFace: LocaleFaceLike | undefined
   ctx.inject(['locale'], (localeCtx: ClientContext) => {
+    localeFace = (localeCtx as unknown as { locale?: LocaleFaceLike }).locale
     ctx.effect(() => {
       try {
         return localeCtx.locale.register(NS, dictionaries)
@@ -118,7 +121,7 @@ export function apply(ctx: ClientContext): void {
   // configuration entry on the Plugins page, the host's documented seat for a
   // plugin's own config. A deployment that serves no entry for this namespace
   // shows neither page and keeps the composition defaults.
-  installSettingsPages(ctx)
+  installSettingsPages(ctx, () => localeFace)
 
   ctx.inject(['slots'], (slotsCtx: ClientContext) => {
     const slots = (slotsCtx as unknown as { slots?: SlotsFace }).slots

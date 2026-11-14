@@ -37,7 +37,7 @@ import {
   settingsTextField,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsFieldDescriptor } from '@deepseek-ai/dsh-client-ui-primitives'
-import { NS as LOCALE_NS, en, zh } from './locales'
+import { NS as LOCALE_NS, zh } from './locales'
 import type { PromptEnhanceKey } from './locales'
 
 /** The settings dialog's navigation slot. */
@@ -49,8 +49,24 @@ export const SETTINGS_SECTION_ID = 'dsh-prompt-enhance'
 /** Where the page sits among the dialog's sections. */
 export const SETTINGS_SECTION_ORDER = 70
 
-/** The settings-dialog row's title. */
+/** The settings-dialog row's title, used when no locale service is mounted. */
 export const SETTINGS_SECTION_LABEL = '提示词增强'
+
+/**
+ * The settings dialog's navigation title in the active language, with the
+ * shipped Chinese label as the fallback for a deployment without the locale
+ * service.
+ * @param getLocale - resolves the client locale service.
+ * @returns the title the dialog's navigation should show.
+ */
+function sectionTitle(getLocale: (() => LocaleFaceLike | undefined) | undefined): string {
+  try {
+    const t = getLocale?.()?.bind(LOCALE_NS)
+    return t === undefined ? SETTINGS_SECTION_LABEL : t('settings.title')
+  } catch {
+    return SETTINGS_SECTION_LABEL
+  }
+}
 
 /** The plugin manager's keyed slot for one row's configuration page. */
 export const SETTINGS_ROW_CONFIG_SLOT = 'plugins.row.config'
@@ -237,25 +253,30 @@ interface RowCopy {
 }
 
 /**
- * The settings dialog's copy: the raw config key beside the Chinese name, and
- * the hint in both languages. This presentation is deliberate there — the
- * dialog page doubles as the place where an operator can read a key off the
- * screen.
+ * The settings dialog's copy: the raw config key first, then the localized
+ * name in parentheses while the client is Chinese, and one single-language
+ * hint. English mode drops the parenthesized Chinese name entirely — the key
+ * alone is the title there.
+ * @param t - the locale-bound translate seat.
+ * @param chinese - whether the active locale is Chinese.
+ * @returns the row copy for that language.
  */
-const SECTION_COPY: RowCopy = {
-  labels: {
-    unavailable: zh['settings.unavailable'],
-    readOnly: zh['settings.readOnly'],
-    saveFailed: zh['settings.saveFailed'],
-    save: zh['settings.save'],
-    saving: zh['settings.saving'],
-    overridden: zh['settings.overridden'],
-    reset: zh['settings.reset'],
-    invalidNumber: zh['settings.invalidNumber'],
-  },
-  title: (row) => `${row.key}（${zh[row.label]}）`,
-  hint: (row) => `${zh[row.hint]}｜${en[row.hint]}`,
-  choice: (key) => zh[key],
+function sectionCopy(t: Translate, chinese: boolean): RowCopy {
+  return {
+    labels: {
+      unavailable: t('settings.unavailable'),
+      readOnly: t('settings.readOnly'),
+      saveFailed: t('settings.saveFailed'),
+      save: t('settings.save'),
+      saving: t('settings.saving'),
+      overridden: t('settings.overridden'),
+      reset: t('settings.reset'),
+      invalidNumber: t('settings.invalidNumber'),
+    },
+    title: (row) => (chinese ? `${row.key}（${t(row.label)}）` : row.key),
+    hint: (row) => t(row.hint),
+    choice: (key) => t(key),
+  }
 }
 
 /**
@@ -346,8 +367,28 @@ interface FormProps {
   discard?: () => void
 }
 
+/** One locale snapshot, as the client locale service exposes it. */
+interface LocaleSnapshotLike {
+  /** Active locale id, e.g. `zh` or `en`. */
+  active?: string
+  /** Monotonic revision; changes on locale switches and dictionary registration. */
+  revision?: number
+}
+
+/** The client locale service, reached structurally so no package type is needed. */
+export interface LocaleFaceLike {
+  bind(namespace: string): Translate
+  getSnapshot(): LocaleSnapshotLike
+  subscribe(listener: () => void): () => void
+}
+
 /** Props of the settings-dialog page. */
-type SectionProps = FormProps
+type SectionProps = FormProps & {
+  /** The locale-bound translate seat this plugin projects into the page. */
+  translate?: Translate
+  /** Locale snapshot selector hook; re-renders the page when the language changes. */
+  usePromptEnhanceLocale?: (selector: (snapshot: LocaleSnapshotLike) => LocaleSnapshotLike) => LocaleSnapshotLike
+}
 
 /** Props the plugin manager hands a configuration page. */
 interface PageProps extends FormProps {
@@ -547,27 +588,22 @@ export function SettingsSection(props: SectionProps): unknown {
   // Stable per mount: the host either projects the hook for this slot or it
   // does not, so this conditional never changes between renders of one mount.
   const state = read === undefined ? undefined : read((snapshot) => snapshot)
+  const readLocale = props.usePromptEnhanceLocale
+  const locale = readLocale === undefined ? undefined : readLocale((snapshot) => snapshot)
+  const t = translator(props.translate)
+  // Chinese keeps the raw key beside its name; every other locale shows the
+  // key alone, since the parenthesized Chinese name would be noise there.
+  const chinese = (locale?.active ?? 'zh').toLowerCase().startsWith('zh')
   if (state === undefined) {
-    return (
-      <div style={{ fontSize: 12, lineHeight: 1.7 }}>
-        <p style={{ margin: 0 }}>表单没有接通：宿主没有向这个设置节注入表单状态。</p>
-        <p style={{ margin: '8px 0 0', opacity: 0.65 }}>
-          The host did not project this section&apos;s form store. Nothing here can be edited until it does; the
-          plugin keeps working with its composition defaults.
-        </p>
-      </div>
-    )
+    return <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6 }}>{t('settings.disconnected')}</p>
   }
   const edit = props.edit ?? ((): void => {})
   const resetField = props.resetField ?? ((): void => {})
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <p style={{ margin: 0, fontSize: 12, opacity: 0.72 }}>
-        这些设置写入宿主侧 dsh-prompt-enhance 配置节，保存后下一次「优化提示词」调用即生效。｜These values write to the
-        host&apos;s dsh-prompt-enhance section; the next enhancement call uses them.
-      </p>
+      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, opacity: 0.72 }}>{t('settings.intro')}</p>
       <SettingsRows
-        copy={SECTION_COPY}
+        copy={sectionCopy(t, chinese)}
         state={state}
         edit={edit}
         resetField={resetField}
@@ -631,9 +667,14 @@ interface SlotsFace {
 class SettingsPageController {
   private readonly form: SettingsFormModel
   private readonly store: unknown
+  private readonly getLocale: (() => LocaleFaceLike | undefined) | undefined
 
-  /** @param scope - the scope of the entry the host serves this plugin under. */
-  constructor(scope: ConfigScopeLike) {
+  /**
+   * @param scope - the scope of the entry the host serves this plugin under.
+   * @param getLocale - resolves the client locale service, when one is mounted.
+   */
+  constructor(scope: ConfigScopeLike, getLocale?: () => LocaleFaceLike | undefined) {
+    this.getLocale = getLocale
     this.form = createSettingsForm(scope)
     this.store = this.form.bind(() => {
       const out = this.form.shell()
@@ -650,7 +691,18 @@ class SettingsPageController {
 
   /** The props the slots hand their pages. */
   inject(): Record<string, unknown> {
-    return { hooks: { promptEnhance: this.store }, ...this.form.actions() }
+    const face = this.getLocale?.()
+    const props: Record<string, unknown> = { hooks: { promptEnhance: this.store }, ...this.form.actions() }
+    if (face !== undefined) {
+      // A small observable the slot turns into `usePromptEnhanceLocale`; the
+      // page reads the active language from it and re-renders on a switch.
+      ;(props.hooks as Record<string, unknown>).promptEnhanceLocale = {
+        getSnapshot: () => face.getSnapshot(),
+        subscribe: (listener: () => void) => face.subscribe(listener),
+      }
+      props.translate = face.bind(LOCALE_NS)
+    }
+    return props
   }
 
   /** Release the form's subscriptions. */
@@ -673,8 +725,9 @@ class SettingsPageController {
  * optional: a host without the forms service or the slot registry simply shows
  * no page and keeps the composition config, which is the documented fallback.
  * @param ctx - the browser plugin context.
+ * @param getLocale - resolves the client locale service when one is mounted.
  */
-export function installSettingsPages(ctx: ClientContext): void {
+export function installSettingsPages(ctx: ClientContext, getLocale?: () => LocaleFaceLike | undefined): void {
   ctx.inject(['configForms', 'slots'], (servicesCtx: ClientContext) => {
     const services = servicesCtx as unknown as { configForms?: ConfigFormsLike; slots?: SlotsFace }
     const forms = services.configForms
@@ -684,7 +737,7 @@ export function installSettingsPages(ctx: ClientContext): void {
     try {
       const scope = forms.get(SETTINGS_NAMESPACE)
       if (scope === undefined) return
-      controller = new SettingsPageController(scope)
+      controller = new SettingsPageController(scope, getLocale)
     } catch (error) {
       console.warn('[dsh-prompt-enhance] settings form failed; both configuration pages stay off.', error)
       return
@@ -702,7 +755,7 @@ export function installSettingsPages(ctx: ClientContext): void {
               name: SETTINGS_SECTION_SLOT,
               id: SETTINGS_SECTION_ID,
               order: SETTINGS_SECTION_ORDER,
-              label: () => SETTINGS_SECTION_LABEL,
+              label: () => sectionTitle(getLocale),
               locale: LOCALE_NS,
               inject: () => controller.inject(),
             },
