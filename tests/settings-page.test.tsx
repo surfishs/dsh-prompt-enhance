@@ -110,14 +110,14 @@ interface Store {
  * @param options - stored user layer and writability.
  * @returns the write spy, the model, and the injected props.
  */
-function setup(options: { user?: Record<string, unknown>; writable?: boolean } = {}): {
+function setup(options: { user?: Record<string, unknown>; values?: Record<string, unknown>; writable?: boolean } = {}): {
   mutate: ReturnType<typeof vi.fn>
   model: ReturnType<typeof createSettingsForm>
   props: Record<string, unknown>
 } {
   const snapshot = {
     status: 'ready' as const,
-    value: { ...VALUES },
+    value: { ...VALUES, ...options.values },
     base: {},
     user: options.user,
     revision: 4,
@@ -168,7 +168,7 @@ function setup(options: { user?: Record<string, unknown>; writable?: boolean } =
  * @param options - stored user layer, writability, and the active language.
  * @returns the write spy and the staged model.
  */
-function renderSection(options: { user?: Record<string, unknown>; writable?: boolean; lang?: 'zh' | 'en' } = {}): {
+function renderSection(options: { user?: Record<string, unknown>; values?: Record<string, unknown>; writable?: boolean; lang?: 'zh' | 'en' } = {}): {
   mutate: ReturnType<typeof vi.fn>
   model: ReturnType<typeof createSettingsForm>
 } {
@@ -326,8 +326,24 @@ describe('settings dialog page', () => {
     expect(await screen.findByText(zhCopy('settings.reasoning.refreshFailed'))).toBeTruthy()
   })
 
+  it('hides the override badge when a manual edit returns to the default', () => {
+    const { model } = renderSection({
+      values: { enabled: false, timeoutMs: 30000 },
+      user: { enabled: true, timeoutMs: true },
+    })
+    expect(screen.getAllByText(zhCopy('settings.overridden'))).toHaveLength(2)
+    // Toggle the switch and type the number back to their shipped defaults.
+    fireEvent.click(switchOf(sectionTitle('enabled')))
+    fireEvent.change(screen.getByLabelText(sectionTitle('timeoutMs')), { target: { value: '60000' } })
+    // The form still stages an explicit value (the host flag stays true)…
+    expect(model.field('enabled').overridden).toBe(true)
+    expect(model.field('timeoutMs').overridden).toBe(true)
+    // …but there is nothing left to reset, so the badge and action disappear.
+    expect(screen.queryByText(zhCopy('settings.overridden'))).toBeNull()
+  })
+
   it('resets an overridden row by clearing the stored value', async () => {
-    const { mutate } = renderSection({ user: { streaming: false } })
+    const { mutate } = renderSection({ values: { streaming: false }, user: { streaming: true } })
     fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.reset') }))
     fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.save') }))
     await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1))

@@ -7,6 +7,7 @@
 
 import z from '@deepseek-ai/schemastery'
 import { INVARIANT_CONTRACT } from './prompts'
+import { DEFAULT_VALUES } from './shared/defaults'
 
 /** Settings namespace of the plugin section. */
 export const PROMPT_ENHANCE_NAMESPACE = 'dsh-prompt-enhance'
@@ -104,26 +105,7 @@ export interface Config {
 }
 
 /** Field defaults, the source of truth for schema defaults and client mirrors. */
-export const DEFAULT_CONFIG: Config = {
-  enabled: true,
-  temperature: 0.3,
-  // A rewrite does not need deep reasoning, and the route default is expensive
-  // (measured: 2897 output tokens at `high` vs 252 at `off` for the same draft).
-  // Sent explicitly, because omitting the field inherits that route default.
-  reasoningEffort: 'off',
-  maxOutputTokens: 8192,
-  maxInputChars: 12000,
-  timeoutMs: 60000,
-  systemPrompt: '',
-  strategyMode: 'replace-default',
-  shortcut: '',
-  maxConcurrent: 2,
-  rateLimitPerMinute: 10,
-  streaming: true,
-  contextAware: true,
-  contextMaxMessages: 8,
-  contextMaxChars: 4000,
-}
+export const DEFAULT_CONFIG: Config = { ...DEFAULT_VALUES }
 
 /**
  * The settings section schema (rendered by the built-in plugin config page).

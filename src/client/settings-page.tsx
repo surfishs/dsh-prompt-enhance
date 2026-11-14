@@ -27,6 +27,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactElement } fr
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ReasoningCapabilities } from '../shared/reasoning'
+import { DEFAULT_VALUES } from '../shared/defaults'
 import { fetchReasoningCapabilities } from './reasoning-options'
 import {
   SegmentedControl,
@@ -550,6 +551,30 @@ function viewOf(snapshot: SettingsSnapshot, key: string): FieldView {
 }
 
 /**
+ * Whether one row's current text equals its shipped default.
+ *
+ * The host form reports `overridden` as "this field was written explicitly"
+ * (stored value or a staged set), which stays true even when the user edits
+ * the value back to the default. The badge and its reset action only make
+ * sense while there is something to reset, so visibility is derived from this
+ * comparison instead — for text/number/enum rows alike.
+ * @param key - the config key.
+ * @param text - the row's current staged text.
+ * @returns true when editing can no longer change anything from the default.
+ */
+function atDefaultValue(key: string, text: string): boolean {
+  const fallback = (DEFAULT_VALUES as Record<string, unknown>)[key]
+  // provider/model are absent from the defaults on purpose: empty means follow.
+  if (fallback === undefined) return text.trim() === ''
+  if (typeof fallback === 'boolean') return text.trim() === String(fallback)
+  if (typeof fallback === 'number') {
+    const parsed = Number(text.trim())
+    return Number.isFinite(parsed) && parsed === fallback
+  }
+  return text.trim() === String(fallback)
+}
+
+/**
  * The "overridden" badge and its reset button, as the text rows draw them.
  * @param props - the frame copy, whether writes are refused, and the reset handler.
  * @returns the badge pair.
@@ -811,19 +836,25 @@ function SettingsRows(props: {
   const model = viewOf(props.state, 'model').text.trim()
   return (
     <SettingsForm labels={props.copy.labels} state={props.state} onSave={props.save} onDiscard={props.discard}>
-      {ROWS.map((row, index) => (
-        <div key={row.key} style={index === 0 ? undefined : SEPARATOR_STYLE}>
-          <SettingsRow
-            row={row}
-            copy={props.copy}
-            view={viewOf(props.state, row.key)}
-            disabled={!props.state.writable}
-            reasoningPair={{ provider, model }}
-            onEdit={(text: string) => props.edit(row.key, text)}
-            onReset={() => props.resetField(row.key)}
-          />
-        </div>
-      ))}
+      {ROWS.map((row, index) => {
+        const raw = viewOf(props.state, row.key)
+        // Hide the override badge once the value is back at its default; the
+        // host's `overridden` flag alone would keep it visible.
+        const view = raw.overridden && atDefaultValue(row.key, raw.text) ? { ...raw, overridden: false } : raw
+        return (
+          <div key={row.key} style={index === 0 ? undefined : SEPARATOR_STYLE}>
+            <SettingsRow
+              row={row}
+              copy={props.copy}
+              view={view}
+              disabled={!props.state.writable}
+              reasoningPair={{ provider, model }}
+              onEdit={(text: string) => props.edit(row.key, text)}
+              onReset={() => props.resetField(row.key)}
+            />
+          </div>
+        )
+      })}
     </SettingsForm>
   )
 }
