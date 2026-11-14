@@ -42,6 +42,7 @@ export const zh = {
   'error.rejected': '增强请求被拒绝。',
   'error.timeout': '增强超时（{seconds} 秒），请重试；原输入未改动。',
   'error.unconfigured': '尚未确定增强用的模型：请在插件设置中成对填写 provider/model，或先在当前会话发送一条消息（将跟随会话模型）。',
+  'error.effortUnsupported': '该模型不支持所选推理档位「{effort}」，请改选其它档位，或改用「跟随提供方默认」。',
   'error.upstream': '模型服务返回错误，请重试；原输入未改动。',
   'error.internal': '增强失败，请重试；原输入未改动。',
   'error.rateLimit': '请求过于频繁：每分钟最多 {limit} 次增强，请在 {retryAfterSeconds} 秒后再试。',
@@ -82,7 +83,7 @@ export const zh = {
   'settings.row.temperature.label': '温度',
   'settings.row.temperature.hint': '采样温度，越低越忠实原文；默认 0.3。',
   'settings.row.reasoningEffort.label': '推理预算',
-  'settings.row.reasoningEffort.hint': '改写是短而明确的任务：off 最省，high 最贵；inherit 不传该字段，跟随模型默认档。',
+  'settings.row.reasoningEffort.hint': '档位选项来自当前 provider/model 的声明；自定义模型时按需读取。跟随提供方默认表示不传该字段。',
   'settings.row.maxOutputTokens.label': '输出 token 上限',
   'settings.row.maxOutputTokens.hint': '单次增强的输出预算；默认 8192。',
   'settings.row.maxInputChars.label': '输入字符上限',
@@ -110,7 +111,12 @@ export const zh = {
   'settings.reasoning.off': 'off（关）',
   'settings.reasoning.low': 'low（省）',
   'settings.reasoning.high': 'high（高）',
-  'settings.reasoning.inherit': 'inherit（跟随）',
+  'settings.reasoning.max': 'max（最大）',
+  'settings.reasoning.inherit': '跟随提供方默认',
+  'settings.reasoning.loading': '正在读取该模型的档位…',
+  'settings.reasoning.unavailable': '无法读取该模型的档位，仅可跟随提供方默认。',
+  'settings.reasoning.unsupported': '当前值「{effort}」不在该模型支持的档位中。',
+  'settings.reasoning.refresh': '刷新档位',
 } as const
 
 /** Dictionary key union. */
@@ -154,6 +160,7 @@ export const en: Record<PromptEnhanceKey, string> = {
   'error.rejected': 'The enhance request was rejected.',
   'error.timeout': 'The enhancement timed out ({seconds}s). Retry; your draft is untouched.',
   'error.unconfigured': 'No model resolved for the enhancement: pair provider/model in the plugin settings, or send a message in the current session first (the enhancement will follow the session model).',
+  'error.effortUnsupported': 'This model does not support the selected reasoning effort "{effort}". Choose another tier, or use "follow provider default".',
   'error.upstream': 'The model provider returned an error. Retry; your draft is untouched.',
   'error.internal': 'Enhancement failed. Retry; your draft is untouched.',
   'error.rateLimit': 'Too many requests — at most {limit} enhancements per minute; retry in {retryAfterSeconds} seconds.',
@@ -194,7 +201,7 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.row.temperature.label': 'Temperature',
   'settings.row.temperature.hint': 'Sampling temperature; lower stays closer to the original. Default 0.3.',
   'settings.row.reasoningEffort.label': 'Reasoning effort',
-  'settings.row.reasoningEffort.hint': 'A rewrite is a short task: off is cheapest, high most expensive; inherit sends no field and follows the route default.',
+  'settings.row.reasoningEffort.hint': 'Tier choices come from what the configured provider/model declares; custom models are read on demand. Follow provider default omits the field.',
   'settings.row.maxOutputTokens.label': 'Output token budget',
   'settings.row.maxOutputTokens.hint': 'Output budget for one enhancement call. Default 8192.',
   'settings.row.maxInputChars.label': 'Input character cap',
@@ -222,7 +229,12 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.reasoning.off': 'off',
   'settings.reasoning.low': 'low',
   'settings.reasoning.high': 'high',
-  'settings.reasoning.inherit': 'inherit',
+  'settings.reasoning.max': 'max',
+  'settings.reasoning.inherit': 'Provider default',
+  'settings.reasoning.loading': 'Reading this model’s tiers…',
+  'settings.reasoning.unavailable': 'Could not read this model’s tiers; only “follow provider default” is available.',
+  'settings.reasoning.unsupported': 'The current value “{effort}” is not one of this model’s tiers.',
+  'settings.reasoning.refresh': 'Refresh tiers',
 }
 
 /** Both shipped dictionaries, keyed by locale id. */

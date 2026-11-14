@@ -38,6 +38,7 @@ const KNOWN_ERROR_CODES = new Set<EnhanceErrorCode>([
   'upstream',
   'unconfigured',
   'internal',
+  'effort-unsupported',
 ])
 
 /** Narrow one wire error, normalizing unknown codes. `message`/`params` are optional. */

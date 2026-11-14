@@ -22,7 +22,14 @@ export type StrategyMode = 'replace-default' | 'extend-default'
  * field unset so the route's own default applies — the field is omitted rather
  * than guessed.
  */
-export type ReasoningEffortChoice = 'off' | 'low' | 'high' | 'inherit'
+/**
+ * Reasoning effort id forwarded to the model call.
+ *
+ * Ids are adapter-owned and opaque: DeepSeek declares `off/low/high/max`, other
+ * providers declare their own set. `'inherit'` is the plugin's sentinel for
+ * "omit the field and let the provider default apply" — it is never forwarded.
+ */
+export type ReasoningEffortChoice = string
 
 /** The plugin's deployed configuration. */
 export interface Config {
@@ -145,7 +152,7 @@ export const Config = z.object({
   provider: z.string().description('覆盖模型路由的 provider（与「模型」必须成对填写；留空跟随当前会话模型）').volatile(),
   model: z.string().description('覆盖模型路由的 model（与「provider」必须成对填写；留空跟随当前会话模型）').volatile(),
   temperature: z.number().min(0).max(1).step(0.05).default(DEFAULT_CONFIG.temperature).description('采样温度；低温改写更忠实于原意').volatile(),
-  reasoningEffort: z.union(['off', 'low', 'high', 'inherit']).default(DEFAULT_CONFIG.reasoningEffort).description('推理预算：改写是短而明确的任务，不需要深度思考，而模型自身的默认档往往很贵（同一句话：off 约 252 输出 token，high 约 2897）。off/low 最省；inherit 表示不传该字段、完全跟随模型的默认档').volatile(),
+  reasoningEffort: z.string().default(DEFAULT_CONFIG.reasoningEffort).description('推理档位：填写当前 provider/model 声明的档位 id（如 DeepSeek 的 off/low/high/max）；inherit 表示不传该字段、跟随提供方默认档').volatile(),
   maxOutputTokens: z.number().step(1).min(256).max(32768).default(DEFAULT_CONFIG.maxOutputTokens).description('单次增强的输出 token 上限').volatile(),
   maxInputChars: z.number().step(1).min(200).max(200000).default(DEFAULT_CONFIG.maxInputChars).description('输入字数上限；超限拒绝而不截断，避免改变原意').volatile(),
   timeoutMs: z.number().step(1).min(5000).max(600000).default(DEFAULT_CONFIG.timeoutMs).description('单次增强的超时（毫秒）').volatile(),
@@ -160,19 +167,22 @@ export const Config = z.object({
   contextMaxChars: z.number().step(1).min(0).max(100000).default(DEFAULT_CONFIG.contextMaxChars).description('上下文窗口（字数）：历史片段的字符预算，从最新一条向前装配；0 表示不参考').volatile(),
 })
 
-/** Validated reasoning choices; `inherit` means "send no effort field at all". */
-const REASONING_CHOICES: readonly ReasoningEffortChoice[] = ['off', 'low', 'high', 'inherit']
-
 /**
- * Normalize a stored reasoning choice. Anything unrecognized — a section stored
- * before the field existed, or a hand-edited value — falls back to the shipped
- * default, which is the cheapest one; an unknown string must never reach the
- * adapter as an effort id it will reject.
+ * Normalize a stored reasoning choice.
+ *
+ * Ids are adapter-owned, so the plugin cannot enumerate them in a schema. A
+ * non-empty string is passed through as-is (the adapter rejects an unsupported
+ * one with a clear error); only an absent/blank/non-string value falls back to
+ * the shipped default. `inherit` keeps its sentinel meaning.
  * @param value - untrusted stored value.
  * @returns the validated choice.
  */
 function resolveReasoningEffort(value: unknown): ReasoningEffortChoice {
-  return REASONING_CHOICES.find((choice) => choice === value) ?? DEFAULT_CONFIG.reasoningEffort
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (trimmed !== '') return trimmed
+  }
+  return DEFAULT_CONFIG.reasoningEffort
 }
 
 /**
@@ -222,9 +232,10 @@ export function resolveConfig(config: Config): Config {
     provider: pairOrUndefined(provider),
     model: pairOrUndefined(model),
     temperature,
-    // Absent (a section stored before this field existed) means the cheapest
-    // shipped default; an unrecognized hand-edited value degrades the same way
-    // rather than reaching the model call as a rejected effort id.
+    // Ids are adapter-owned, so the stored string is kept as-is; a blank or
+    // absent value degrades to the cheapest shipped default. An id the route
+    // does not declare is rejected by the adapter with a clear error rather
+    // than silently replaced.
     reasoningEffort: resolveReasoningEffort(config.reasoningEffort),
     maxOutputTokens: intInRange(config.maxOutputTokens, 'maxOutputTokens', 256, 32768),
     maxInputChars: intInRange(config.maxInputChars, 'maxInputChars', 200, 200000),

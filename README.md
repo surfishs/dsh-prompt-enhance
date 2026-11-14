@@ -65,7 +65,7 @@ dsh plugin --profile web remove dsh-prompt-enhance
 | `enabled` | `true` | 总开关 |
 | `provider` + `model` | 空 | 成对覆盖模型路由；都留空则跟随当前会话 |
 | `temperature` | `0.3` | 越低越忠实原文 |
-| `reasoningEffort` | `off` | `off` / `low` / `high` / `inherit`，改写的推理预算 |
+| `reasoningEffort` | 跟随提供方默认 | 档位来自当前 provider/model 的声明；DeepSeek 为 `off` / `low` / `high` / `max`。自定义模型按需读取并本地缓存，`inherit` 即「跟随提供方默认」 |
 | `maxOutputTokens` | `8192` | 单次调用的输出 token 预算 |
 | `maxInputChars` | `12000` | 输入字符上限，超限拒绝、不截断 |
 | `timeoutMs` | `60000` | 单次调用超时（毫秒） |

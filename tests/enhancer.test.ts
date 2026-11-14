@@ -159,6 +159,15 @@ describe('enhanceText', () => {
     expect(calls).toBe(2)
   })
 
+  it('surfaces a rejected explicit effort instead of silently replacing it', async () => {
+    const llm = stubLlm(() => refusalStream('low'))
+    await expect(enhanceText(llm, { ...baseOptions, reasoningEffort: 'low' }))
+      .rejects.toMatchObject({ detail: { code: 'effort-unsupported', params: { effort: 'low' } } })
+    // The chosen tier never ran; replacing it with the provider default would
+    // hide that from the user, so the call is not retried at all.
+    expect(llm.calls).toHaveLength(1)
+  })
+
   // Defence in depth for a host that rejects the effort outside the harness's
   // terminal conversion. Nothing ships that relies on this `catch` — a live host
   // takes the finish-chunk path above — but the retry must not regress silently

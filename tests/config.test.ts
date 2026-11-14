@@ -145,13 +145,15 @@ describe('resolveConfig', () => {
     expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: 'low' }).reasoningEffort).toBe('low')
   })
 
-  it('degrades an absent or hand-edited reasoning effort to the cheap default', () => {
-    // A section stored before the field existed, and a hand-edited value: both
-    // must resolve to a choice the adapter accepts, never to a rejected id.
+  it('keeps an opaque reasoning id verbatim and degrades only blank or absent values', () => {
+    // Ids are adapter-owned; the plugin cannot enumerate them in a schema. A
+    // value it does not know is preserved for the adapter to accept or reject
+    // with a clear error, while a blank/absent value keeps the cheap default.
     const missing = { ...DEFAULT_CONFIG } as Partial<typeof DEFAULT_CONFIG>
     delete missing.reasoningEffort
     expect(resolveConfig(missing as typeof DEFAULT_CONFIG).reasoningEffort).toBe('off')
-    expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: 'turbo' as never }).reasoningEffort).toBe('off')
+    expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: 'turbo' as never }).reasoningEffort).toBe('turbo')
+    expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: '   ' as never }).reasoningEffort).toBe('off')
   })
 })
 

@@ -99,6 +99,7 @@ export type EnhanceErrorCode =
   | 'upstream'
   | 'unconfigured'
   | 'internal'
+  | 'effort-unsupported'
 
 /** Structured failure carried on every non-2xx / ok:false response. */
 export interface EnhanceError {

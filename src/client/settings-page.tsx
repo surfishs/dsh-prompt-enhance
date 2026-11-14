@@ -23,9 +23,11 @@
  * @module dsh-prompt-enhance/client/settings-page
  */
 
-import type { CSSProperties, ReactElement } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import { isDeepSeekProvider, type ReasoningCapabilities } from '../shared/reasoning'
+import { loadReasoningCapabilities } from './reasoning-options'
 import {
   SegmentedControl,
   SettingsForm,
@@ -137,14 +139,6 @@ const STRATEGY_OPTIONS: readonly { value: string; label: PromptEnhanceKey }[] = 
   { value: 'extend-default', label: 'settings.strategy.extend' },
 ]
 
-/** Choices of `reasoningEffort`, by dictionary key. */
-const REASONING_OPTIONS: readonly { value: string; label: PromptEnhanceKey }[] = [
-  { value: 'off', label: 'settings.reasoning.off' },
-  { value: 'low', label: 'settings.reasoning.low' },
-  { value: 'high', label: 'settings.reasoning.high' },
-  { value: 'inherit', label: 'settings.reasoning.inherit' },
-]
-
 /** How one row is edited, which picks both its control and its descriptor. */
 type RowKind = 'text' | 'number' | 'boolean' | 'strategy' | 'reasoning'
 
@@ -204,7 +198,10 @@ function descriptorOf(row: Row): SettingsFieldDescriptor {
     case 'strategy':
       return settingsEnumField(row.key, STRATEGY_OPTIONS.map((option) => option.value))
     case 'reasoning':
-      return settingsEnumField(row.key, REASONING_OPTIONS.map((option) => option.value))
+      // Effort ids are adapter-owned and discovered at render time, so the
+      // descriptor cannot enumerate them; the segmented control is the only
+      // writer, and the host validates the id against the route's declaration.
+      return settingsTextField(row.key)
     default:
       return settingsTextField(row.key)
   }
@@ -257,6 +254,8 @@ interface RowCopy {
   readonly placeholder: (row: Row) => string | undefined
   /** One choice label of a segmented control. */
   readonly choice: (key: PromptEnhanceKey) => string
+  /** One parameterized status line (dynamic reasoning tiers). */
+  readonly interpolate: (key: PromptEnhanceKey, params: Record<string, string>) => string
 }
 
 /**
@@ -284,6 +283,7 @@ function sectionCopy(t: Translate, chinese: boolean): RowCopy {
     hint: (row) => t(row.hint),
     placeholder: (row) => (row.placeholder === undefined ? undefined : t(row.placeholder)),
     choice: (key) => t(key),
+    interpolate: (key, params) => t(key, params),
   }
 }
 
@@ -309,6 +309,7 @@ function pageCopy(t: Translate): RowCopy {
     hint: (row) => t(row.hint),
     placeholder: (row) => (row.placeholder === undefined ? undefined : t(row.placeholder)),
     choice: (key) => t(key),
+    interpolate: (key, params) => t(key, params),
   }
 }
 
@@ -332,6 +333,27 @@ const HINT_STYLE: CSSProperties = {
   fontSize: 12,
   lineHeight: 1.5,
   color: 'var(--dsw-alias-label-tertiary, inherit)',
+}
+/** Dynamic-tier status line under the reasoning control. */
+const STATUS_STYLE: CSSProperties = {
+  margin: 0,
+  fontSize: 12,
+  lineHeight: 1.5,
+  color: 'var(--dsw-alias-label-secondary, inherit)',
+}
+/** The manual tier-refresh action, styled as a quiet link. */
+const REFRESH_STYLE: CSSProperties = {
+  alignSelf: 'flex-start',
+  border: 'none',
+  background: 'none',
+  padding: 0,
+  font: 'inherit',
+  fontSize: 12,
+  lineHeight: 1.5,
+  color: 'var(--dsw-alias-label-secondary, inherit)',
+  textDecoration: 'underline',
+  textUnderlineOffset: 2,
+  cursor: 'pointer',
 }
 const BADGES_STYLE: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8 }
 const RESET_STYLE: CSSProperties = {
@@ -592,11 +614,117 @@ function ChoiceRow(props: RowProps & { options: readonly { value: string; label:
 }
 
 /**
- * One row, rendered as the control its kind asks for.
- * @param props - the row, its copy, its state, and its actions.
+ * The reasoning row: choices come from what the configured route declares.
+ *
+ * - Both provider/model empty → follow the default model; the host answers from
+ *   its static DeepSeek catalog, or reports unavailable when the default is not
+ *   DeepSeek. This path is not cached (the page cannot observe the default).
+ * - A pinned pair → the answer is cached in `localStorage` with no TTL; it is
+ *   replaced only when the pair changes or the user presses refresh.
+ *
+ * While the answer is pending, or when it is unavailable, the control offers
+ * only "follow provider default" instead of guessing a tier list.
+ * @param props - the row, its copy, state, actions, and the pinned pair.
  * @returns the row element.
  */
-function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled: boolean; onEdit: (text: string) => void; onReset: () => void }): ReactElement {
+function ReasoningRow(props: RowProps & { provider: string; model: string }): ReactElement {
+  const pair = props.provider !== '' && props.model !== '' ? `${props.provider}/${props.model}` : ''
+  const [phase, setPhase] = useState<'loading' | 'ready'>('loading')
+  const [capabilities, setCapabilities] = useState<ReasoningCapabilities | undefined>(undefined)
+  const [refreshToken, setRefreshToken] = useState(0)
+  const forceRef = useRef(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    setPhase('loading')
+    setCapabilities(undefined)
+    const force = forceRef.current
+    forceRef.current = false
+    loadReasoningCapabilities(
+      props.provider === '' ? undefined : props.provider,
+      props.model === '' ? undefined : props.model,
+      { force, signal: controller.signal },
+    )
+      .then((answer) => {
+        if (controller.signal.aborted) return
+        setCapabilities(answer)
+        setPhase('ready')
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setCapabilities({ efforts: [], source: 'unavailable', reason: 'resolve-failed' })
+        setPhase('ready')
+      })
+    return () => controller.abort()
+    // `pair` covers both ids; the default path reuses the empty string.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pair, refreshToken])
+
+  // DeepSeek tiers keep the existing localized labels; every other provider's
+  // names are shown verbatim.
+  const localized = capabilities?.source === 'default' || isDeepSeekProvider(props.provider)
+  const knownDeepSeekId = (id: string): id is 'off' | 'low' | 'high' | 'max' => id === 'off' || id === 'low' || id === 'high' || id === 'max'
+  const options: { value: string; label: string; title?: string }[] = []
+  if (phase === 'ready' && capabilities !== undefined && capabilities.source !== 'unavailable') {
+    for (const effort of capabilities.efforts) {
+      options.push({
+        value: effort.id,
+        label: localized && knownDeepSeekId(effort.id)
+          ? props.copy.choice(`settings.reasoning.${effort.id}` as PromptEnhanceKey)
+          : effort.name,
+        ...effort.description === undefined ? {} : { title: effort.description },
+      })
+    }
+  }
+  options.push({ value: 'inherit', label: props.copy.choice('settings.reasoning.inherit') })
+  const known = phase === 'ready' && capabilities?.source !== 'unavailable'
+  const unsupported = known && props.view.text !== '' && props.view.text !== 'inherit'
+    && !options.some((option) => option.value === props.view.text)
+  const refresh = (): void => {
+    forceRef.current = true
+    setRefreshToken((token) => token + 1)
+  }
+  return (
+    <div style={ROW_STYLE}>
+      <div style={HEAD_STYLE}>
+        <span style={LABEL_STYLE}>{props.label}</span>
+        {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
+      </div>
+      <SegmentedControl
+        id={props.id}
+        value={props.view.text}
+        options={options}
+        // "Follow provider default" stays selectable while the tier list is
+        // still loading; the tier choices themselves only appear once known.
+        disabled={props.disabled}
+        label={props.label}
+        onChange={(next: string) => props.onEdit(next)}
+      />
+      <p style={HINT_STYLE}>{props.hint}</p>
+      {phase === 'loading' ? <p style={STATUS_STYLE}>{props.copy.choice('settings.reasoning.loading')}</p> : null}
+      {phase === 'ready' && capabilities?.source === 'unavailable'
+        ? <p style={STATUS_STYLE}>{props.copy.choice('settings.reasoning.unavailable')}</p>
+        : null}
+      {unsupported ? (
+        <p style={STATUS_STYLE}>{props.copy.interpolate('settings.reasoning.unsupported', { effort: props.view.text })}</p>
+      ) : null}
+      {phase === 'ready'
+        ? (
+            <button type="button" style={REFRESH_STYLE} disabled={props.disabled} onClick={refresh}>
+              {props.copy.choice('settings.reasoning.refresh')}
+            </button>
+          )
+        : null}
+    </div>
+  )
+}
+
+/**
+ * One row, rendered as the control its kind asks for.
+ * @param props - the row, its copy, its state, its actions, and the pinned pair.
+ * @returns the row element.
+ */
+function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled: boolean; reasoningPair: { provider: string; model: string }; onEdit: (text: string) => void; onReset: () => void }): ReactElement {
   const shared = {
     id: `dsh-prompt-enhance-${props.row.key}`,
     label: props.copy.title(props.row),
@@ -613,7 +741,7 @@ function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled
     case 'strategy':
       return <ChoiceRow {...shared} options={STRATEGY_OPTIONS.map((option) => ({ value: option.value, label: props.copy.choice(option.label) }))} />
     case 'reasoning':
-      return <ChoiceRow {...shared} options={REASONING_OPTIONS.map((option) => ({ value: option.value, label: props.copy.choice(option.label) }))} />
+      return <ReasoningRow {...shared} provider={props.reasoningPair.provider} model={props.reasoningPair.model} />
     default:
       return (
         <SettingsValueField
@@ -649,6 +777,10 @@ function SettingsRows(props: {
   save?: () => void
   discard?: () => void
 }): ReactElement {
+  // The reasoning row reads the staged pair so options follow the fields before
+  // they are saved (typing a custom model refreshes them on its own).
+  const provider = viewOf(props.state, 'provider').text.trim()
+  const model = viewOf(props.state, 'model').text.trim()
   return (
     <SettingsForm labels={props.copy.labels} state={props.state} onSave={props.save} onDiscard={props.discard}>
       {ROWS.map((row, index) => (
@@ -658,6 +790,7 @@ function SettingsRows(props: {
             copy={props.copy}
             view={viewOf(props.state, row.key)}
             disabled={!props.state.writable}
+            reasoningPair={{ provider, model }}
             onEdit={(text: string) => props.edit(row.key, text)}
             onReset={() => props.resetField(row.key)}
           />

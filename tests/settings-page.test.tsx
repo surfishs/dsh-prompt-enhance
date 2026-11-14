@@ -208,6 +208,7 @@ function switchOf(title: string): HTMLElement {
 
 afterEach(() => {
   cleanup()
+  vi.unstubAllGlobals()
 })
 
 describe('settings dialog page', () => {
@@ -278,6 +279,34 @@ describe('settings dialog page', () => {
       { op: 'set', path: ['reasoningEffort'], value: 'inherit' },
       { op: 'set', path: ['strategyMode'], value: 'extend-default' },
     ])
+  })
+
+  it('renders the pinned model’s own tiers from the capability route', async () => {
+    localStorage.clear()
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      ok: true,
+      value: {
+        efforts: [{ id: 'off', name: 'Off' }, { id: 'low', name: 'Low' }, { id: 'max', name: 'Max' }],
+        defaultEffort: 'low',
+        source: 'resolved',
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })))
+    renderSection({ user: { provider: 'zhipu', model: 'glm-4.6' } })
+    // Non-DeepSeek providers keep their own names, and Max is present.
+    expect(await screen.findByRole('tab', { name: 'Max' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Low' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: zhCopy('settings.reasoning.inherit') })).toBeTruthy()
+  })
+
+  it('offers only the provider default when the route declares no tiers', async () => {
+    localStorage.clear()
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      ok: true,
+      value: { efforts: [], source: 'unavailable', reason: 'no-efforts' },
+    }), { status: 200 })))
+    renderSection({ user: { provider: 'zhipu', model: 'glm-4.6' } })
+    expect(await screen.findByText(zhCopy('settings.reasoning.unavailable'))).toBeTruthy()
+    expect(screen.queryByRole('tab', { name: 'High' })).toBeNull()
   })
 
   it('resets an overridden row by clearing the stored value', async () => {

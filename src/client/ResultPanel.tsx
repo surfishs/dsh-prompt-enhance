@@ -78,6 +78,7 @@ function localizedErrorMessage(
     case 'cooldown': return t('error.cooldown', params)
     case 'timeout': return t('error.timeout', params)
     case 'unconfigured': return t('error.unconfigured')
+    case 'effort-unsupported': return t('error.effortUnsupported', params)
     case 'upstream': return t('error.upstream')
     default: return t('error.internal')
   }

@@ -17,6 +17,8 @@ import { toEnhanceError } from './enhancer'
 import { runEnhance, sessionRouteOf } from './orchestrate'
 import { isTrustedRequest } from './loopback'
 import { readBoundedJson, writeJson, endResponse } from './http'
+import { REASONING_EFFORTS_ENDPOINT } from './shared/reasoning'
+import { serveReasoningEfforts } from './reasoning-route'
 
 /** Envelope slack over the UTF-8 text cap: JSON quoting can inflate ~2-6x in the worst case. */
 const bodyCapOf = (maxInputChars: number): number => maxInputChars * 6 + 4096
@@ -356,6 +358,10 @@ export function registerEnhanceRoute(ctx: Context, readConfig: () => Config): vo
         path: ENHANCE_PREFIX,
         handler: (req: IncomingMessage, res: ServerResponse): Promise<void> => {
           const pathname = new URL(req.url ?? '/', 'http://x').pathname
+          // One read-only sibling under the same prefix: the settings page asks
+          // what tiers the configured route declares. It shares the fence and
+          // the per-mount lifetime, and never touches the admission gate.
+          if (pathname === REASONING_EFFORTS_ENDPOINT) return serveReasoningEfforts(ctx, req, res)
           return serveEnhance(ctx, readConfig, gate, pathname, req, res, pathname === ENHANCE_STREAM_ENDPOINT)
         },
       })

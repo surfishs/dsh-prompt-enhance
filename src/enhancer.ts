@@ -11,7 +11,7 @@ import type { GenerateOptions, FinishReason, StreamChunk } from '@deepseek-ai/ds
 import type { EnhanceError, EnhanceResult } from './shared/protocol'
 import { normalizeOutput } from './shared/normalize'
 import { frameUserPrompt } from './prompts'
-import type { ReasoningEffortChoice } from './config'
+import { DEFAULT_CONFIG, type ReasoningEffortChoice } from './config'
 
 /**
  * Producer identity of this plugin's model traffic.
@@ -232,7 +232,15 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
           // Defence for a host that rejects the effort somewhere the harness's
           // own terminal conversion does not cover; on a current host this does
           // not fire (see the finish check right below).
-          if (retriedWithoutEffort || requestedEffort === 'inherit' || !isEffortRejectionThrow(error)) throw error
+          if (!isEffortRejectionThrow(error)) throw error
+          if (requestedEffort === 'inherit' || retriedWithoutEffort) throw error
+          if (requestedEffort !== DEFAULT_CONFIG.reasoningEffort) {
+            return { ok: false, detail: { code: 'effort-unsupported', params: { effort: requestedEffort } } }
+          }
+          // The shipped default (`off`) is the plugin's compatibility floor: a
+          // route that declares no reasoning rejects it, and the old behavior
+          // of dropping the field keeps those routes working without the user
+          // having to touch the setting.
           retriedWithoutEffort = true
           continue
         }
@@ -246,17 +254,24 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
         // thrown" (dsh-llm/lib/types/index.js). The code is read off the finish
         // reason itself, because flattening it into our `EnhanceError` loses it.
         //
-        // There is no provider work to redo — only the field to drop — so defer
-        // to `inherit` once and keep the cheap `off` default working everywhere
-        // else rather than paying every model the expensive model-default
-        // effort. With `inherit` configured we sent no effort, so a retry would
-        // repeat the identical request and fail the same way — surfaced instead
-        // of retried. The rejected attempt's assembler is discarded: reusing it
-        // would splice its partial blocks into the retry.
+        // The shipped default (`off`) keeps the historical fallback: dropping
+        // the field once keeps routes that declare no reasoning working without
+        // a settings change. Any OTHER explicit id is the user's choice, and
+        // silently replacing it with the provider default would hide that the
+        // chosen tier never ran — so it surfaces as a clear error instead. With
+        // `inherit` configured we sent no effort, so a retry would repeat the
+        // identical request; its original detail is surfaced.
         const rejected = isEffortRejectionFinish(attempt.assembler.finish)
-        if (retriedWithoutEffort || requestedEffort === 'inherit' || !rejected) {
+        if (!rejected) {
           const detail = finishToDetail(attempt.assembler.finish)
           return detail === undefined ? { ok: true, blocks: attempt.assembler.blocks(), usage: attempt.assembler.usage } : { ok: false, detail }
+        }
+        if (requestedEffort === 'inherit' || retriedWithoutEffort) {
+          const detail = finishToDetail(attempt.assembler.finish) ?? { code: 'upstream', params: { reason: 'effort-unsupported' } }
+          return { ok: false, detail }
+        }
+        if (requestedEffort !== DEFAULT_CONFIG.reasoningEffort) {
+          return { ok: false, detail: { code: 'effort-unsupported', params: { effort: requestedEffort } } }
         }
         retriedWithoutEffort = true
       }
