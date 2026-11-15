@@ -72,15 +72,20 @@ jobs:
             exit 1
           fi
           echo "OIDC endpoint present"
-      - name: Fail fast if this version is already published
+      - name: Detect an already published version
+        id: published
         shell: bash
         run: |
           version="$(node -p "require('./package.json').version")"
           if npm view "@surfishs/dsh-prompt-enhance@${version}" version >/dev/null 2>&1; then
-            echo "::error::dsh-prompt-enhance@${version} is already on the registry — bump the version before publishing again"
-            exit 1
+            # The bootstrap release was published manually; a tag for that same
+            # version must stay green instead of failing after the fact.
+            echo "::warning::@surfishs/dsh-prompt-enhance@${version} is already on the registry — skipping the publish step"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=0" >> "$GITHUB_OUTPUT"
           fi
-          echo "dsh-prompt-enhance@${version} is new"
       # The three gates above are exactly what `prepublishOnly` runs, so the
       # hook is skipped rather than paying for a second build and test pass.
-      - run: npm publish --access public --ignore-scripts
+      - if: steps.published.outputs.skip != '1'
+        run: npm publish --access public --ignore-scripts
