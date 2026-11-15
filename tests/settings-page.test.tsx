@@ -260,6 +260,7 @@ describe('settings dialog page', () => {
     // The header carries the title, the repository link, the version and the description.
     expect(screen.getByText('提示词增强')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'GitHub' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'npm' })).toBeTruthy()
     expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy()
     expect(screen.getByText(/把输入框草稿改写为结构化提示词/)).toBeTruthy()
     // Routing rows are selects fed by the registration catalog; their first

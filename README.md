@@ -1,6 +1,7 @@
 # dsh-prompt-enhance
 
 [![CI](https://github.com/surfishs/dsh-prompt-enhance/actions/workflows/ci.yml/badge.svg)](https://github.com/surfishs/dsh-prompt-enhance/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@surfishs/dsh-prompt-enhance.svg)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 
 **DeepSeek Harness Web GUI 的「提示词增强」插件** —— 一键把输入框草稿改写为结构化提示词（角色与目标、可执行步骤、输出格式、验收标准、边界条件）。原文保留，失败不改草稿。
