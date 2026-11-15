@@ -81,6 +81,8 @@ export interface EnhanceResult {
   elapsedMs: number
   /** Token accounting, when the route reported any. */
   usage?: EnhanceUsage
+  /** True when the model stopped at the output token cap (the body may be incomplete). */
+  truncated?: boolean
 }
 
 /**

@@ -222,7 +222,7 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
     // downgrade below, so it can never spin more than twice.
     let retriedWithoutEffort = false
     const readAttempt = async (): Promise<
-      { ok: true; blocks: ReturnType<BlockAssembler['blocks']>; usage: BlockAssembler['usage'] } | { ok: false; detail: EnhanceError }
+      { ok: true; blocks: ReturnType<BlockAssembler['blocks']>; usage: BlockAssembler['usage']; truncated: boolean } | { ok: false; detail: EnhanceError }
     > => {
       while (true) {
         let attempt: { assembler: BlockAssembler; exhausted: boolean }
@@ -264,7 +264,15 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
         const rejected = isEffortRejectionFinish(attempt.assembler.finish)
         if (!rejected) {
           const detail = finishToDetail(attempt.assembler.finish)
-          return detail === undefined ? { ok: true, blocks: attempt.assembler.blocks(), usage: attempt.assembler.usage } : { ok: false, detail }
+          if (detail === undefined) {
+            return { ok: true, blocks: attempt.assembler.blocks(), usage: attempt.assembler.usage, truncated: false }
+          }
+          // A capped generation is a usable partial result, not a failed call:
+          // keep the text and let the panel warn that it may be incomplete.
+          if (attempt.assembler.finish.kind === 'max-tokens') {
+            return { ok: true, blocks: attempt.assembler.blocks(), usage: attempt.assembler.usage, truncated: true }
+          }
+          return { ok: false, detail }
         }
         if (requestedEffort === 'inherit' || retriedWithoutEffort) {
           const detail = finishToDetail(attempt.assembler.finish) ?? { code: 'upstream', params: { reason: 'effort-unsupported' } }
@@ -305,6 +313,7 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
       model: options.route.model,
       elapsedMs: Date.now() - started,
       ...reportedUsage === undefined ? {} : { usage: reportedUsage },
+      ...outcome.truncated ? { truncated: true } : {},
     }
   } catch (error) {
     if (error instanceof EnhanceFailure) throw error

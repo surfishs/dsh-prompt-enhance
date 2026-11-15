@@ -238,6 +238,10 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         </div>
       )}
 
+      {state.phase === 'result' && state.result?.truncated === true && (
+        <div className="dsh-pe-stale">⚠ {t('panel.truncated')}</div>
+      )}
+
       {state.phase === 'result' && state.stale && (
         <div className="dsh-pe-stale">⚠ {t('panel.stale.warn')}</div>
       )}

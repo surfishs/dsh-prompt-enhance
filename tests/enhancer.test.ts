@@ -206,10 +206,11 @@ describe('enhanceText', () => {
     await expect(enhanceText(llm, baseOptions)).rejects.toMatchObject({ detail: { code: 'unconfigured' } })
   })
 
-  it('rejects a max-tokens finish', async () => {
+  it('keeps a max-tokens finish as a truncated result', async () => {
     const llm = stubLlm(() => textStream(['部分'], { reason: 'max-tokens' }))
-    await expect(enhanceText(llm, baseOptions)).rejects.toMatchObject({
-      detail: { code: 'upstream', params: { reason: 'max-tokens' } },
+    await expect(enhanceText(llm, baseOptions)).resolves.toMatchObject({
+      text: '部分',
+      truncated: true,
     })
   })
 
