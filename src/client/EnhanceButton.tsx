@@ -18,6 +18,7 @@ import type { EnhanceError } from '../shared/protocol'
 import { checkInputText } from '../shared/validate'
 import { EnhanceClientError, requestEnhance, requestEnhanceStream } from './enhance-client'
 import { ResultPanel } from './ResultPanel'
+import { SparkleIcon } from './SparkleIcon'
 import * as ui from './ui-state'
 import { getClientSettings, subscribeClientSettings } from './settings'
 import { useSessionKey, serverSessionId } from './session-key'
@@ -195,7 +196,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         aria-disabled={otherBusy || undefined}
         onClick={start}
       >
-        <span className="dsh-pe-btn-icon" aria-hidden>{busy ? '◌' : '✨'}</span>
+        <span className="dsh-pe-btn-icon" aria-hidden><SparkleIcon size={14} spinning={busy} /></span>
       </button>
       {owned !== undefined && (
         createPortal(

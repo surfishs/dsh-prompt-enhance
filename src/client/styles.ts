@@ -176,8 +176,7 @@ export const CSS = `
 }
 .dsh-pe-btn:hover:not(:disabled) { opacity: 1; background: var(--pe-hover); }
 .dsh-pe-btn:disabled { opacity: 0.45; cursor: default; }
-.dsh-pe-btn .dsh-pe-btn-icon { font-size: 14px; }
-.dsh-pe-btn.is-busy .dsh-pe-btn-icon { animation: dsh-pe-spin 1s linear infinite; }
+.dsh-pe-btn .dsh-pe-btn-icon { display: inline-flex; align-items: center; }
 @keyframes dsh-pe-spin { to { transform: rotate(360deg); } }
 
 .dsh-pe-undo {

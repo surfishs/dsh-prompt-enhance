@@ -11,6 +11,7 @@ import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { EnhanceError, EnhanceUsage } from '../shared/protocol'
 import type { PromptEnhanceKey } from './locales'
 import type { PanelState } from './ui-state'
+import { SparkleIcon } from './SparkleIcon'
 
 /** Props of the preview panel. */
 export interface ResultPanelProps {
@@ -228,7 +229,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         tabIndex={-1}
       >
         <header className="dsh-pe-head">
-          <span>✨ {t('panel.title')}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><SparkleIcon size={15} />{t('panel.title')}</span>
           {state.phase === 'result' && state.result !== undefined && (
             <span className="dsh-pe-meta">
               {t('panel.model', { provider: state.result.provider, model: state.result.model })} · {t('panel.elapsed', { ms: formatMs(state.result.elapsedMs) })}
