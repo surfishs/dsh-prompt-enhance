@@ -8,13 +8,18 @@
 
 [简体中文](./README.md) | English
 
+![Prompt Enhance: the docked result card above the composer](./docs/images/panel.png)
+
 ---
 
 ## Features
 
-- **One-click enhance**: the ✨ button beside send; the shortcut is off by default and can be set in the settings.
-- **Side-by-side preview**: original and result together, with model and timing; apply, copy, or cancel.
-- **One-click undo**: an undo bar appears under the composer after applying.
+- **One-click enhance**: the enhance button in the composer toolbar (DeepSeek fish mark with a sparkle); the shortcut is off by default and can be set in the settings. The original draft is preserved, and a failure never touches it.
+- **Docked result card**: the result appears above the composer without covering the conversation, with model, timing and token usage. Apply, copy, regenerate or undo; sending the draft closes it automatically, Escape closes it too.
+- **Apply and undo**: after applying, the card stays open with a Replaced chip and an undo action; once closed, the undo bar remains above the composer.
+- **Regenerate**: re-runs the current composer text; after applying, it can regenerate the enhanced draft as well.
+- **Empty-draft dimming**: with no text (or attachments only), the icon dims and neither clicks nor the shortcut start a request.
+- **Truncation warning**: when the output hits the token cap, the partial result is kept and marked as possibly incomplete.
 - **`/enhance <text>`**: rewrite any text from the slash menu; the result never enters model history.
 - **Model routing**: pinned settings pair → current session model → harness default, in that order.
 - **Context aware**: uses recent conversation to resolve references; can be turned off.
@@ -61,7 +66,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 ## Usage
 
-Leave a draft in the composer, then click ✨ (or your configured shortcut). Empty, over-length, images-only, and command/reference drafts are rejected locally (over-length is never truncated). A valid draft opens the preview; Apply writes it back and raises the undo bar, Copy puts it on the clipboard, `Esc` cancels, and a poor result can be retried.
+Leave a draft in the composer, then click the enhance button in the toolbar (or your configured shortcut). An empty or attachment-only draft dims the button and cannot be clicked; over-length or reference-chip drafts are rejected locally. The result appears in a card docked above the composer: apply, copy, regenerate or close it; after applying, the card stays open with a Replaced chip and an undo action; sending the draft closes it automatically, and Escape closes it too. A result that hit the token cap is marked as possibly incomplete.
 
 `/enhance <text>` rewrites any text from the slash menu; the result is copyable and never enters model history.
 
@@ -88,6 +93,8 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | `maxConcurrent` | `2` | Concurrent enhancement limit; a new request past the limit is told to retry later |
 | `rateLimitPerMinute` | `10` | Successful enhancements per minute (sliding window); past the limit the request is told to retry later |
 
+An empty or attachment-only draft dims the button and starts no request; raise `maxOutputTokens` when a result is truncated.
+
 ## Security
 
 The enhance route is served by your own local dsh host and accepts loopback addresses with a local `Host` / `Origin` only. With `contextAware` on, recent conversation history is sent with the draft to the configured model provider — do not send context from sensitive sessions.
@@ -95,6 +102,8 @@ The enhance route is served by your own local dsh host and accepts loopback addr
 ## Troubleshooting
 
 - No button: make sure `enabled` is `true` and `dsh web` was restarted after installing.
+- The button is dimmed: the composer is empty or has attachments only; type some text to restore it.
+- Incomplete result: check the truncation warning and raise `maxOutputTokens`.
 - "No model resolved for the enhancement": set `provider` / `model` as a pair, or send a message in the current session first.
 - Authentication failed: check the provider's API key in the harness.
 
