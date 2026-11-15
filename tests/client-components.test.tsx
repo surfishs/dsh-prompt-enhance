@@ -110,7 +110,7 @@ function renderComposer(
   )
 }
 
-const enhanceButton = (): HTMLButtonElement => screen.getByRole('button', { name: zh['button.title'] }) as HTMLButtonElement
+const enhanceButton = (): HTMLButtonElement => document.querySelector('.dsh-pe-btn') as HTMLButtonElement
 
 // The one-shot path is the baseline every existing assertion was written
 // against; the incremental path gets its own describe with streaming on.
@@ -151,28 +151,36 @@ describe('dsh 0.1.2-rc.1 dual-compat (host omits sessionId)', () => {
 describe('EnhanceButton guard chain', () => {
   afterEach(cleanup)
 
-  it('refuses an empty draft with the localized empty message', () => {
+  it('dims for an empty draft and turns the click into a no-op', () => {
     const input = makeFakeInput({ draft: '   ' })
     renderComposer(input, { setDraft: vi.fn() } as never, 's1')
-    fireEvent.click(enhanceButton())
-    expect(screen.getByText(zh['error.empty'])).toBeTruthy()
+    const button = enhanceButton()
+    expect(button.getAttribute('aria-disabled')).toBe('true')
+    expect(button.title).toContain('当前输入区为空')
+    fireEvent.click(button)
+    expect(screen.queryByText(zh['error.empty'])).toBeNull()
     expect(requestEnhance).not.toHaveBeenCalled()
   })
 
-  it('refuses attachment-only drafts (0.2.x `attachmentIds`)', () => {
+  it('dims for attachment-only drafts (0.2.x `attachmentIds`)', () => {
     const input = makeFakeInput({ draft: '', attachmentIds: ['att1' as never] })
     renderComposer(input, { setDraft: vi.fn() } as never, 's1')
-    fireEvent.click(enhanceButton())
-    expect(screen.getByText(zh['error.attachmentsOnly'])).toBeTruthy()
+    const button = enhanceButton()
+    expect(button.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(button)
+    expect(screen.queryByText(zh['error.attachmentsOnly'])).toBeNull()
+    expect(requestEnhance).not.toHaveBeenCalled()
   })
 
   // The guard must keep working on hosts from the 0.1.x line, whose input state
   // still calls the same field `imageIds`.
-  it('refuses attachment-only drafts on the legacy `imageIds` field', () => {
+  it('dims for attachment-only drafts on the legacy `imageIds` field', () => {
     const input = makeFakeInput({ draft: '', imageIds: ['img1' as never] })
     renderComposer(input, { setDraft: vi.fn() } as never, 's1')
-    fireEvent.click(enhanceButton())
-    expect(screen.getByText(zh['error.attachmentsOnly'])).toBeTruthy()
+    const button = enhanceButton()
+    expect(button.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(button)
+    expect(screen.queryByText(zh['error.attachmentsOnly'])).toBeNull()
   })
 
   it('refuses drafts containing reference chips', () => {
@@ -264,7 +272,7 @@ describe('enhance → apply → undo loop', () => {
     expect(await screen.findByText(`⚠ ${zh['panel.stale.warn']}`)).toBeTruthy()
     // …and disappears again when the draft matches the source text.
     act(() => { input.set({ draft: '旧原文' }) })
-    await screen.findByText(zh['panel.enhanced'])
+    await screen.findByText('增强文本')
     expect(screen.queryByText(`⚠ ${zh['panel.stale.warn']}`)).toBeNull()
   })
 
@@ -282,6 +290,22 @@ describe('enhance → apply → undo loop', () => {
     // Undo restores the user's latest edits, not the stale pre-enhance text.
     fireEvent.click(screen.getByRole('button', { name: zh['undo.undo'] }))
     expect(setDraft).toHaveBeenLastCalledWith('用户编辑的新文本')
+  })
+
+  it('regenerates from the original prompt after applying', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    const setDraft = vi.fn((text: string) => input.set({ draft: text }))
+    renderComposer(input, { setDraft } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
+    expect(setDraft).toHaveBeenCalledWith('增强文本')
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.regenerate'] }))
+    expect(requestEnhance).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(requestEnhance).mock.calls[1][0]).toMatchObject({ text: '旧原文' })
   })
 
   it('ignores a click while this session is already enhancing (no orphaned panel swap)', async () => {
@@ -321,7 +345,7 @@ describe('incremental streaming display', () => {
 
     release(result)
     // …and the settled panel replaces the partial view with the real result.
-    expect(await screen.findByText(zh['panel.enhanced'])).toBeTruthy()
+    expect(await screen.findByText('增强文本')).toBeTruthy()
     expect(screen.queryByText(zh['panel.streaming'])).toBeNull()
   })
 

@@ -35,8 +35,8 @@ export interface PanelState {
 export interface SessionEntry {
   /** The button's root element, for focused-composer detection. */
   root: HTMLElement | null
-  /** Start one enhancement for this session (guards + fetch + panel). */
-  run: () => void
+  /** Start one enhancement for this session (guards + fetch + panel); an explicit text overrides the live draft. */
+  run: (text?: string) => void
 }
 
 const listeners = new Set<() => void>()
@@ -216,8 +216,8 @@ export function closePanel(): void {
 }
 
 /** Run one session's registered enhance action (used by the error retry). */
-export function runSession(sessionId: string): void {
-  sessions.get(sessionId)?.run()
+export function runSession(sessionId: string, text?: string): void {
+  sessions.get(sessionId)?.run(text)
 }
 
 /**

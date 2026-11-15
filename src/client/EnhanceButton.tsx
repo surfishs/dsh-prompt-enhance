@@ -66,12 +66,6 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   const draft = useInput((state: InputState) => stringOf((state as { draft?: unknown }).draft))
   const phase = useInput((state: InputState) => (state as { phase?: unknown }).phase)
   const occurrenceCount = useInput((state: InputState) => countOf((state as { occurrences?: unknown }).occurrences))
-  // `attachmentIds` is the 0.2.x field; `imageIds` is its 0.1.x predecessor.
-  // Both are read defensively so one binary serves both generations.
-  const attachmentCount = useInput((state: InputState) => {
-    const record = state as { attachmentIds?: unknown; imageIds?: unknown }
-    return countOf(record.attachmentIds) + countOf(record.imageIds)
-  })
   const settings = useSyncExternalStore(subscribeClientSettings, getClientSettings)
   const panel = useSyncExternalStore(ui.subscribe, ui.getPanel)
   const rootRef = useRef<HTMLButtonElement | null>(null)
@@ -87,40 +81,38 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   // cross-session busy state used to disable this button with no explanation,
   // which reads as "broken" in a multi-session layout.
   const otherBusy = anyBusy && !busy
+  /** No draft text at all (whitespace and attachment-only drafts count as empty): the icon dims and clicks are no-ops. */
+  const empty = draft.trim() === ''
 
   /** Guard chain + fetch + panel transition for this session. */
-  const start = useCallback((): void => {
-    if (anyBusy) return
+  const start = useCallback((overrideText?: string): void => {
+    const source = overrideText ?? draft
+    if (anyBusy || source.trim() === '') return
     if (!settings.enabled) {
       const disabled = t('error.disabled')
       ui.openError(uiKey, draft, { code: 'rejected', localized: disabled })
       return
     }
-    if (attachmentCount > 0 && draft.trim() === '') {
-      const attachmentsOnly = t('error.attachmentsOnly')
-      ui.openError(uiKey, draft, { code: 'rejected', localized: attachmentsOnly })
-      return
-    }
-    const check = checkInputText(draft, settings.maxInputChars)
+    const check = checkInputText(source, settings.maxInputChars)
     if (!check.ok) {
       const message = check.code === 'empty'
         ? t('error.empty')
         : t('error.tooLong', { count: check.count, max: check.max })
-      ui.openError(uiKey, draft, { code: 'rejected', localized: message })
+      ui.openError(uiKey, source, { code: 'rejected', localized: message })
       return
     }
     if (occurrenceCount > 0) {
       const occurrences = t('error.occurrences')
-      ui.openError(uiKey, draft, { code: 'rejected', localized: occurrences })
+      ui.openError(uiKey, source, { code: 'rejected', localized: occurrences })
       return
     }
     if (phase !== 'plain') {
       const busyPhase = t('error.phase')
-      ui.openError(uiKey, draft, { code: 'rejected', localized: busyPhase })
+      ui.openError(uiKey, source, { code: 'rejected', localized: busyPhase })
       return
     }
     const controller = new AbortController()
-    ui.openLoading({ sessionId: uiKey, original: draft, abort: () => controller.abort() })
+    ui.openLoading({ sessionId: uiKey, original: source, abort: () => controller.abort() })
     const settle = (result: Parameters<typeof ui.settleResult>[1]): void => ui.settleResult(uiKey, result)
     const fail = (error: unknown): void => {
       const detail: EnhanceError = error instanceof EnhanceClientError
@@ -132,14 +124,14 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     // writes, and degrades to the one-shot call on its own when the host or
     // the transport cannot stream.
     if (settings.streaming) {
-      requestEnhanceStream({ sessionId: wireId, text: draft }, {
+      requestEnhanceStream({ sessionId: wireId, text: source }, {
         signal: controller.signal,
         onDelta: (delta: string): void => ui.appendDelta(uiKey, delta),
       }).then(settle, fail)
       return
     }
-    requestEnhance({ sessionId: wireId, text: draft }, controller.signal).then(settle, fail)
-  }, [anyBusy, draft, attachmentCount, occurrenceCount, phase, settings, uiKey, wireId, t])
+    requestEnhance({ sessionId: wireId, text: source }, controller.signal).then(settle, fail)
+  }, [anyBusy, draft, occurrenceCount, phase, settings, uiKey, wireId, t])
 
   // The session registry holds a stable identity; run always dispatches to
   // the latest start callback. The refresh rides an effect (never the render
@@ -151,7 +143,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   useEffect(() => {
     const entry: ui.SessionEntry = {
       root: rootRef.current,
-      run: () => runRef.current(),
+      run: (text?: string) => runRef.current(text),
     }
     return ui.registerSession(uiKey, entry)
   }, [uiKey])
@@ -172,16 +164,16 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       <button
         ref={rootRef}
         type="button"
-        className={`dsh-pe-btn${busy ? ' is-busy' : ''}`}
-        title={busy ? t('button.busy') : otherBusy ? t('button.otherBusy') : t('button.title')}
-        aria-label={otherBusy ? t('button.otherBusy') : t('button.title')}
+        className={`dsh-pe-btn${busy ? ' is-busy' : ''}${otherBusy && !empty ? ' is-blocked' : ''}${empty && !busy ? ' is-empty' : ''}`}
+        title={busy ? t('button.busy') : otherBusy ? t('button.otherBusy') : empty ? t('button.emptyTitle') : t('button.title')}
+        aria-label={busy ? t('button.busy') : otherBusy ? t('button.otherBusy') : empty ? t('button.emptyTitle') : t('button.title')}
         // `aria-disabled` instead of `disabled`: a disabled button is skipped by
         // the keyboard and by screen readers, so the reason this composer is
-        // inert (another session's enhancement occupies the single preview
-        // panel) would be unreachable exactly for the users who need it. The
-        // click is a no-op either way (`start` returns early on `anyBusy`).
-        aria-disabled={otherBusy || undefined}
-        onClick={start}
+        // inert (empty draft, or another session's enhancement occupies the
+        // single preview panel) would be unreachable exactly for the users who
+        // need it. The click is a no-op either way.
+        aria-disabled={empty || otherBusy || undefined}
+        onClick={() => start()}
       >
         <span className="dsh-pe-btn-icon" aria-hidden><SparkleFishIcon size={15} spinning={busy} /></span>
       </button>

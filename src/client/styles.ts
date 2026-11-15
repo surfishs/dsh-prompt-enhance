@@ -11,7 +11,9 @@ const STYLE_ID = 'dsh-prompt-enhance-styles'
 
 /** The plugin's stylesheet. */
 export const CSS = `
+.dsh-pe-dock { width: 100%; }
 .dsh-pe-panel {
+  box-sizing: border-box;
   --pe-bg: #1f2127;
   --pe-fg: #e6e8ee;
   --pe-fg-dim: rgba(230, 232, 238, 0.55);
@@ -80,6 +82,7 @@ export const CSS = `
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   font-family: inherit;
   font-size: 12.5px;
   line-height: 1.6;
@@ -167,6 +170,10 @@ export const CSS = `
   white-space: nowrap;
 }
 .dsh-pe-btn:hover:not(:disabled) { opacity: 1; background: var(--pe-hover); }
+.dsh-pe-btn.is-busy { cursor: progress; }
+.dsh-pe-btn.is-blocked { cursor: progress; }
+.dsh-pe-btn.is-empty { opacity: 0.4; cursor: not-allowed; }
+.dsh-pe-btn.is-empty:hover { opacity: 0.4; background: transparent; }
 .dsh-pe-btn:disabled { opacity: 0.45; cursor: default; }
 .dsh-pe-btn .dsh-pe-btn-icon { display: inline-flex; align-items: center; }
 @keyframes dsh-pe-spin { to { transform: rotate(360deg); } }

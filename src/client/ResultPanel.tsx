@@ -27,6 +27,8 @@ export interface ResultPanelProps {
   applied?: boolean
   /** Restore the pre-apply draft; only meaningful while `applied`. */
   onUndo?: () => void
+  /** Run the same source prompt through the model again. */
+  onRegenerate?: () => void
 }
 
 /** Whether one error phase is worth retrying (model/transport failures). */
@@ -126,7 +128,7 @@ function totalTokensOf(usage: EnhanceUsage): number {
 
 /** One enhancement result card. */
 export function ResultPanel(props: ResultPanelProps): ReactNode {
-  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo } = props
+  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate } = props
   const [copied, setCopied] = useState<'idle' | 'ok' | 'failed'>('idle')
 
   const copy = useCallback((): void => {
@@ -226,7 +228,6 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
 
       {state.phase === 'result' && state.result !== undefined && (
         <div className="dsh-pe-result">
-          <div className="dsh-pe-col-title">{t('panel.enhanced')}</div>
           <pre className="dsh-pe-result-text">{state.result.text}</pre>
         </div>
       )}
@@ -236,6 +237,11 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
       )}
 
       <footer className="dsh-pe-foot">
+        {state.phase === 'result' && (
+          <button type="button" className="dsh-pe-btn-action plain" onClick={onRegenerate} disabled={onRegenerate === undefined}>
+            {t('panel.regenerate')}
+          </button>
+        )}
         <span className="dsh-pe-grow" />
         {state.phase === 'error' && (
           <>
