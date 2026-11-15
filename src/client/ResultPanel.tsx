@@ -11,6 +11,7 @@ import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { EnhanceError, EnhanceUsage } from '../shared/protocol'
 import type { PromptEnhanceKey } from './locales'
 import type { PanelState } from './ui-state'
+import { CopyIcon, FillIcon, RegenerateIcon, UndoIcon } from './ActionIcons'
 import { SparkleFishIcon } from './SparkleFishIcon'
 
 /** Props of the result card. */
@@ -259,6 +260,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         <span className="dsh-pe-grow" />
         {state.phase === 'result' && (
           <button type="button" className="dsh-pe-btn-action plain" onClick={onRegenerate} disabled={onRegenerate === undefined}>
+            <RegenerateIcon />
             {t('panel.regenerate')}
           </button>
         )}
@@ -267,7 +269,6 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
             {retryable(state.error?.code) && onRetry !== undefined && (
               <button type="button" className="dsh-pe-btn-action plain" onClick={onRetry}>{t('panel.retry')}</button>
             )}
-            <button type="button" className="dsh-pe-btn-action plain" onClick={onCancel}>{t('panel.close')}</button>
           </>
         )}
         {state.phase === 'loading' && (
@@ -276,16 +277,17 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         {state.phase === 'result' && (
           <>
             <button type="button" className="dsh-pe-btn-action plain" onClick={copy}>
+              <CopyIcon />
               {copied === 'ok' ? t('panel.copied') : copied === 'failed' ? t('panel.copyFailed') : t('panel.copy')}
             </button>
             {applied ? (
               <button type="button" className="dsh-pe-btn-action primary" onClick={onUndo} disabled={onUndo === undefined}>
+                <UndoIcon />
                 {t('undo.undo')}
               </button>
             ) : (
-              <button type="button" className="dsh-pe-btn-action primary" onClick={onApply}>{t('panel.apply')}</button>
+              <button type="button" className="dsh-pe-btn-action primary" onClick={onApply}><FillIcon />{t('panel.apply')}</button>
             )}
-            <button type="button" className="dsh-pe-btn-action plain" onClick={onCancel}>{t('panel.close')}</button>
           </>
         )}
       </footer>

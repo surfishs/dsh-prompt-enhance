@@ -145,13 +145,32 @@ export const CSS = `
 }
 .dsh-pe-foot .dsh-pe-grow { flex: 1; }
 .dsh-pe-btn-action {
-  border: none; border-radius: 6px; padding: 4px 10px;
-  font-size: 12px; cursor: pointer; line-height: 1;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--pe-border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
 }
-.dsh-pe-btn-action.primary { background: #3f76e1; color: #fff; }
+.dsh-pe-btn-action.primary {
+  min-width: 112px;
+  border-color: transparent;
+  background: #3f76e1;
+  color: #fff;
+}
 .dsh-pe-btn-action.primary:hover { background: #4d82ec; }
-.dsh-pe-btn-action.plain { background: var(--pe-hover); color: inherit; }
-.dsh-pe-btn-action.plain:hover { background: rgba(127, 127, 127, 0.3); }
+.dsh-pe-btn-action.plain { background: transparent; color: inherit; }
+.dsh-pe-btn-action.plain:hover { background: var(--pe-hover); }
+.dsh-pe-btn-action:disabled { opacity: 0.45; cursor: default; }
 
 .dsh-pe-stale {
   padding: 6px 10px;
