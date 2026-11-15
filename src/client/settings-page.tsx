@@ -81,7 +81,7 @@ export const SETTINGS_ROW_CONFIG_SLOT = 'plugins.row.config'
 const SETTINGS_NAMESPACE = 'dsh-prompt-enhance'
 
 /** The bundle whose patch declares the row, and that row's id. */
-const SETTINGS_BUNDLE = 'dsh-prompt-enhance'
+const SETTINGS_BUNDLE = '@surfishs/dsh-prompt-enhance'
 const SETTINGS_ROW_ID = 'dsh-prompt-enhance'
 
 /**

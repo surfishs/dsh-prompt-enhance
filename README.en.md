@@ -29,25 +29,33 @@
 
 ## Install
 
+From npm:
+
+```bash
+dsh plugin --profile <profile> add @surfishs/dsh-prompt-enhance
+# restart dsh
+```
+
 From GitHub (the built `lib/` is committed, so no local build happens):
 
 ```bash
-dsh plugin --profile web add github:surfishs/dsh-prompt-enhance
-# restart dsh web
+dsh plugin --profile <profile> add github:surfishs/dsh-prompt-enhance
 ```
+
+Replace `<profile>` with your profile name: usually `desktop` for the desktop app and `web` for the web build.
 
 From a local checkout (development):
 
 ```bash
 git clone https://github.com/surfishs/dsh-prompt-enhance.git
 cd dsh-prompt-enhance && npm install && npm run build
-dsh plugin --profile web add link:C:\path\to\dsh-prompt-enhance
+dsh plugin --profile <profile> add link:C:\path\to\dsh-prompt-enhance
 ```
 
-Not available on npm: the name `dsh-prompt-enhance` belongs to the upstream project. Uninstall:
+Uninstall:
 
 ```bash
-dsh plugin --profile web remove dsh-prompt-enhance
+dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 ```
 
 ## Usage

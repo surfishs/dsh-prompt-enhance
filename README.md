@@ -29,25 +29,33 @@
 
 ## 安装
 
-从 GitHub（`lib/` 已随仓库提交，无需本地构建）：
+从 npm 安装：
 
 ```bash
-dsh plugin --profile web add github:surfishs/dsh-prompt-enhance
-# 重启 dsh web
+dsh plugin --profile <profile> add @surfishs/dsh-prompt-enhance
+# 重启 dsh
 ```
+
+从 GitHub 安装（`lib/` 已随仓库提交，无需本地构建）：
+
+```bash
+dsh plugin --profile <profile> add github:surfishs/dsh-prompt-enhance
+```
+
+`<profile>` 换成你的 profile 名：桌面版通常是 `desktop`，Web 版通常是 `web`。
 
 从本地检出（开发用）：
 
 ```bash
 git clone https://github.com/surfishs/dsh-prompt-enhance.git
 cd dsh-prompt-enhance && npm install && npm run build
-dsh plugin --profile web add link:C:\path\to\dsh-prompt-enhance
+dsh plugin --profile <profile> add link:C:\path\to\dsh-prompt-enhance
 ```
 
-npm 上不可用：`dsh-prompt-enhance` 这个名字归上游项目所有。卸载：
+卸载：
 
 ```bash
-dsh plugin --profile web remove dsh-prompt-enhance
+dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 ```
 
 ## 使用

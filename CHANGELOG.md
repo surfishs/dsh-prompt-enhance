@@ -4,7 +4,7 @@ All notable changes are documented here. This repository starts its own release 
 
 ## 0.0.1 (2026-11-13)
 
-**First release of this line.** The `surfishs/dsh-prompt-enhance` line starts at `0.0.1` under the plain package name `dsh-prompt-enhance`. The plugin row id, settings namespace, client locale namespace, settings-section cell id and HTTP route prefix all share that name, so a log line, a settings key or a request path cannot disagree about which plugin it belongs to. The old `prompt-enhance` entry ids stay in the settings-mirror probe list as fallbacks for a profile still running a previous build.
+**First release of this line.** The `surfishs/dsh-prompt-enhance` line starts at `0.0.1` under the scoped npm package name `@surfishs/dsh-prompt-enhance`. The plugin row id, settings namespace, client locale namespace, settings-section cell id and HTTP route prefix keep the plain `dsh-prompt-enhance` name, so a log line, a settings key or a request path still names the same plugin regardless of the npm identity. The old `prompt-enhance` entry ids stay in the settings-mirror probe list as fallbacks for a profile still running a previous build.
 
 The configuration page has two entry points over one staged form: a section in the Settings dialog and a per-row configuration entry on the Plugins page. The composer shortcut now ships **empty (disabled)** instead of `ctrl+alt+e`: a shipped combination collides with chat apps, screenshot tools and IMEs, so the ✨ button is the primary entry point and an operator who wants a key sets one in the settings. The rewrite engine, context awareness, streaming display and the reasoning budget carry over from the 0.3.4 basis (`rongxingda/dsh-prompt-enhance`, Apache-2.0; original license retained). No stored configuration needed migration on this profile (`cordis.patch.yml` carried no overrides for this plugin).
 
@@ -12,7 +12,7 @@ The configuration page has two entry points over one staged form: a section in t
 
 **Routing selects instead of free text.** `provider`/`model` are now dropdowns fed by the harness LLM registry (`GET /dsh-prompt-enhance/llm-providers`, `.../llm-models`, `.../llm-route-check`): registered providers first, declared-but-unconfigured ones in a disabled group, a free-text “custom model” fallback, and the empty option keeps the follow-the-session semantics. A warning-only route check marks a pair the registry cannot resolve — the save is still allowed, matching the plugin's advisory catalog policy. The old placeholders are gone with the text inputs. A route that declares no reasoning tiers is presented as follow-provider-default and the enhancement call omits the field (the negative capability answer is cached), while an unsupported explicit tier on a tiered route still surfaces as an error.
 
-Suite: **28 files / 303 cases green**; typecheck clean; `lib/` rebuilt.
+Suite: **29 files / 309 cases green**; typecheck clean; `lib/` rebuilt.
 
 ## 0.3.4 (2026-11-03)
 
