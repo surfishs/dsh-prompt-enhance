@@ -367,19 +367,22 @@ const CHIP_STYLE: CSSProperties = {
 const REFRESH_STYLE: CSSProperties = { ...CHIP_STYLE, flex: 'none' }
 /** The reset action: the neutral chip surface, with an underline for affordance. */
 const RESET_STYLE: CSSProperties = CHIP_STYLE
+/** One border for every form control, so focus never changes the outline width. */
+const FIELD_BORDER = '1px solid rgba(128, 128, 128, 0.38)'
 /** The form input, mirroring the host's `input` metrics for a native control. */
 const INPUT_STYLE: CSSProperties = {
   boxSizing: 'border-box',
   width: '100%',
   height: 34,
   padding: '0 12px',
-  border: '0.5px solid var(--dsw-alias-border-l4, rgba(128, 128, 128, 0.35))',
+  border: FIELD_BORDER,
   borderRadius: 'var(--dsw-radius-md, 8px)',
   background: 'var(--dsw-alias-bg-layer-3, transparent)',
   font: 'inherit',
   fontSize: 13,
   lineHeight: 1.5,
   color: 'var(--dsw-alias-label-primary, inherit)',
+  outline: 'none',
 }
 /** The error line under an invalid numeric row. */
 const INVALID_STYLE: CSSProperties = {
@@ -398,11 +401,6 @@ const WARN_STYLE: CSSProperties = {
 /** The provider/model select, sharing the value input's metrics. */
 const SELECT_STYLE: CSSProperties = {
   ...INPUT_STYLE,
-  // The theme's `border-l4` is a near-invisible hairline on the light surface,
-  // and the browser's own focus ring reads as a dashed outline that stays until
-  // blur. The control draws its own solid 1px border and focus colour instead.
-  border: '1px solid rgba(128, 128, 128, 0.38)',
-  outline: 'none',
   cursor: 'pointer',
 }
 const SEPARATOR_STYLE: CSSProperties = {
@@ -948,12 +946,11 @@ function ModelRow(props: RowProps & { routing: LlmRoutingState; providerValue: s
         {provider !== '' ? <option value="__custom__">{props.copy.choice('settings.routing.custom')}</option> : null}
       </SelectControl>
       {showCustom ? (
-        <input
-          style={INPUT_STYLE}
+        <TextControl
           value={current}
           placeholder={props.copy.choice('settings.routing.customPlaceholder')}
           disabled={props.disabled}
-          onChange={(event) => props.onEdit(event.target.value)}
+          onChange={props.onEdit}
         />
       ) : null}
       {showCustom && props.routing.models.entries.length > 0 ? (
@@ -978,34 +975,60 @@ function ModelRow(props: RowProps & { routing: LlmRoutingState; providerValue: s
  * @param props - the row, its copy, state, and whether it is numeric.
  * @returns the row element.
  */
-function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string }): ReactElement {
+/**
+ * The shared text/number control: the same 1px border as the selects, turning
+ * the same business colour while focused (the invalid state wins over focus).
+ */
+function TextControl(props: {
+  id?: string
+  value: string
+  placeholder?: string
+  numeric?: boolean
+  invalid?: boolean
+  disabled?: boolean
+  onChange: (value: string) => void
+}): ReactElement {
   const [focused, setFocused] = useState(false)
-  const invalid = props.view.invalid
-  const borderColor = invalid
+  const borderColor = props.invalid === true
     ? 'var(--dsw-alias-state-error-primary, #f85149)'
     : focused ? 'var(--dsw-alias-state-business-primary, #4f8cff)' : undefined
+  return (
+    <input
+      id={props.id}
+      type="text"
+      inputMode={props.numeric === true ? 'numeric' : undefined}
+      aria-invalid={props.invalid === true || undefined}
+      disabled={props.disabled}
+      placeholder={props.placeholder}
+      value={props.value}
+      style={{
+        ...INPUT_STYLE,
+        ...props.disabled === true ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {},
+        ...borderColor === undefined ? {} : { borderColor },
+      }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onChange={(event) => props.onChange(event.target.value)}
+    />
+  )
+}
+
+function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string }): ReactElement {
+  const invalid = props.view.invalid
   return (
     <div style={ROW_STYLE}>
       <div style={HEAD_STYLE}>
         <label htmlFor={props.id} style={LABEL_STYLE}>{props.label}</label>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
       </div>
-      <input
+      <TextControl
         id={props.id}
-        type="text"
-        inputMode={props.numeric ? 'numeric' : undefined}
-        aria-invalid={invalid || undefined}
-        disabled={props.disabled}
-        placeholder={props.placeholder}
         value={props.view.text}
-        style={{
-          ...INPUT_STYLE,
-          ...props.disabled ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {},
-          ...borderColor === undefined ? {} : { borderColor },
-        }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onChange={(event) => props.onEdit(event.target.value)}
+        placeholder={props.placeholder}
+        numeric={props.numeric}
+        invalid={invalid}
+        disabled={props.disabled}
+        onChange={props.onEdit}
       />
       <p style={HINT_STYLE}>{props.hint}</p>
       {invalid ? <p style={INVALID_STYLE}>{props.copy.labels.invalidNumber}</p> : null}
