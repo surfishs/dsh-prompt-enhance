@@ -10,15 +10,13 @@
  */
 
 import { useCallback, useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { EnhanceError } from '../shared/protocol'
 import { checkInputText } from '../shared/validate'
 import { EnhanceClientError, requestEnhance, requestEnhanceStream } from './enhance-client'
-import { ResultPanel } from './ResultPanel'
-import { SparkleIcon } from './SparkleIcon'
+import { SparkleFishIcon } from './SparkleFishIcon'
 import * as ui from './ui-state'
 import { getClientSettings, subscribeClientSettings } from './settings'
 import { useSessionKey, serverSessionId } from './session-key'
@@ -167,19 +165,8 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     }
   }, [draft, panel, uiKey])
 
-  /** Apply the enhanced result: remember the CURRENT draft (pre-apply, so
-   * undo restores exactly this state even if the user typed during the
-   * request), then fill the enhanced text back. */
-  const apply = useCallback((): void => {
-    if (panel === undefined || panel.phase !== 'result' || panel.result === undefined) return
-    ui.pushUndo(uiKey, { original: draft, applied: panel.result.text })
-    inputActions.setDraft(panel.result.text)
-    ui.closePanel()
-  }, [draft, inputActions, panel, uiKey])
-
   if (!settings.enabled) return null
 
-  const owned = panel !== undefined && panel.sessionId === uiKey ? panel : undefined
   return (
     <>
       <button
@@ -196,20 +183,8 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         aria-disabled={otherBusy || undefined}
         onClick={start}
       >
-        <span className="dsh-pe-btn-icon" aria-hidden><SparkleIcon size={15} spinning={busy} /></span>
+        <span className="dsh-pe-btn-icon" aria-hidden><SparkleFishIcon size={15} spinning={busy} /></span>
       </button>
-      {owned !== undefined && (
-        createPortal(
-          <ResultPanel
-            state={owned}
-            t={t}
-            onApply={apply}
-            onCancel={() => ui.closePanel()}
-            onRetry={owned.phase === 'error' ? start : undefined}
-          />,
-          document.body,
-        )
-      )}
     </>
   )
 }

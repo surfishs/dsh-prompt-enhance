@@ -215,6 +215,11 @@ export function closePanel(): void {
   notify()
 }
 
+/** Run one session's registered enhance action (used by the error retry). */
+export function runSession(sessionId: string): void {
+  sessions.get(sessionId)?.run()
+}
+
 /**
  * Register one session's mounted trigger; returns the unregister function.
  * The most recent registration becomes the shortcut's fallback target.

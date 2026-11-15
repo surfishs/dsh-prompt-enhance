@@ -37,6 +37,10 @@ export function UndoBar(props: UndoBarProps): ReactNode {
     if (entry !== undefined && entry.applied !== draft) ui.popUndo(uiKey)
   }, [draft, entry, uiKey])
 
+  // The result card owns the undo affordance while it is open; the standalone
+  // row takes over only after the card is closed.
+  const panel = ui.getPanel()
+  if (panel !== undefined && panel.sessionId === uiKey) return null
   if (entry === undefined || entry.applied !== draft) return null
 
   const undo = (): void => {

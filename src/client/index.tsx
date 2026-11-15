@@ -26,6 +26,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-store'
 import { EnhanceButton } from './EnhanceButton'
+import { ResultDock } from './ResultDock'
 import { UndoBar } from './UndoBar'
 import * as ui from './ui-state'
 import { dictionaries, NS } from './locales'
@@ -134,6 +135,21 @@ export function apply(ctx: ClientContext): void {
         )
       } catch (error) {
         return report('composer enhance button slot', error)
+      }
+    })
+  })
+
+  ctx.inject(['slots'], (slotsCtx: ClientContext) => {
+    const slots = (slotsCtx as unknown as { slots?: SlotsFace }).slots
+    if (slots === undefined) return
+    return slots.inject('conversation.input.dock', () => {
+      try {
+        return slots.register(
+          { name: 'conversation.input.dock', id: 'dsh-prompt-enhance-result', order: 30, locale: NS },
+          ResultDock as unknown as never,
+        )
+      } catch (error) {
+        return report('result dock slot', error)
       }
     })
   })

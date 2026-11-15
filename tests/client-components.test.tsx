@@ -14,6 +14,7 @@ import { useSyncExternalStore } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { EnhanceButton } from '../src/client/EnhanceButton'
 import { UndoBar } from '../src/client/UndoBar'
+import { ResultDock } from '../src/client/ResultDock'
 import { requestEnhance, requestEnhanceStream } from '../src/client/enhance-client'
 import { zh } from '../src/client/locales'
 import * as ui from '../src/client/ui-state'
@@ -103,6 +104,7 @@ function renderComposer(
   render(
     <>
       <EnhanceButton {...props} />
+      <ResultDock {...props} />
       <UndoBar {...props} />
     </>,
   )
@@ -196,6 +198,7 @@ describe('EnhanceButton guard chain', () => {
       render(
         <>
           <EnhanceButton {...({ t, sessionId: 's1', useInput: bare.useInput, inputActions: { setDraft: vi.fn() } } as never)} />
+          <ResultDock {...({ t, sessionId: 's1', useInput: bare.useInput, inputActions: { setDraft: vi.fn() } } as never)} />
           <UndoBar {...({ t, sessionId: 's1', useInput: bare.useInput, inputActions: { setDraft: vi.fn() } } as never)} />
         </>,
       )

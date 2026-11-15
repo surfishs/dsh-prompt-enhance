@@ -11,16 +11,6 @@ const STYLE_ID = 'dsh-prompt-enhance-styles'
 
 /** The plugin's stylesheet. */
 export const CSS = `
-.dsh-pe-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--dsh-pe-z-index, 1000);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.32);
-  padding: 24px 16px;
-}
 .dsh-pe-panel {
   --pe-bg: #1f2127;
   --pe-fg: #e6e8ee;
@@ -34,15 +24,14 @@ export const CSS = `
   --pe-warn-bg: rgba(230, 158, 60, 0.12);
   display: flex;
   flex-direction: column;
-  width: min(880px, 100%);
-  max-height: min(70vh, 640px);
+  width: 100%;
+  margin-bottom: 6px;
   border-radius: 12px;
   border: 1px solid var(--pe-border);
   background: var(--pe-bg);
   color: var(--pe-fg);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 14px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  outline: none;
 }
 @media (prefers-color-scheme: light) {
   .dsh-pe-panel {
@@ -62,45 +51,48 @@ export const CSS = `
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--pe-separator);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
 }
+.dsh-pe-head .dsh-pe-title { display: inline-flex; align-items: center; gap: 6px; }
 .dsh-pe-head .dsh-pe-meta { margin-left: auto; font-weight: 400; font-size: 11px; opacity: 0.6; }
+.dsh-pe-applied {
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: var(--dsw-alias-state-success-primary, #2da44e);
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
 .dsh-pe-close {
   border: none; background: transparent; color: inherit; opacity: 0.6;
   font-size: 15px; cursor: pointer; padding: 2px 6px; border-radius: 4px;
 }
 .dsh-pe-close:hover { opacity: 1; background: var(--pe-hover); }
-.dsh-pe-body { display: flex; flex: 1; min-height: 0; }
-.dsh-pe-col {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.dsh-pe-col + .dsh-pe-col { border-left: 1px solid var(--pe-separator); }
-.dsh-pe-col-title {
-  padding: 8px 14px 6px;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  opacity: 0.55;
-}
-.dsh-pe-col-text {
-  flex: 1;
+.dsh-pe-result { padding: 2px 10px 6px; }
+.dsh-pe-result-text {
   margin: 0;
-  padding: 0 14px 12px;
+  max-height: 30vh;
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.6;
 }
+.dsh-pe-col-title {
+  padding: 4px 10px 2px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
 .dsh-pe-error {
-  padding: 20px 16px;
-  font-size: 13px;
+  padding: 10px;
+  font-size: 12.5px;
   line-height: 1.6;
   color: var(--pe-danger);
   white-space: pre-wrap;
@@ -114,7 +106,7 @@ export const CSS = `
 .dsh-pe-loading {
   display: flex; flex-direction: column; gap: 8px;
   align-items: center; justify-content: center;
-  flex: 1; padding: 28px 16px; font-size: 13px;
+  flex: 1; padding: 14px 10px; font-size: 12.5px;
 }
 .dsh-pe-loading .dsh-pe-hint { font-size: 11px; opacity: 0.55; }
 /* Incremental view: the streamed text takes the whole body, left-aligned. */
@@ -135,13 +127,13 @@ export const CSS = `
 .dsh-pe-foot {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 6px;
+  padding: 8px 10px;
   border-top: 1px solid var(--pe-separator);
 }
 .dsh-pe-foot .dsh-pe-grow { flex: 1; }
 .dsh-pe-btn-action {
-  border: none; border-radius: 6px; padding: 6px 14px;
+  border: none; border-radius: 6px; padding: 4px 10px;
   font-size: 12px; cursor: pointer; line-height: 1;
 }
 .dsh-pe-btn-action.primary { background: #3f76e1; color: #fff; }
@@ -150,7 +142,7 @@ export const CSS = `
 .dsh-pe-btn-action.plain:hover { background: rgba(127, 127, 127, 0.3); }
 
 .dsh-pe-stale {
-  padding: 8px 14px;
+  padding: 6px 10px;
   font-size: 12px;
   line-height: 1.5;
   border-top: 1px solid var(--pe-warn-border);
