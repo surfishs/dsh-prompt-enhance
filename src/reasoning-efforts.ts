@@ -90,6 +90,7 @@ export async function resolveReasoningCapabilities(
   if (options.refresh !== true) {
     const cached = await readCachedCapabilities(provider, model)
     if (cached !== undefined) {
+      if (cached.noEfforts === true) return unavailable('no-efforts')
       return {
         efforts: cached.efforts,
         ...cached.defaultEffort === undefined ? {} : { defaultEffort: cached.defaultEffort },
@@ -104,7 +105,12 @@ export async function resolveReasoningCapabilities(
   try {
     const resolved = await lookup.call(llm, provider, model, AbortSignal.timeout(RESOLVE_TIMEOUT_MS))
     const reasoning: LlmModelReasoningInfo | undefined = resolved.reasoning
-    if (reasoning === undefined || reasoning.efforts.length === 0) return unavailable('no-efforts')
+    if (reasoning === undefined || reasoning.efforts.length === 0) {
+      // Cache the negative answer: the enhancement path checks the same route
+      // on every call and would otherwise re-resolve forever.
+      await writeCachedCapabilities(provider, model, [], undefined, true)
+      return unavailable('no-efforts')
+    }
     const efforts = reasoning.efforts.map(effortOf)
     await writeCachedCapabilities(provider, model, efforts, reasoning.defaultEffort)
     return {

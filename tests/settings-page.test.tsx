@@ -21,7 +21,7 @@
  */
 
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useSyncExternalStore } from 'react'
 import { SettingsPage, SettingsSection, createSettingsForm } from '../src/client/settings-page'
 import { en, zh } from '../src/client/locales'
@@ -386,26 +386,29 @@ describe('settings dialog page', () => {
     expect(screen.getByRole('tab', { name: zhCopy('settings.reasoning.inherit') })).toBeTruthy()
   })
 
-  it('offers only the provider default when the route declares no tiers', async () => {
-    localStorage.clear()
+  it('collapses to follow-provider-default when the route declares no tiers', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
       ok: true,
       value: { efforts: [], source: 'unavailable', reason: 'no-efforts' },
     }), { status: 200 })))
-    renderSection({ user: { provider: 'zhipu', model: 'glm-4.6' } })
-    expect(await screen.findByText(zhCopy('settings.reasoning.unavailable'))).toBeTruthy()
-    expect(screen.queryByRole('tab', { name: 'High' })).toBeNull()
+    renderSection({ values: { reasoningEffort: 'off' }, user: { provider: 'zhipu', model: 'glm-4.6' } })
+    expect(await screen.findByText(zhCopy('settings.reasoning.noTiers'))).toBeTruthy()
+    // Only the follow-default choice is offered in this row; no synthetic
+    // current value (the page also has the strategy tablist, so scope it).
+    const row = screen.getByRole('tablist', { name: sectionTitle('reasoningEffort') })
+    expect(within(row).getAllByRole('tab')).toHaveLength(1)
+    expect(within(row).queryByRole('tab', { name: zhCopy('settings.reasoning.current', { value: 'off' }) })).toBeNull()
   })
 
-  it('keeps an undeclared stored tier visible instead of sliding the indicator off', async () => {
+  it('keeps an undeclared stored tier visible when the capability read fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
       ok: true,
-      value: { efforts: [], source: 'unavailable', reason: 'no-efforts' },
+      value: { efforts: [], source: 'unavailable', reason: 'resolve-failed' },
     }), { status: 200 })))
     renderSection({ values: { reasoningEffort: 'high' }, user: { reasoningEffort: true } })
     const synthetic = zhCopy('settings.reasoning.current', { value: 'high' })
-    // The value has no matching provider tier, so it must render as its own
-    // option; otherwise the segmented control's indicator has index -1.
+    // The read failed rather than declaring "no tiers", so the stored value
+    // stays visible; otherwise the segmented indicator would have no option.
     expect(await screen.findByRole('tab', { name: synthetic })).toBeTruthy()
   })
 

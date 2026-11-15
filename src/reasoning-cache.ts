@@ -23,6 +23,8 @@ interface CacheEntry {
   model: string
   efforts: ReasoningEffortInfo[]
   defaultEffort?: string
+  /** True when the route declared no reasoning capability at all. */
+  noEfforts?: boolean
   savedAt: number
 }
 
@@ -36,6 +38,8 @@ interface CacheDocument {
 export interface CachedReasoningEfforts {
   efforts: ReasoningEffortInfo[]
   defaultEffort?: string
+  /** The route declares no reasoning at all; callers should omit the effort. */
+  noEfforts?: boolean
 }
 
 /** The DeepSeek Harness home: `DSH_HOME` when set, else `~/.dsh`. */
@@ -105,6 +109,9 @@ export async function readCachedCapabilities(provider: string, model: string): P
   const document = await readDocument()
   const entry = document.entries[entryKey(provider, model)]
   if (entry === undefined || entry.provider !== provider || entry.model !== model) return undefined
+  // A negative answer is cached too: routes that declare no reasoning would
+  // otherwise pay a capability lookup on every enhancement call.
+  if (entry.noEfforts === true) return { efforts: [], noEfforts: true }
   if (!Array.isArray(entry.efforts) || entry.efforts.length === 0) return undefined
   const efforts = entry.efforts.map(effortOf).filter((effort): effort is ReasoningEffortInfo => effort !== undefined)
   if (efforts.length !== entry.efforts.length) return undefined
@@ -121,13 +128,14 @@ export async function readCachedCapabilities(provider: string, model: string): P
  * @param efforts - the adapter-declared efforts.
  * @param defaultEffort - the adapter's default, when declared.
  */
-export async function writeCachedCapabilities(provider: string, model: string, efforts: ReasoningEffortInfo[], defaultEffort?: string): Promise<void> {
+export async function writeCachedCapabilities(provider: string, model: string, efforts: ReasoningEffortInfo[], defaultEffort?: string, noEfforts = false): Promise<void> {
   const document = await readDocument()
   document.entries[entryKey(provider, model)] = {
     provider,
     model,
     efforts,
     ...defaultEffort === undefined ? {} : { defaultEffort },
+    ...noEfforts ? { noEfforts: true } : {},
     savedAt: Date.now(),
   }
   await writeDocument(document)

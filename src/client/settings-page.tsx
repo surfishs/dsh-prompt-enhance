@@ -754,12 +754,13 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
   const current = props.view.text
   const realTierKnown = phase === 'ready' && capabilities !== undefined && capabilities.source !== 'unavailable'
     && capabilities.efforts.some((effort) => effort.id === current)
+  const noTiers = phase === 'ready' && capabilities !== undefined && capabilities.source === 'unavailable' && capabilities.reason === 'no-efforts'
   const options: { value: string; label: string; title?: string }[] = []
   // A value the route does not declare (stale config, or while the list is
   // still loading) is kept as a visible synthetic choice. Without it the
   // segmented control's indicator has no matching option and slides off the
   // left edge.
-  if (current !== '' && current !== 'inherit' && !realTierKnown) {
+  if (!noTiers && current !== '' && current !== 'inherit' && !realTierKnown) {
     options.push({
       value: current,
       label: props.copy.interpolate('settings.reasoning.current', { value: current }),
@@ -776,7 +777,7 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
     }
   }
   options.push({ value: 'inherit', label: props.copy.choice('settings.reasoning.inherit') })
-  const unsupported = phase === 'ready' && capabilities?.source !== 'unavailable'
+  const unsupported = !noTiers && phase === 'ready' && capabilities?.source !== 'unavailable'
     && current !== '' && current !== 'inherit' && !realTierKnown
   const refreshing = feedback === 'refreshing'
   const refresh = (): void => {
@@ -803,7 +804,10 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
       </div>
       <SegmentedControl
         id={props.id}
-        value={props.view.text}
+        // A route that declares no tiers is presented as "follow provider
+        // default"; the stored tier stays in the config and the host omits it
+        // on the call, so the displayed state matches what actually happens.
+        value={noTiers ? 'inherit' : props.view.text}
         options={options}
         // "Follow provider default" stays selectable while the tier list is
         // still loading; the tier choices themselves only appear once known.
@@ -814,7 +818,7 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
       <p style={HINT_STYLE}>{props.hint}</p>
       {phase === 'loading' ? <p style={STATUS_STYLE}>{props.copy.choice('settings.reasoning.loading')}</p> : null}
       {phase === 'ready' && capabilities?.source === 'unavailable'
-        ? <p style={STATUS_STYLE}>{props.copy.choice('settings.reasoning.unavailable')}</p>
+        ? <p style={STATUS_STYLE}>{props.copy.choice(noTiers ? 'settings.reasoning.noTiers' : 'settings.reasoning.unavailable')}</p>
         : null}
       {unsupported ? (
         <p style={STATUS_STYLE}>{props.copy.interpolate('settings.reasoning.unsupported', { effort: props.view.text })}</p>

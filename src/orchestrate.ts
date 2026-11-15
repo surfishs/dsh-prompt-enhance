@@ -14,6 +14,8 @@ import { buildConversationContext } from './context'
 import { EnhanceFailure, enhanceText, resolveRoute, toEnhanceError, type RoutePair } from './enhancer'
 import type { EnhanceResult } from './shared/protocol'
 import { countText } from './shared/validate'
+import type { LlmResolvedModelInfo } from '@deepseek-ai/dsh-llm'
+import { readCachedCapabilities, writeCachedCapabilities } from './reasoning-cache'
 
 /** Structural face of one logged request header (brand types stay off the wire path). */
 interface EpochHeaderLike {
@@ -224,6 +226,51 @@ export interface RunEnhanceOptions {
  *   error — `unconfigured` when no route resolves, `internal` when the LLM
  *   service is absent, or whatever `enhanceText` raised.
  */
+/** The slice of `ctx.llm` used to decide whether a route declares reasoning tiers. */
+interface ReasoningLookupFace {
+  resolveModelInfo?: (provider: string, model: string, signal?: AbortSignal) => Promise<LlmResolvedModelInfo>
+  resolveModel?: (provider: string, model: string, signal?: AbortSignal) => Promise<LlmResolvedModelInfo>
+}
+
+/**
+ * The effort to actually send for one route.
+ *
+ * A route that declares no reasoning at all must receive no field: the harness
+ * would reject it, and the settings page presents that state as "follow
+ * provider default". The negative answer is cached so later calls do not pay a
+ * lookup again. Explicit tiers on a route that does declare tiers are left
+ * untouched, so an unsupported value still surfaces as the existing error.
+ * @param llm - the LLM service (`ctx.llm`).
+ * @param provider - route provider id.
+ * @param model - route model id.
+ * @param configured - the configured effort, possibly `inherit`.
+ * @returns the effort to pass to the call.
+ */
+export async function effectiveReasoningEffort(llm: unknown, provider: string, model: string, configured: string): Promise<string> {
+  if (configured === 'inherit') return configured
+  const cached = await readCachedCapabilities(provider, model)
+  if (cached !== undefined) return cached.noEfforts === true ? 'inherit' : configured
+  const face = llm as ReasoningLookupFace | undefined
+  const lookup = face?.resolveModelInfo ?? face?.resolveModel
+  if (typeof lookup !== 'function') return configured
+  try {
+    const resolved = await lookup.call(face, provider, model, AbortSignal.timeout(2000))
+    const reasoning = resolved.reasoning
+    if (reasoning === undefined || reasoning.efforts.length === 0) {
+      await writeCachedCapabilities(provider, model, [], undefined, true)
+      return 'inherit'
+    }
+    await writeCachedCapabilities(provider, model, reasoning.efforts.map((effort) => ({
+      id: effort.id,
+      name: effort.name,
+      ...effort.description === undefined ? {} : { description: effort.description },
+    })), reasoning.defaultEffort)
+    return configured
+  } catch {
+    return configured
+  }
+}
+
 export async function runEnhance(ctx: Context, config: Config, options: RunEnhanceOptions): Promise<EnhanceResult> {
   // Structured, single-line observability: request id and sizes only — never
   // the prompt text, the model output, or the provider/model names (those can
@@ -245,6 +292,7 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
     const context = options.context !== undefined
       ? options.context
       : conversationContextOf(ctx, options.sessionId, config, options.text)
+    const effort = await effectiveReasoningEffort(llm, route.provider, route.model, config.reasoningEffort)
     const result = await enhanceText(llm, {
       route,
       // The context rules ride along ONLY when there is context to reason
@@ -252,7 +300,7 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
       system: effectiveSystemPrompt(config, context === undefined ? DEFAULT_SYSTEM_PROMPT : withContextRules(DEFAULT_SYSTEM_PROMPT)),
       text: options.text,
       temperature: config.temperature,
-      reasoningEffort: config.reasoningEffort,
+      reasoningEffort: effort,
       maxTokens: config.maxOutputTokens,
       timeoutMs: config.timeoutMs,
       signal: options.signal,
