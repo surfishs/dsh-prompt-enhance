@@ -196,7 +196,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         aria-disabled={otherBusy || undefined}
         onClick={start}
       >
-        <span className="dsh-pe-btn-icon" aria-hidden><SparkleIcon size={14} spinning={busy} /></span>
+        <span className="dsh-pe-btn-icon" aria-hidden><SparkleIcon size={15} spinning={busy} /></span>
       </button>
       {owned !== undefined && (
         createPortal(
