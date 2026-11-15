@@ -2,6 +2,14 @@
 
 All notable changes are documented here. This repository starts its own release line at 0.0.1; notes from the earlier 0.2.x–0.3.x history are kept below as the basis this line was built from.
 
+## 0.0.2 (2026-11-15)
+
+**Settings header and docs.** The settings header now links both GitHub and the npm package page, and both READMEs gained an npm version badge. The configuration tables were rewritten against the current settings page: `reasoningEffort` defaults to `off` (not "provider default"), the shortcut example is `ctrl+alt+shift+e`, `systemPrompt` and `strategyMode` are documented separately, and the context-window, concurrency and rate-limit rows are included.
+
+**Publishing.** The package identity is `@surfishs/dsh-prompt-enhance` (the unscoped name belongs to the upstream project). The publish workflow targets the scoped package, uses npm Trusted Publishing (OIDC) with `--access public`, and skips the publish step when the version already exists (the bootstrap 0.0.1 was published manually).
+
+Suite: **29 files / 309 cases green**; typecheck clean; `lib/` rebuilt.
+
 ## 0.0.1 (2026-11-13)
 
 **First release of this line.** The `surfishs/dsh-prompt-enhance` line starts at `0.0.1` under the scoped npm package name `@surfishs/dsh-prompt-enhance`. The plugin row id, settings namespace, client locale namespace, settings-section cell id and HTTP route prefix keep the plain `dsh-prompt-enhance` name, so a log line, a settings key or a request path still names the same plugin regardless of the npm identity. The old `prompt-enhance` entry ids stay in the settings-mirror probe list as fallbacks for a profile still running a previous build.
