@@ -2,6 +2,14 @@
 
 All notable changes are documented here. This repository starts its own release line at 0.0.1; notes from the earlier 0.2.x–0.3.x history are kept below as the basis this line was built from.
 
+## 0.0.3 (2026-11-15)
+
+**Docked result card.** The result is now a non-modal card in the composer dock above the input instead of a body-portal overlay. It shows only the enhanced body, measures the composer's outer rounded card to match its width and left edge, and carries an outlined model/time/token badge with transient Copied / Regenerated / Replaced / Undone chips. Applying keeps the card open with an undo action; sending the draft auto-closes it; Escape closes it.
+
+**Composer and actions.** The composer button uses the fish-plus-sparkle mark, dims with an explanatory title when the draft is empty (click and shortcut become no-ops), and uses `not-allowed` there while busy states use `progress`. Regenerate and the error retry re-run the current draft; the three action buttons carry icons at a shared 28px height, the copy width stays stable while it reports success, and the footer no longer duplicates the header close. Max-token results are kept with a truncation warning instead of failing the call. The stale-result warning now leads with the changed draft.
+
+Suite: **29 files / 312 cases green**; typecheck clean; `lib/` rebuilt.
+
 ## 0.0.2 (2026-11-15)
 
 **Settings header and docs.** The settings header now links both GitHub and the npm package page, and both READMEs gained an npm version badge. The configuration tables were rewritten against the current settings page: `reasoningEffort` defaults to `off` (not "provider default"), the shortcut example is `ctrl+alt+shift+e`, `systemPrompt` and `strategyMode` are documented separately, and the context-window, concurrency and rate-limit rows are included.
