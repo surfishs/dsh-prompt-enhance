@@ -25,6 +25,9 @@ export function ResultDock(props: ResultDockProps): ReactNode {
   const uiKey = useSessionKey(sessionId, inputActions)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [undone, setUndone] = useState(false)
+  const [regenerated, setRegenerated] = useState(false)
+  const [pendingRegenerate, setPendingRegenerate] = useState(false)
+  const previousResultRef = useRef<unknown>(undefined)
   const panel = useSyncExternalStore(ui.subscribe, ui.getPanel)
   const draft = useInput((state) => {
     const value = (state as { draft?: unknown }).draft
@@ -85,6 +88,38 @@ export function ResultDock(props: ResultDockProps): ReactNode {
     const timer = setTimeout(() => setUndone(false), 2500)
     return () => clearTimeout(timer)
   }, [undone])
+
+  // "Regenerated" is a completion signal, not a click signal: wait until the
+  // panel settles with a different result object, then show the chip briefly.
+  useEffect(() => {
+    if (!pendingRegenerate) return
+    if (panel === undefined || panel.sessionId !== uiKey) {
+      setPendingRegenerate(false)
+      return
+    }
+    if (panel.phase === 'error') {
+      setPendingRegenerate(false)
+      return
+    }
+    if (panel.phase === 'result' && panel.result !== previousResultRef.current) {
+      setPendingRegenerate(false)
+      setRegenerated(true)
+    }
+  }, [panel, pendingRegenerate, uiKey])
+
+  useEffect(() => {
+    if (!regenerated) return
+    const timer = setTimeout(() => setRegenerated(false), 2500)
+    return () => clearTimeout(timer)
+  }, [regenerated])
+
+  // A regenerate click on an empty draft is a no-op; do not leave the pending
+  // flag stuck forever in that case.
+  useEffect(() => {
+    if (!pendingRegenerate) return
+    const timer = setTimeout(() => setPendingRegenerate(false), 15000)
+    return () => clearTimeout(timer)
+  }, [pendingRegenerate])
 
   // The dock row is wider than the composer card in some host layouts (the
   // conversation column spans the pane while the card is centered). Align the
@@ -188,6 +223,7 @@ export function ResultDock(props: ResultDockProps): ReactNode {
     ui.pushUndo(uiKey, { original: draft, applied: panel.result.text })
     inputActions.setDraft(panel.result.text)
     setUndone(false)
+    setRegenerated(false)
   }
 
   const undo = (): void => {
@@ -195,6 +231,15 @@ export function ResultDock(props: ResultDockProps): ReactNode {
     inputActions.setDraft(entry.original)
     ui.popUndo(uiKey)
     setUndone(true)
+    setRegenerated(false)
+  }
+
+  const regenerate = (): void => {
+    if (panel.phase !== 'result') return
+    previousResultRef.current = panel.result
+    setRegenerated(false)
+    setPendingRegenerate(true)
+    ui.runSession(uiKey)
   }
 
   return (
@@ -204,9 +249,10 @@ export function ResultDock(props: ResultDockProps): ReactNode {
         t={t}
         applied={applied}
         undone={undone}
+        regenerated={regenerated}
         onApply={apply}
         onUndo={undo}
-        onRegenerate={() => ui.runSession(uiKey)}
+        onRegenerate={regenerate}
         onCancel={() => ui.closePanel()}
         onRetry={panel.phase === 'error' ? () => ui.runSession(uiKey) : undefined}
       />

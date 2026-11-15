@@ -31,6 +31,8 @@ export interface ResultPanelProps {
   onRegenerate?: () => void
   /** Show the transient 'undone' chip after an undo. */
   undone?: boolean
+  /** Show the transient 'regenerated' chip after a regenerate request settles. */
+  regenerated?: boolean
 }
 
 /** Whether one error phase is worth retrying (model/transport failures). */
@@ -130,13 +132,16 @@ function totalTokensOf(usage: EnhanceUsage): number {
 
 /** One enhancement result card. */
 export function ResultPanel(props: ResultPanelProps): ReactNode {
-  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, undone = false } = props
+  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, undone = false, regenerated = false } = props
   const [copied, setCopied] = useState<'idle' | 'ok' | 'failed'>('idle')
 
   const copy = useCallback((): void => {
     if (state.result === undefined) return
     const text = state.result.text
-    const done = (ok: boolean): void => setCopied(ok ? 'ok' : 'failed')
+    const done = (ok: boolean): void => {
+      setCopied(ok ? 'ok' : 'failed')
+      if (ok) setTimeout(() => setCopied('idle'), 2500)
+    }
     // navigator.clipboard only exists in secure contexts (https / localhost);
     // guard the dereference and fall back for plain-http LAN access.
     if (navigator.clipboard !== undefined) {
@@ -189,11 +194,15 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
                 )}
           </span>
         )}
-        {applied
-          ? <span className="dsh-pe-applied">{t('panel.appliedShort')}</span>
-          : undone
-            ? <span className="dsh-pe-applied">{t('panel.undoneShort')}</span>
-            : null}
+        {copied === 'ok'
+          ? <span className="dsh-pe-applied">{t('panel.copiedShort')}</span>
+          : regenerated
+            ? <span className="dsh-pe-applied">{t('panel.regeneratedShort')}</span>
+            : applied
+              ? <span className="dsh-pe-applied">{t('panel.appliedShort')}</span>
+              : undone
+                ? <span className="dsh-pe-applied">{t('panel.undoneShort')}</span>
+                : null}
         <button type="button" className="dsh-pe-close" aria-label={t('panel.close')} onClick={onCancel}>✕</button>
       </header>
 

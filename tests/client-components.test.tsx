@@ -298,7 +298,9 @@ describe('enhance → apply → undo loop', () => {
     const input = makeFakeInput({ draft: '旧原文' })
     const setDraft = vi.fn((text: string) => input.set({ draft: text }))
     renderComposer(input, { setDraft } as never, 's1')
-    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+    vi.mocked(requestEnhance)
+      .mockResolvedValueOnce({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+      .mockResolvedValueOnce({ text: '增强文本 2', provider: 'p', model: 'm', elapsedMs: 6 })
 
     fireEvent.click(enhanceButton())
     await screen.findByText('增强文本')
@@ -308,6 +310,22 @@ describe('enhance → apply → undo loop', () => {
     fireEvent.click(screen.getByRole('button', { name: zh['panel.regenerate'] }))
     expect(requestEnhance).toHaveBeenCalledTimes(2)
     expect(vi.mocked(requestEnhance).mock.calls[1][0]).toMatchObject({ text: '增强文本' })
+    expect(await screen.findByText(zh['panel.regeneratedShort'])).toBeTruthy()
+  })
+
+  it('shows the copied chip after a successful copy', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn(() => Promise.resolve()) },
+    })
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.copy'] }))
+    expect(await screen.findByText(zh['panel.copiedShort'])).toBeTruthy()
   })
 
   it('regenerates from edits made after the result arrives', async () => {
