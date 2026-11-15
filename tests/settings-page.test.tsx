@@ -26,11 +26,20 @@ import { useSyncExternalStore } from 'react'
 import { SettingsPage, SettingsSection, createSettingsForm } from '../src/client/settings-page'
 import { en, zh } from '../src/client/locales'
 
+/** Interpolate one dictionary entry, as the locale service would. */
+function copyOf(dictionary: Readonly<Record<string, string>>, key: string, params?: Readonly<Record<string, unknown>>): string {
+  let text = dictionary[key] ?? key
+  for (const [name, value] of Object.entries(params ?? {})) {
+    text = text.split(`{${name}}`).join(String(value))
+  }
+  return text
+}
+
 /** One dictionary entry from the shipped Chinese dictionary. */
-const zhCopy = (key: string): string => (zh as Record<string, string>)[key] ?? key
+const zhCopy = (key: string, params?: Readonly<Record<string, unknown>>): string => copyOf(zh as Record<string, string>, key, params)
 
 /** One dictionary entry from the shipped English dictionary. */
-const enCopy = (key: string): string => (en as Record<string, string>)[key] ?? key
+const enCopy = (key: string, params?: Readonly<Record<string, unknown>>): string => copyOf(en as Record<string, string>, key, params)
 
 /** A translate seat over the Chinese dictionary, as the slot would inject it. */
 const t = (key: string): string => zhCopy(key)
@@ -386,6 +395,18 @@ describe('settings dialog page', () => {
     renderSection({ user: { provider: 'zhipu', model: 'glm-4.6' } })
     expect(await screen.findByText(zhCopy('settings.reasoning.unavailable'))).toBeTruthy()
     expect(screen.queryByRole('tab', { name: 'High' })).toBeNull()
+  })
+
+  it('keeps an undeclared stored tier visible instead of sliding the indicator off', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      ok: true,
+      value: { efforts: [], source: 'unavailable', reason: 'no-efforts' },
+    }), { status: 200 })))
+    renderSection({ values: { reasoningEffort: 'high' }, user: { reasoningEffort: true } })
+    const synthetic = zhCopy('settings.reasoning.current', { value: 'high' })
+    // The value has no matching provider tier, so it must render as its own
+    // option; otherwise the segmented control's indicator has index -1.
+    expect(await screen.findByRole('tab', { name: synthetic })).toBeTruthy()
   })
 
   it('pins the refresh action to the right and reports its outcome', async () => {

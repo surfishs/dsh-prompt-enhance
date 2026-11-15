@@ -238,7 +238,15 @@ const ZH_COPY: Readonly<Record<string, string>> = zh
  */
 function translator(t: Translate | undefined): Translate {
   if (typeof t === 'function') return t
-  return ((key: string) => ZH_COPY[key] ?? key) as unknown as Translate
+  // The fallback dictionary must interpolate `{name}` placeholders too, or a
+  // parameterized line would render its raw template.
+  return ((key: string, params?: Readonly<Record<string, unknown>>) => {
+    let text = ZH_COPY[key] ?? key
+    for (const [name, value] of Object.entries(params ?? {})) {
+      text = text.split(`{${name}}`).join(String(value))
+    }
+    return text
+  }) as unknown as Translate
 }
 
 /** How one surface titles and explains the rows. */
@@ -743,7 +751,21 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
 
   // Every provider — DeepSeek included — shows the adapter's own tier names;
   // only the "follow provider default" sentinel is plugin copy.
+  const current = props.view.text
+  const realTierKnown = phase === 'ready' && capabilities !== undefined && capabilities.source !== 'unavailable'
+    && capabilities.efforts.some((effort) => effort.id === current)
   const options: { value: string; label: string; title?: string }[] = []
+  // A value the route does not declare (stale config, or while the list is
+  // still loading) is kept as a visible synthetic choice. Without it the
+  // segmented control's indicator has no matching option and slides off the
+  // left edge.
+  if (current !== '' && current !== 'inherit' && !realTierKnown) {
+    options.push({
+      value: current,
+      label: props.copy.interpolate('settings.reasoning.current', { value: current }),
+      title: props.copy.choice('settings.reasoning.currentTitle'),
+    })
+  }
   if (phase === 'ready' && capabilities !== undefined && capabilities.source !== 'unavailable') {
     for (const effort of capabilities.efforts) {
       options.push({
@@ -754,9 +776,8 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
     }
   }
   options.push({ value: 'inherit', label: props.copy.choice('settings.reasoning.inherit') })
-  const known = phase === 'ready' && capabilities?.source !== 'unavailable'
-  const unsupported = known && props.view.text !== '' && props.view.text !== 'inherit'
-    && !options.some((option) => option.value === props.view.text)
+  const unsupported = phase === 'ready' && capabilities?.source !== 'unavailable'
+    && current !== '' && current !== 'inherit' && !realTierKnown
   const refreshing = feedback === 'refreshing'
   const refresh = (): void => {
     forceRef.current = true
