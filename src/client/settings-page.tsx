@@ -390,9 +390,11 @@ const WARN_STYLE: CSSProperties = {
 /** The provider/model select, sharing the value input's metrics. */
 const SELECT_STYLE: CSSProperties = {
   ...INPUT_STYLE,
-  // A hairline border can vanish on some scale factors; 1px keeps the control's
-  // outline stable at rest, with the focus colour applied by the component.
-  border: '1px solid var(--dsw-alias-border-l4, rgba(128, 128, 128, 0.45))',
+  // The theme's `border-l4` is a near-invisible hairline on the light surface,
+  // which made the outline look like it vanished once the control lost focus.
+  // A fixed neutral keeps a visible 1px outline in both themes; the focus
+  // colour is applied by SelectControl.
+  border: '1px solid rgba(128, 128, 128, 0.38)',
   cursor: 'pointer',
 }
 const SEPARATOR_STYLE: CSSProperties = {
