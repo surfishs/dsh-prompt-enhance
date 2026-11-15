@@ -67,23 +67,26 @@ Leave a draft in the composer, then click ✨ (or your configured shortcut). Emp
 
 ## Configuration
 
-Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance` → **Configure**). Common fields:
+Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance` → **Configure**). All fields:
 
 | Field | Default | Notes |
 |---|---|---|
-| `enabled` | `true` | Master switch |
-| `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; empty follows the session. Unconfigured providers are greyed out until set up in DSH model services |
-| `temperature` | `0.3` | Lower stays closer to the original |
-| `reasoningEffort` | Provider default | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`); a custom model is read on demand and cached under the Harness home (`DSH_HOME` or `~/.dsh`). `inherit` means "follow provider default" |
-| `maxOutputTokens` | `8192` | Output token budget per call |
+| `enabled` | `true` | Master switch; off hides the composer button and disables the command and shortcut |
+| `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (none). With only one filled, the save falls back to follow-session |
+| `temperature` | `0.3` | Sampling temperature `0~1` (step 0.05); lower stays closer to the original |
+| `reasoningEffort` | `off` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`). A route that declares no tiers omits the field (follows the provider default); `inherit` means the field is not sent |
+| `maxOutputTokens` | `8192` | Output token cap per call |
 | `maxInputChars` | `12000` | Input character cap; over-limit is rejected, never truncated |
 | `timeoutMs` | `60000` | End-to-end timeout per call (ms) |
-| `systemPrompt` / `strategyMode` | empty / `replace-default` | Custom strategy; `extend-default` appends it after the built-in one |
-| `shortcut` | empty (disabled) | Trigger shortcut; set it to enable, e.g. `ctrl+alt+e` |
-| `streaming` | `true` | Show the result as it is written (display only) |
-| `contextAware` | `true` | Use recent conversation; turn it off for sensitive sessions |
-
-The remaining fields (context window, concurrency, rate limit) are documented on the settings page.
+| `systemPrompt` | empty | Custom system prompt; empty uses the built-in strategy |
+| `strategyMode` | `replace-default` | `replace-default` replaces the built-in strategy (the minimal output contract still applies); `extend-default` appends the custom strategy after the built-in one |
+| `shortcut` | empty (disabled) | Trigger shortcut; e.g. `ctrl+alt+shift+e`. Needs at least one of ctrl/alt/meta; shift is optional |
+| `streaming` | `true` | Show the result as it is written; display only, the final result is unchanged |
+| `contextAware` | `true` | Read recent conversation to resolve references; turn it off for sensitive sessions |
+| `contextMaxMessages` | `8` | Number of recent messages considered; `0` disables |
+| `contextMaxChars` | `4000` | Character budget of the history snippet; `0` disables |
+| `maxConcurrent` | `2` | Concurrent enhancement limit; a new request past the limit is told to retry later |
+| `rateLimitPerMinute` | `10` | Successful enhancements per minute (sliding window); past the limit the request is told to retry later |
 
 ## Security
 

@@ -67,23 +67,26 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 ## 配置
 
-在 **设置 → 提示词增强**（或 插件面板 → `dsh-prompt-enhance` → **配置**）编辑。常用项：
+在 **设置 → 提示词增强**（或 插件面板 → `dsh-prompt-enhance` → **配置**）编辑。全部字段：
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
-| `enabled` | `true` | 总开关 |
-| `provider` + `model` | 空 | 从 DSH 已注册的 LLM provider / 模型中选择；模型可切「自定义…」手填；都留空则跟随当前会话。未配置的 provider 会置灰，需先在 DSH 模型服务中配置 |
-| `temperature` | `0.3` | 越低越忠实原文 |
-| `reasoningEffort` | 跟随提供方默认 | 档位来自当前 provider/model 的声明；DeepSeek 为 `off` / `low` / `high` / `max`。自定义模型按需读取并缓存在 DSH home 下（`DSH_HOME` 或 `~/.dsh`），`inherit` 即「跟随提供方默认」 |
-| `maxOutputTokens` | `8192` | 单次调用的输出 token 预算 |
-| `maxInputChars` | `12000` | 输入字符上限，超限拒绝、不截断 |
-| `timeoutMs` | `60000` | 单次调用超时（毫秒） |
-| `systemPrompt` / `strategyMode` | 空 / `replace-default` | 自定义策略；`extend-default` 追加在内置策略之后 |
-| `shortcut` | 空（禁用） | 触发快捷键；填写后生效，如 `ctrl+alt+e` |
-| `streaming` | `true` | 边写边显示，仅影响显示节奏 |
-| `contextAware` | `true` | 参考会话历史；含敏感内容的会话建议关闭 |
-
-其余字段（上下文窗口、并发与限流）见设置页说明。
+| `enabled` | `true` | 总开关；关闭后隐藏输入框按钮，并停用命令与快捷键 |
+| `provider` + `model` | 空 | 从 DSH 已注册的 LLM provider 及模型中选择；模型可选「自定义…」手填 ID；未配置的 provider 置灰、需先在 DSH 模型服务中配置；留空表示跟随当前会话模型（不指定）。只填一个时保存后按跟随会话处理 |
+| `temperature` | `0.3` | 采样温度 `0~1`（步进 0.05），越低越忠实原文 |
+| `reasoningEffort` | `off` | 档位由当前 provider/model 的声明决定；DeepSeek 为 `off` / `low` / `high` / `max`。未声明档位的路由会自动省略该字段（即跟随提供方默认）；`inherit` 表示不传该字段 |
+| `maxOutputTokens` | `8192` | 单次调用的输出 token 上限 |
+| `maxInputChars` | `12000` | 输入字符上限；超限拒绝，不截断 |
+| `timeoutMs` | `60000` | 单次调用端到端超时（毫秒） |
+| `systemPrompt` | 空 | 自定义系统提示词；留空使用内置增强策略 |
+| `strategyMode` | `replace-default` | `replace-default` 整体替换内置策略（仍保留最小输出契约）；`extend-default` 把自定义策略追加在内置策略之后 |
+| `shortcut` | 空（禁用） | 触发快捷键；例 `ctrl+alt+shift+e`。须包含 ctrl/alt/meta 中至少一个修饰键，shift 可选 |
+| `streaming` | `true` | 边写边显示；仅影响显示节奏，最终结果不变 |
+| `contextAware` | `true` | 读取最近对话以消解指代；含敏感内容的会话建议关闭 |
+| `contextMaxMessages` | `8` | 参考的最近消息条数；`0` 表示不参考 |
+| `contextMaxChars` | `4000` | 历史片段的字符预算；`0` 表示不参考 |
+| `maxConcurrent` | `2` | 同时进行的增强上限；达到上限时新请求会提示稍后再试 |
+| `rateLimitPerMinute` | `10` | 每分钟增强次数上限（滑动窗口）；超限时提示稍后再试 |
 
 ## 安全
 
