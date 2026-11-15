@@ -170,6 +170,7 @@ export const CSS = `
 .dsh-pe-btn-action.primary:hover { background: #4d82ec; }
 .dsh-pe-btn-action.plain { background: transparent; color: inherit; }
 .dsh-pe-btn-action.plain:hover { background: var(--pe-hover); }
+.dsh-pe-btn-action.dsh-pe-copy { min-width: 96px; }
 .dsh-pe-btn-action:disabled { opacity: 0.45; cursor: default; }
 
 .dsh-pe-stale {

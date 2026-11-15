@@ -276,7 +276,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         )}
         {state.phase === 'result' && (
           <>
-            <button type="button" className="dsh-pe-btn-action plain" onClick={copy}>
+            <button type="button" className="dsh-pe-btn-action plain dsh-pe-copy" onClick={copy}>
               <CopyIcon />
               {copied === 'ok' ? t('panel.copied') : copied === 'failed' ? t('panel.copyFailed') : t('panel.copy')}
             </button>
