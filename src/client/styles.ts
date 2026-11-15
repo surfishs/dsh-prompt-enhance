@@ -59,7 +59,16 @@ export const CSS = `
   font-weight: 600;
 }
 .dsh-pe-head .dsh-pe-title { display: inline-flex; align-items: center; gap: 6px; }
-.dsh-pe-head .dsh-pe-meta { margin-left: auto; font-weight: 400; font-size: 11px; opacity: 0.6; }
+.dsh-pe-head .dsh-pe-badge {
+  margin-left: auto;
+  border: 1px solid var(--pe-border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-weight: 400;
+  font-size: 11px;
+  opacity: 0.72;
+  white-space: nowrap;
+}
 .dsh-pe-applied {
   font-size: 10.5px;
   font-weight: 500;

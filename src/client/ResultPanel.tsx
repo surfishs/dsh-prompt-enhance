@@ -29,6 +29,8 @@ export interface ResultPanelProps {
   onUndo?: () => void
   /** Run the same source prompt through the model again. */
   onRegenerate?: () => void
+  /** Show the transient 'undone' chip after an undo. */
+  undone?: boolean
 }
 
 /** Whether one error phase is worth retrying (model/transport failures). */
@@ -128,7 +130,7 @@ function totalTokensOf(usage: EnhanceUsage): number {
 
 /** One enhancement result card. */
 export function ResultPanel(props: ResultPanelProps): ReactNode {
-  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate } = props
+  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, undone = false } = props
   const [copied, setCopied] = useState<'idle' | 'ok' | 'failed'>('idle')
 
   const copy = useCallback((): void => {
@@ -173,7 +175,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
           {t('panel.title')}
         </span>
         {state.phase === 'result' && state.result !== undefined && (
-          <span className="dsh-pe-meta">
+          <span className="dsh-pe-badge">
             {t('panel.model', { provider: state.result.provider, model: state.result.model })} · {t('panel.elapsed', { ms: formatMs(state.result.elapsedMs) })}
             {state.result.usage === undefined
               ? null
@@ -187,7 +189,11 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
                 )}
           </span>
         )}
-        {applied && <span className="dsh-pe-applied">{t('undo.applied')}</span>}
+        {applied
+          ? <span className="dsh-pe-applied">{t('panel.appliedShort')}</span>
+          : undone
+            ? <span className="dsh-pe-applied">{t('panel.undoneShort')}</span>
+            : null}
         <button type="button" className="dsh-pe-close" aria-label={t('panel.close')} onClick={onCancel}>✕</button>
       </header>
 
@@ -237,12 +243,12 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
       )}
 
       <footer className="dsh-pe-foot">
+        <span className="dsh-pe-grow" />
         {state.phase === 'result' && (
           <button type="button" className="dsh-pe-btn-action plain" onClick={onRegenerate} disabled={onRegenerate === undefined}>
             {t('panel.regenerate')}
           </button>
         )}
-        <span className="dsh-pe-grow" />
         {state.phase === 'error' && (
           <>
             {retryable(state.error?.code) && onRetry !== undefined && (

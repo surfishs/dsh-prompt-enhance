@@ -7,7 +7,7 @@
  * @module dsh-prompt-enhance/client/ResultDock
  */
 
-import { useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { ResultPanel } from './ResultPanel'
@@ -24,6 +24,7 @@ export function ResultDock(props: ResultDockProps): ReactNode {
   // host id for UI keying when present, else a stable per-mount fallback.
   const uiKey = useSessionKey(sessionId, inputActions)
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const [undone, setUndone] = useState(false)
   const panel = useSyncExternalStore(ui.subscribe, ui.getPanel)
   const draft = useInput((state) => {
     const value = (state as { draft?: unknown }).draft
@@ -76,6 +77,14 @@ export function ResultDock(props: ResultDockProps): ReactNode {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [panel, uiKey])
+
+  // The "undone" chip is transient: it confirms the undo for a moment, then
+  // clears without needing another state change.
+  useEffect(() => {
+    if (!undone) return
+    const timer = setTimeout(() => setUndone(false), 2500)
+    return () => clearTimeout(timer)
+  }, [undone])
 
   // The dock row is wider than the composer card in some host layouts (the
   // conversation column spans the pane while the card is centered). Align the
@@ -178,12 +187,14 @@ export function ResultDock(props: ResultDockProps): ReactNode {
     // closing it falls back to the standalone undo row.
     ui.pushUndo(uiKey, { original: draft, applied: panel.result.text })
     inputActions.setDraft(panel.result.text)
+    setUndone(false)
   }
 
   const undo = (): void => {
     if (entry === undefined) return
     inputActions.setDraft(entry.original)
     ui.popUndo(uiKey)
+    setUndone(true)
   }
 
   return (
@@ -192,11 +203,12 @@ export function ResultDock(props: ResultDockProps): ReactNode {
         state={panel}
         t={t}
         applied={applied}
+        undone={undone}
         onApply={apply}
         onUndo={undo}
-        onRegenerate={() => ui.runSession(uiKey, panel.original)}
+        onRegenerate={() => ui.runSession(uiKey)}
         onCancel={() => ui.closePanel()}
-        onRetry={panel.phase === 'error' ? () => ui.runSession(uiKey, panel.original) : undefined}
+        onRetry={panel.phase === 'error' ? () => ui.runSession(uiKey) : undefined}
       />
     </div>
   )

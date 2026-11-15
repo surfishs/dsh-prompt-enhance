@@ -140,11 +140,12 @@ describe('dsh 0.1.2-rc.1 dual-compat (host omits sessionId)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
     expect(setDraft).toHaveBeenCalledWith('增强文本')
-    expect(screen.getByText(zh['undo.applied'])).toBeTruthy()
+    expect(screen.getByText(zh['panel.appliedShort'])).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: zh['undo.undo'] }))
     expect(setDraft).toHaveBeenLastCalledWith('旧原文')
-    expect(screen.queryByText(zh['undo.applied'])).toBeNull()
+    expect(screen.getByText(zh['panel.undoneShort'])).toBeTruthy()
+    expect(screen.queryByText(zh['panel.appliedShort'])).toBeNull()
   })
 })
 
@@ -253,11 +254,12 @@ describe('enhance → apply → undo loop', () => {
     // The undo bar must survive React batching: the pushed entry stays even
     // though the draft just changed to the applied text (regression lock for
     // the apply → pushUndo → setDraft → UndoBar ordering).
-    expect(screen.getByText(zh['undo.applied'])).toBeTruthy()
+    expect(screen.getByText(zh['panel.appliedShort'])).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: zh['undo.undo'] }))
     expect(setDraft).toHaveBeenLastCalledWith('旧原文')
-    expect(screen.queryByText(zh['undo.applied'])).toBeNull()
+    expect(screen.getByText(zh['panel.undoneShort'])).toBeTruthy()
+    expect(screen.queryByText(zh['panel.appliedShort'])).toBeNull()
   })
 
   it('marks the result stale (both ways) when the draft changes after the request started', async () => {
@@ -292,7 +294,7 @@ describe('enhance → apply → undo loop', () => {
     expect(setDraft).toHaveBeenLastCalledWith('用户编辑的新文本')
   })
 
-  it('regenerates from the original prompt after applying', async () => {
+  it('regenerates from the current draft after applying', async () => {
     const input = makeFakeInput({ draft: '旧原文' })
     const setDraft = vi.fn((text: string) => input.set({ draft: text }))
     renderComposer(input, { setDraft } as never, 's1')
@@ -305,7 +307,21 @@ describe('enhance → apply → undo loop', () => {
 
     fireEvent.click(screen.getByRole('button', { name: zh['panel.regenerate'] }))
     expect(requestEnhance).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(requestEnhance).mock.calls[1][0]).toMatchObject({ text: '旧原文' })
+    expect(vi.mocked(requestEnhance).mock.calls[1][0]).toMatchObject({ text: '增强文本' })
+  })
+
+  it('regenerates from edits made after the result arrives', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    act(() => { input.set({ draft: '2222' }) })
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.regenerate'] }))
+    expect(requestEnhance).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(requestEnhance).mock.calls[1][0]).toMatchObject({ text: '2222' })
   })
 
   it('ignores a click while this session is already enhancing (no orphaned panel swap)', async () => {
