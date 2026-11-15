@@ -953,11 +953,6 @@ function ModelRow(props: RowProps & { routing: LlmRoutingState; providerValue: s
           onChange={props.onEdit}
         />
       ) : null}
-      {showCustom && props.routing.models.entries.length > 0 ? (
-        <button type="button" style={REFRESH_STYLE} onClick={() => setCustomMode(false)}>
-          {props.copy.choice('settings.routing.pickFromList')}
-        </button>
-      ) : null}
       <p style={HINT_STYLE}>{props.hint}</p>
       {props.routing.models.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsLoading')}</p> : null}
       {props.routing.models.failed && !showCustom ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsFailed')}</p> : null}
