@@ -391,10 +391,10 @@ const WARN_STYLE: CSSProperties = {
 const SELECT_STYLE: CSSProperties = {
   ...INPUT_STYLE,
   // The theme's `border-l4` is a near-invisible hairline on the light surface,
-  // which made the outline look like it vanished once the control lost focus.
-  // A fixed neutral keeps a visible 1px outline in both themes; the focus
-  // colour is applied by SelectControl.
+  // and the browser's own focus ring reads as a dashed outline that stays until
+  // blur. The control draws its own solid 1px border and focus colour instead.
   border: '1px solid rgba(128, 128, 128, 0.38)',
+  outline: 'none',
   cursor: 'pointer',
 }
 const SEPARATOR_STYLE: CSSProperties = {
