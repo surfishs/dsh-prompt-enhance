@@ -23,7 +23,7 @@ npm run watch                                                     # keep rebuild
 ```
 
 When you're done, switch back to the npm install for daily use:
-`dsh plugin --profile web add dsh-prompt-enhance`.
+`dsh plugin --profile web add @surfishs/dsh-prompt-enhance`.
 
 ## Ground rules
 
