@@ -5,6 +5,23 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-11-16
+
+### Added
+
+- Group tuning and deployment limits behind a collapsible Advanced settings section, with common rows first and the custom system prompt kept visible.
+
+### Changed
+
+- Refine the Advanced settings row with a custom chevron, centered layout and hover state; rename the Chinese label to 高级设置.
+- Add hover and keyboard-focus feedback to the reset-default and refresh-tier chips.
+
+### Fixed
+
+- Save immediately when a setting is reset to its default.
+
+[0.0.7]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.6...v0.0.7
+
 ## [0.0.6] - 2026-11-16
 
 ### Added
@@ -117,4 +134,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.0.1]: https://github.com/surfishs/dsh-prompt-enhance/commits/v0.0.1
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.7...HEAD
