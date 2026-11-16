@@ -626,6 +626,18 @@ function viewOf(snapshot: SettingsSnapshot, key: string): FieldView {
  * @param text - the row's current staged text.
  * @returns true when editing can no longer change anything from the default.
  */
+/** The display text a reset row falls back to, from the shared defaults. */
+function defaultTextOf(key: string): string {
+  const descriptor = FIELD_SPECS.find((item) => item.field === key)
+  const fallback = (DEFAULT_VALUES as Record<string, unknown>)[key]
+  if (descriptor === undefined || fallback === undefined) return ''
+  try {
+    return descriptor.format(fallback)
+  } catch {
+    return ''
+  }
+}
+
 function atDefaultValue(key: string, text: string): boolean {
   const fallback = (DEFAULT_VALUES as Record<string, unknown>)[key]
   // provider/model are absent from the defaults on purpose: empty means follow.
@@ -1178,6 +1190,31 @@ function SettingsRows(props: {
     }, 2000)
   }
 
+  const runReset = async (key: string, fallback: string): Promise<void> => {
+    if (props.writeField === undefined) return
+    const ticket = ++sequence.current
+    setSaveState('saving')
+    const result = await props.writeField(key, '')
+    if (ticket !== sequence.current) return
+    if (result === 'failed') {
+      setSaveState('failed')
+      return
+    }
+    if (result === 'invalid') {
+      setSaveState('idle')
+      return
+    }
+    savedValues.current.set(key, fallback)
+    markSaved()
+  }
+
+  const resetAndSave = (key: string): void => {
+    props.resetField(key)
+    const fallback = defaultTextOf(key)
+    savedValues.current.set(key, fallback)
+    void runReset(key, fallback)
+  }
+
   const manualSave = async (): Promise<void> => {
     if (props.writeField === undefined) {
       // Hosts without per-field writes keep the original whole-form action.
@@ -1271,7 +1308,7 @@ function SettingsRows(props: {
           routing={routing}
           providerValue={provider}
           onEdit={(text: string) => onEdit(row.key, text)}
-          onReset={() => props.resetField(row.key)}
+          onReset={() => resetAndSave(row.key)}
           onCommit={() => flushField(row.key, viewOf(props.state, row.key).text)}
         />
       </div>
