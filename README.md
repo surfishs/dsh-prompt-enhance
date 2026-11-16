@@ -126,11 +126,13 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 ## 故障排查
 
-- 按钮不出现：确认 `enabled` 为 `true`，且安装后重启了 `dsh web`。
-- 按钮是灰的：输入框为空或只有附件；输入文字后恢复。
-- 结果不完整：查看截断提示，并调高 `maxOutputTokens`。
-- 「尚未确定增强用的模型」：成对填写 `provider` / `model`，或先在当前会话发一条消息。
-- 鉴权失败：检查对应 provider 在 harness 中的 API Key。
+| 现象 | 检查与处理 |
+|---|---|
+| 工具栏没有增强按钮 | 确认 `enabled` 为 `true`；安装后重启 DSH（桌面版或 `dsh web`）；确认当前 profile 正确。 |
+| 按钮是灰的 | 输入框为空或只有附件；输入文字后恢复。 |
+| 结果不完整 | 查看截断提示，并在设置中调高 `maxOutputTokens`。 |
+| 提示「尚未确定增强用的模型」 | 在设置中成对填写 `provider` / `model`；或先在当前会话发一条消息，让插件跟随会话模型。 |
+| 鉴权失败 | 检查对应 provider 在 DSH 中的凭据/API Key 是否有效。 |
 
 ## 开发
 
