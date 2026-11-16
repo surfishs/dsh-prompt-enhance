@@ -1,32 +1,78 @@
 # Changelog
 
-All notable changes are documented here. This repository starts its own release line at 0.0.1.
+All notable changes to this project are documented in this file.
+The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
-## 0.0.3 (2026-11-15)
+## [Unreleased]
 
-**Docked result card.** The result is now a non-modal card in the composer dock above the input instead of a body-portal overlay. It shows only the enhanced body, measures the composer's outer rounded card to match its width and left edge, and carries an outlined model/time/token badge with transient Copied / Regenerated / Replaced / Undone chips. Applying keeps the card open with an undo action; sending the draft auto-closes it; Escape closes it.
+## [0.0.3] - 2026-11-15
 
-**Composer and actions.** The composer button uses the fish-plus-sparkle mark, dims with an explanatory title when the draft is empty (click and shortcut become no-ops), and uses `not-allowed` there while busy states use `progress`. Regenerate and the error retry re-run the current draft; the three action buttons carry icons at a shared 28px height, the copy width stays stable while it reports success, and the footer no longer duplicates the header close. Max-token results are kept with a truncation warning instead of failing the call. The stale-result warning now leads with the changed draft.
+### Added
 
-Suite: **29 files / 312 cases green**; typecheck clean; `lib/` rebuilt.
+- Dock the result as a non-modal card above the composer, with model, elapsed and token badges plus transient Copied, Regenerated, Replaced and Undone confirmations.
+- Add Regenerate and retry-from-error actions that use the current composer draft.
+- Keep partial max-token results and show a truncation warning instead of failing the call.
 
-## 0.0.2 (2026-11-15)
+### Changed
 
-**Settings header and docs.** The settings header now links both GitHub and the npm package page, and both READMEs gained an npm version badge. The configuration tables were rewritten against the current settings page: `reasoningEffort` defaults to `off` (not "provider default"), the shortcut example is `ctrl+alt+shift+e`, `systemPrompt` and `strategyMode` are documented separately, and the context-window, concurrency and rate-limit rows are included.
+- Keep the applied card open with an undo action; close it on send or Escape.
+- Dim the composer button on an empty or attachment-only draft, show an explanatory title, and make click and shortcut no-ops; use `not-allowed` for empty and `progress` for busy states.
+- Draw the composer mark with the fish-plus-sparkle icon and give the action row icons at a shared 28px height.
+- Keep the copy button width stable while it reports success.
+- Lead the stale-result warning with the changed draft.
 
-**Publishing.** The package identity is `@surfishs/dsh-prompt-enhance` (the unscoped name belongs to the upstream project). The publish workflow targets the scoped package, uses npm Trusted Publishing (OIDC) with `--access public`, and skips the publish step when the version already exists (the bootstrap 0.0.1 was published manually).
+### Fixed
 
-Suite: **29 files / 309 cases green**; typecheck clean; `lib/` rebuilt.
+- Fix the copy button shrinking after a successful copy.
+- Fix Regenerate using the old text instead of the current composer content.
+- Fix empty and attachment-only drafts still raising the attachment error.
 
-## 0.0.1 (2026-11-13)
+### Removed
 
-**First release of this line.** The `surfishs/dsh-prompt-enhance` line starts at `0.0.1` under the scoped npm package name `@surfishs/dsh-prompt-enhance`. The plugin row id, settings namespace, client locale namespace, settings-section cell id and HTTP route prefix keep the plain `dsh-prompt-enhance` name, so a log line, a settings key or a request path still names the same plugin regardless of the npm identity. The old `prompt-enhance` entry ids stay in the settings-mirror probe list as fallbacks for a profile still running a previous build.
+- Remove the duplicate footer close button; the header close remains.
 
-The configuration page has two entry points over one staged form: a section in the Settings dialog and a per-row configuration entry on the Plugins page. The composer shortcut now ships **empty (disabled)** instead of `ctrl+alt+e`: a shipped combination collides with chat apps, screenshot tools and IMEs, so the ✨ button is the primary entry point and an operator who wants a key sets one in the settings. The initial release includes the rewrite engine, context awareness, streaming display and the reasoning budget. No stored configuration needed migration on this profile (`cordis.patch.yml` carried no overrides for this plugin).
+[0.0.3]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.2...v0.0.3
 
-**Dynamic reasoning tiers.** The tier choices now come from the configured route instead of a hardcoded list. The settings page asks the read-only `GET /dsh-prompt-enhance/reasoning-efforts` endpoint, which answers from `ctx.llm.resolveModelInfo`; a pinned provider/model is cached in a JSON file under the Harness home (`DSH_HOME` or `~/.dsh`) with no TTL and is replaced only when the pair changes or the operator presses refresh, while the default-model path answers from the static DeepSeek catalog only when the followed default really is DeepSeek. DeepSeek's `max` tier is now offered, `inherit` reads "follow provider default", and a rejected non-default effort surfaces as `effort-unsupported` instead of being silently replaced by the provider default; the shipped `off` default keeps the historical one-shot downgrade for routes that declare no reasoning.
+## [0.0.2] - 2026-11-15
 
-**Routing selects instead of free text.** `provider`/`model` are now dropdowns fed by the harness LLM registry (`GET /dsh-prompt-enhance/llm-providers`, `.../llm-models`, `.../llm-route-check`): registered providers first, declared-but-unconfigured ones in a disabled group, a free-text “custom model” fallback, and the empty option keeps the follow-the-session semantics. A warning-only route check marks a pair the registry cannot resolve — the save is still allowed, matching the plugin's advisory catalog policy. The old placeholders are gone with the text inputs. A route that declares no reasoning tiers is presented as follow-provider-default and the enhancement call omits the field (the negative capability answer is cached), while an unsupported explicit tier on a tiered route still surfaces as an error.
+### Added
 
-Suite: **29 files / 309 cases green**; typecheck clean; `lib/` rebuilt.
+- Add an npm package entry to the settings header.
 
+### Changed
+
+- Add npm version badges and npm/GitHub install instructions with a profile placeholder to both READMEs.
+- Align the configuration tables with the current settings page: `reasoningEffort` defaults to `off`, the shortcut example is `ctrl+alt+shift+e`, `systemPrompt` and `strategyMode` are separate rows, and the context-window, concurrency and rate-limit fields are included.
+- Move the package identity to `@surfishs/dsh-prompt-enhance`; the plugin row id, settings namespace and route prefix stay `dsh-prompt-enhance`.
+- Publish through npm Trusted Publisher (OIDC) and GitHub Actions; an existing version is skipped, and 0.0.1 was the manually published bootstrap.
+
+[0.0.2]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.1...v0.0.2
+
+## [0.0.1] - 2026-11-13
+
+### Added
+
+- Start the public release line at 0.0.1 under the scoped npm name `@surfishs/dsh-prompt-enhance`.
+- Add two settings entry points over one staged form: the Settings dialog section and the per-row configuration page.
+- Add the one-click composer enhance button and a configurable global shortcut (empty by default).
+- Add the structured rewrite engine for role and goal, executable steps, output format, acceptance criteria and edge cases, preserving the original intent and inventing nothing.
+- Treat greetings, small talk and fragments as content to rewrite rather than questions to answer.
+- Add context awareness from recent conversation, with configurable message and character budgets and an off switch.
+- Add streaming display, fill-back, copy and undo; a failed call never changes the draft.
+- Show token usage with input, output and cache-read/write details.
+- Add a custom strategy through `systemPrompt` with `replace-default` or `extend-default`.
+- Replace the free-text route with provider/model dropdowns from the DSH LLM registry, a custom-model fallback and a warning-only route check.
+- Read reasoning tiers from the configured route, include DeepSeek `max`, support `inherit`, and surface an unsupported explicit tier as `effort-unsupported`.
+- Add bilingual Chinese/English settings and localized errors.
+- Bound the enhance route to loopback hosts and local `Host`/`Origin`, with input, body, concurrency, rate and timeout limits; store no model API keys.
+
+### Changed
+
+- Keep the legacy `prompt-enhance` entry ids as fallbacks in the settings-mirror probe list.
+- Ship the composer shortcut empty (disabled) instead of `ctrl+alt+e` to avoid collisions with chat apps, screenshot tools and IMEs.
+- Keep the plugin row id, settings namespace, locale namespace, settings-section cell id and HTTP route prefix on the plain `dsh-prompt-enhance` name.
+- No stored configuration needed migration on the profile; `cordis.patch.yml` carried no overrides for this plugin.
+
+[0.0.1]: https://github.com/surfishs/dsh-prompt-enhance/commits/v0.0.1
+
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.3...HEAD
