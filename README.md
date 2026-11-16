@@ -147,4 +147,6 @@ npm run build
 
 ## 许可证
 
-Apache-2.0（见 [LICENSE](./LICENSE)）。代码与设计建立在 [rongxingda/dsh-prompt-enhance](https://github.com/rongxingda/dsh-prompt-enhance)（Apache-2.0）之上。
+本项目采用 Apache-2.0，见 [LICENSE](./LICENSE)。
+
+**参考**：代码与设计建立在 [rongxingda/dsh-prompt-enhance](https://github.com/rongxingda/dsh-prompt-enhance)（Apache-2.0）之上。

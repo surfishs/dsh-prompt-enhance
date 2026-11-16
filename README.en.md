@@ -147,4 +147,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-Apache-2.0 (see [LICENSE](./LICENSE)). The code and design build on [rongxingda/dsh-prompt-enhance](https://github.com/rongxingda/dsh-prompt-enhance) (Apache-2.0).
+Licensed under Apache-2.0; see [LICENSE](./LICENSE).
+
+**Attribution**: the code and design build on [rongxingda/dsh-prompt-enhance](https://github.com/rongxingda/dsh-prompt-enhance), also Apache-2.0.
