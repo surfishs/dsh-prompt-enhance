@@ -24,7 +24,9 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  # The last step opens a draft release for the tag, which needs contents: write.
+  # The repository default is read-only; an explicit block here overrides it.
+  contents: write
 
 jobs:
   publish:
@@ -89,3 +91,48 @@ jobs:
       # hook is skipped rather than paying for a second build and test pass.
       - if: steps.published.outputs.skip != '1'
         run: npm publish --access public --ignore-scripts
+
+      # 0.0.8 reached npm with no GitHub Release until it was noticed hours
+      # later. Opening a draft here makes that impossible to forget. The draft
+      # is invisible to the public, is not marked Latest and fires no release
+      # event, so nothing is exposed until the bilingual notes are written.
+      # It runs even when the publish step was skipped — that is how a version
+      # published by hand gets its release backfilled.
+      - name: Open a draft release for this tag
+        id: draft
+        if: startsWith(github.ref, 'refs/tags/')
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+
+          case "$tag" in
+            v*) ;;
+            *) echo "::warning::${tag} is not a v* tag — not opening a draft release"; exit 0 ;;
+          esac
+
+          # Idempotent: never touch a release that already exists, draft or not.
+          # The API is used instead of `gh release view` because it reports
+          # drafts without relying on gh's default visibility rules.
+          if gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" >/dev/null 2>&1; then
+            echo "::notice::${tag} already has a release — leaving it alone"
+            exit 0
+          fi
+
+          gh release create "$tag" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --draft \
+            --verify-tag \
+            --title "$tag" \
+            --notes "Draft: the bilingual release notes still have to be written."
+
+          echo "::notice::opened a draft release for ${tag}"
+
+      # continue-on-error would otherwise hide a real failure, so say it out loud.
+      - name: Warn when the draft release could not be opened
+        if: steps.draft.outcome == 'failure'
+        shell: bash
+        run: echo "::warning::the draft release was not created — open it by hand before calling the release done"
