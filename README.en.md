@@ -12,7 +12,7 @@
 
 ---
 
-## Features
+## Feature overview
 
 | Feature | What it does |
 |---|---|
