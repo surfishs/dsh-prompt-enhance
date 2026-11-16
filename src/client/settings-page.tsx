@@ -673,7 +673,7 @@ const SEGMENT_TRACK_STYLE: CSSProperties = {
   maxWidth: '100%',
   overflowX: 'auto',
   borderRadius: 8,
-  background: 'var(--dsw-alias-bg-layer-2, rgba(128, 128, 128, 0.12))',
+  background: 'rgba(127, 127, 127, 0.14)',
 }
 /** One label cell; it never moves when the selection changes. */
 const SEGMENT_BUTTON_STYLE: CSSProperties = {
