@@ -5,6 +5,25 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-11-16
+
+### Added
+
+- Auto-save settings per field: text and number rows save 800 ms after typing or immediately on blur/Enter; switches, selects and segmented choices save immediately.
+
+### Changed
+
+- Move the save status next to the manual Save button; show Saving/Saved/Save failed, with success clearing after 2 seconds.
+- Put `reasoningEffort` above `temperature`; ellipsize long segmented labels with a full tooltip; shorten the Chinese provider-default label.
+- Refresh the README security, troubleshooting, English screenshot, license and credits sections.
+
+### Fixed
+
+- Skip writes when a focused field is blurred without changing its value.
+- Show status feedback when the manual Save button is pressed.
+
+[0.0.6]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.5...v0.0.6
+
 ## [0.0.5] - 2026-11-16
 
 ### Fixed
@@ -98,4 +117,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.0.1]: https://github.com/surfishs/dsh-prompt-enhance/commits/v0.0.1
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.6...HEAD
