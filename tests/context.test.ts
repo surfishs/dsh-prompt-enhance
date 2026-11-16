@@ -60,7 +60,7 @@ describe('selectTurns', () => {
     const turns = selectTurns([turn('user', long)], { maxMessages: 8, maxChars: 120 })
     expect(turns).toHaveLength(1)
     expect(turns[0]!.text.length).toBeLessThanOrEqual(120)
-    expect(turns[0]!.text.endsWith('…（已截断）')).toBe(true)
+    expect(turns[0]!.text.endsWith('… (truncated)')).toBe(true)
   })
 
   it('tolerates malformed entries without throwing', () => {

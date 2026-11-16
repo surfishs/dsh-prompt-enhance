@@ -38,7 +38,7 @@ interface HistoryMessageLike {
 }
 
 /** Marker appended to a turn that was cut to fit the character budget. */
-const TRUNCATION_MARK = '…（已截断）'
+const TRUNCATION_MARK = '… (truncated)'
 
 /**
  * Cut one text to at most `max` Unicode code points. Slicing by UTF-16 index
