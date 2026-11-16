@@ -1126,10 +1126,22 @@ function SettingsRows(props: {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const savedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const savedValues = useRef(new Map<string, string>())
   const sequence = useRef(0)
+
+  useEffect(() => {
+    for (const row of ROWS) {
+      if (!savedValues.current.has(row.key)) {
+        savedValues.current.set(row.key, viewOf(props.state, row.key).text)
+      }
+    }
+  }, [props.state])
 
   const runSave = async (key: string, text: string): Promise<void> => {
     if (props.writeField === undefined) return
+    // A focus/blur with no edit, or an edit reverted to the stored value, is
+    // not a write: skip it without touching the footer status.
+    if (savedValues.current.get(key) === text) return
     const ticket = ++sequence.current
     setSaveState('saving')
     const result = await props.writeField(key, text)
@@ -1142,6 +1154,7 @@ function SettingsRows(props: {
       setSaveState('failed')
       return
     }
+    savedValues.current.set(key, text)
     setSaveState('saved')
     if (savedTimer.current !== undefined) clearTimeout(savedTimer.current)
     savedTimer.current = setTimeout(() => {
