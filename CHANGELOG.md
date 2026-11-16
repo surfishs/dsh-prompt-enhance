@@ -5,6 +5,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-11-16
+
+### Changed
+
+- Use English for all model-facing prompt framing; align the context truncation marker with the system prompt.
+- Refresh the README with the docked result card, current-draft regenerate and empty-draft behavior, and add a panel screenshot.
+
+[0.0.4]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.3...v0.0.4
+
 ## [0.0.3] - 2026-11-15
 
 ### Added
@@ -75,4 +84,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.0.1]: https://github.com/surfishs/dsh-prompt-enhance/commits/v0.0.1
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.4...HEAD
