@@ -71,7 +71,7 @@ export const zh = {
   'settings.saved': '已保存',
   'settings.saveFailed': '本部署没有接受这些值，已保留供你修改。',
   'settings.saveFailedShort': '保存失败',
-  'settings.advanced': '高级选项',
+  'settings.advanced': '高级设置',
   'settings.readOnly': '本部署的设置为只读。',
   'settings.unavailable': '该插件当前未加载，暂时无法配置。',
   'settings.reset': '恢复默认',
