@@ -16,7 +16,7 @@
 
 | Feature | What it does |
 |---|---|
-| 🐟 **One-click enhance** | The composer toolbar button (the DeepSeek fish mark whose upper-left corner carries a sparkle); the shortcut is off by default and can be set in the settings |
+| 🐳 **One-click enhance** | The composer toolbar button (the DeepSeek whale mark whose upper-left corner carries a sparkle); the shortcut is off by default and can be set in the settings |
 | 🖼️ **Docked result card** | The result appears above the composer without covering the conversation, with the model, timing and `token` usage; a truncated result is marked as possibly incomplete |
 | ↩️ **Apply, copy and undo** | Undo right after applying; once the card is closed, the undo bar remains above the composer |
 | 🔄 **Regenerate** | Requests another version from the current composer text; after applying, it regenerates the enhanced draft as well |
