@@ -783,11 +783,15 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
       options.push({
         value: effort.id,
         label: effort.name,
-        ...effort.description === undefined ? {} : { title: effort.description },
+        title: effort.description === undefined ? effort.name : `${effort.name} — ${effort.description}`,
       })
     }
   }
-  options.push({ value: 'inherit', label: props.copy.choice('settings.reasoning.inherit') })
+  options.push({
+    value: 'inherit',
+    label: props.copy.choice('settings.reasoning.inherit'),
+    title: props.copy.choice('settings.reasoning.inherit'),
+  })
   const unsupported = !noTiers && phase === 'ready' && capabilities?.source !== 'unavailable'
     && current !== '' && current !== 'inherit' && !realTierKnown
   const refreshing = feedback === 'refreshing'
@@ -815,6 +819,7 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
       </div>
       <SegmentedControl
         id={props.id}
+        className="dsh-pe-reasoning-segments"
         // A route that declares no tiers is presented as "follow provider
         // default"; the stored tier stays in the config and the host omits it
         // on the call, so the displayed state matches what actually happens.
