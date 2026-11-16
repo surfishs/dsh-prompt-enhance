@@ -56,13 +56,13 @@ dsh plugin --profile <profile> add @surfishs/dsh-prompt-enhance
 # 重启 dsh
 ```
 
+> `<profile>` 换成你的 profile 名：桌面版通常是 `desktop`，Web 版通常是 `web`。
+
 从 GitHub 安装（`lib/` 已随仓库提交，无需本地构建）：
 
 ```bash
 dsh plugin --profile <profile> add github:surfishs/dsh-prompt-enhance
 ```
-
-`<profile>` 换成你的 profile 名：桌面版通常是 `desktop`，Web 版通常是 `web`。
 
 从本地检出（开发用）：
 

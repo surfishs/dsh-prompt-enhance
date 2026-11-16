@@ -56,13 +56,13 @@ dsh plugin --profile <profile> add @surfishs/dsh-prompt-enhance
 # restart dsh
 ```
 
+> Replace `<profile>` with your profile name: usually `desktop` for the desktop app and `web` for the web build.
+
 From GitHub (the built `lib/` is committed, so no local build happens):
 
 ```bash
 dsh plugin --profile <profile> add github:surfishs/dsh-prompt-enhance
 ```
-
-Replace `<profile>` with your profile name: usually `desktop` for the desktop app and `web` for the web build.
 
 From a local checkout (development):
 
