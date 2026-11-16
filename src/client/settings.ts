@@ -1,11 +1,17 @@
 /**
  * Browser-side mirror of the plugin settings. The client bundle never
  * imports the host config module (it pulls schemastery into the browser),
- * so this module re-declares the three fields the UI reads, with the same
- * defaults, and re-exports them as a subscribable store fed by the bound
- * settings scope.
+ * so this module narrows the four fields the UI reads to a local interface and
+ * re-exports them as a subscribable store fed by the bound settings scope.
+ *
+ * The DEFAULTS, unlike the shape, are not re-declared: they come from
+ * `shared/defaults`, the same module `DEFAULT_CONFIG` is built from. A `.ts`
+ * file there is dependency-free, so it costs the browser bundle nothing and
+ * keeps one shipped default from being spelled twice.
  * @module dsh-prompt-enhance/client/settings
  */
+
+import { DEFAULT_VALUES } from '../shared/defaults'
 
 /** The settings subset the browser UI consumes (mirror of the host defaults). */
 export interface ClientSettings {
@@ -18,16 +24,16 @@ export interface ClientSettings {
 
 // Compile-time guarantee: the mirror only tracks keys that exist in the host
 // config — a host-side rename fails this file's typecheck instead of
-// silently desyncing the two defaults.
+// silently desyncing the two shapes.
 type AssertMirror = keyof ClientSettings extends keyof import('../config').Config ? true : never
 const _assertMirror: AssertMirror = true
 void _assertMirror
-/** Defaults mirroring the host `DEFAULT_CONFIG`. */
+/** Defaults taken from the host's own default table, so they cannot drift. */
 export const DEFAULT_CLIENT_SETTINGS: ClientSettings = {
-  enabled: true,
-  maxInputChars: 12000,
-  shortcut: '',
-  streaming: true,
+  enabled: DEFAULT_VALUES.enabled,
+  maxInputChars: DEFAULT_VALUES.maxInputChars,
+  shortcut: DEFAULT_VALUES.shortcut,
+  streaming: DEFAULT_VALUES.streaming,
 }
 
 const listeners = new Set<() => void>()
