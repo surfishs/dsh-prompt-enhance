@@ -126,11 +126,13 @@ An empty or attachment-only draft dims the button and starts no request; raise `
 
 ## Troubleshooting
 
-- No button: make sure `enabled` is `true` and `dsh web` was restarted after installing.
-- The button is dimmed: the composer is empty or has attachments only; type some text to restore it.
-- Incomplete result: check the truncation warning and raise `maxOutputTokens`.
-- "No model resolved for the enhancement": set `provider` / `model` as a pair, or send a message in the current session first.
-- Authentication failed: check the provider's API key in the harness.
+| Symptom | Check / fix |
+|---|---|
+| No enhance button in the toolbar | Confirm `enabled` is `true`; restart DSH (desktop app or `dsh web`) after installing; confirm the active profile. |
+| Button is greyed out | The composer is empty or has attachments only; type text to enable it. |
+| Truncated result | Check the truncation warning and raise `maxOutputTokens` in settings. |
+| "No model resolved for enhancement" | Set both `provider` and `model` in settings, or send a message in the current session so the plugin can follow the session route. |
+| Authentication failure | Check the provider credentials/API key configured in DSH. |
 
 ## Development
 
