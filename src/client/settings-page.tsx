@@ -365,12 +365,12 @@ const CHIP_STYLE: CSSProperties = {
   padding: '1px 8px',
   border: 'none',
   borderRadius: 999,
-  background: 'var(--dsw-alias-bg-module-platform, rgba(128, 128, 128, 0.12))',
+  background: 'var(--pe-chip-bg, var(--dsw-alias-bg-module-platform, rgba(128, 128, 128, 0.12)))',
   fontFamily: 'inherit',
   fontSize: 11,
   fontWeight: 500,
   lineHeight: '17px',
-  color: 'var(--dsw-alias-label-secondary, inherit)',
+  color: 'var(--pe-chip-color, var(--dsw-alias-label-secondary, inherit))',
   textDecoration: 'underline',
   textUnderlineOffset: 2,
   cursor: 'pointer',
@@ -659,6 +659,7 @@ function OverrideActions(props: { copy: RowCopy; disabled: boolean; onReset: () 
   return (
     <button
       type="button"
+      className="dsh-pe-chip-reset"
       style={{ ...RESET_STYLE, ...props.disabled ? { opacity: 0.5, cursor: 'default' } : {} }}
       disabled={props.disabled}
       onClick={props.onReset}
@@ -835,6 +836,7 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
           ? (
               <button
                 type="button"
+                className="dsh-pe-chip-refresh"
                 style={{ ...REFRESH_STYLE, opacity: props.disabled || refreshing ? 0.5 : 1 }}
                 disabled={props.disabled || refreshing}
                 onClick={refresh}

@@ -313,6 +313,16 @@ export const CSS = `
 }
 .dsh-pe-advanced[open] > summary { margin-bottom: 4px; }
 .dsh-pe-advanced + .dsh-pe-form-footer { margin-top: 0; }
+.dsh-pe-chip-reset:hover:not(:disabled),
+.dsh-pe-chip-refresh:hover:not(:disabled) {
+  --pe-chip-bg: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.18));
+  --pe-chip-color: var(--dsw-alias-label-primary, inherit);
+}
+.dsh-pe-chip-reset:focus-visible,
+.dsh-pe-chip-refresh:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary, #4f8cff);
+  outline-offset: 2px;
+}
 .dsh-pe-form-footer {
   display: flex;
   justify-content: flex-end;
