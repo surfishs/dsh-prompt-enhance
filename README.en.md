@@ -33,6 +33,8 @@
 
 ## Install
 
+Check the package name first. `dsh-prompt-enhance` on npm (no scope) is the upstream project and this plugin is a rewrite of it; this plugin is `@surfishs/dsh-prompt-enhance`. Install from this repository (`surfishs/dsh-prompt-enhance`) or its entry in the plugin market. **Do not** run `dsh plugin add dsh-prompt-enhance`.
+
 ### Let an agent install it
 
 No command line needed. Send the block below to an agent that can run commands on your machine (DSH desktop or web):

@@ -33,6 +33,8 @@
 
 ## 安装
 
+装之前请确认包名。npm 上的 `dsh-prompt-enhance`（无 scope）是上游原项目，本插件是它的重写分支，包名是 `@surfishs/dsh-prompt-enhance`。本插件的安装源是本仓库 `surfishs/dsh-prompt-enhance` 或它在插件市场里的条目。**不要**执行 `dsh plugin add dsh-prompt-enhance`。
+
 ### 让 Agent 帮你安装
 
 不用自己敲命令。把下面整段发给能操作本机终端的 Agent（DSH 桌面版、Web 版都可以）：
