@@ -279,6 +279,7 @@ function sectionCopy(t: Translate, chinese: boolean): RowCopy {
       unavailable: t('settings.unavailable'),
       readOnly: t('settings.readOnly'),
       saveFailed: t('settings.saveFailed'),
+      saveFailedShort: t('settings.saveFailedShort'),
       save: t('settings.save'),
       saving: t('settings.saving'),
       saved: t('settings.saved'),
@@ -305,6 +306,7 @@ function pageCopy(t: Translate): RowCopy {
       unavailable: t('settings.unavailable'),
       readOnly: t('settings.readOnly'),
       saveFailed: t('settings.saveFailed'),
+      saveFailedShort: t('settings.saveFailedShort'),
       save: t('settings.save'),
       saving: t('settings.saving'),
       saved: t('settings.saved'),
@@ -1241,7 +1243,7 @@ function SettingsRows(props: {
       : saveState === 'saved'
         ? props.copy.labels.saved
         : saveState === 'failed'
-          ? props.copy.labels.saveFailed
+          ? props.copy.labels.saveFailedShort
           : ''
 
   return (
@@ -1269,15 +1271,19 @@ function SettingsRows(props: {
         )
       })}
       <div className="dsh-pe-form-footer">
-        <span className="dsh-pe-save-status" role="status" aria-live="polite">{statusText}</span>
-        <button
-          type="button"
-          className="dsh-pe-save-button"
-          disabled={props.save === undefined || props.state.writable === false}
-          onClick={() => { void manualSave() }}
-        >
-          {props.copy.labels.save}
-        </button>
+        <div className="dsh-pe-save-group">
+          {statusText === ''
+            ? null
+            : <span className="dsh-pe-save-status" role="status" aria-live="polite">{statusText}</span>}
+          <button
+            type="button"
+            className="dsh-pe-save-button"
+            disabled={props.save === undefined || props.state.writable === false}
+            onClick={() => { void manualSave() }}
+          >
+            {props.copy.labels.save}
+          </button>
+        </div>
       </div>
     </div>
   )
