@@ -26,11 +26,10 @@
 
 ## Requirements
 
-| | |
+| Item | Requirement |
 |---|---|
-| dsh | `>= 0.1.1-rc.2 < 0.3.0` |
+| dsh | `>= 0.1.1-rc.2 < 0.3.0`, verified on `0.2.2-rc.3` |
 | Node (source builds only) | `^22.19.0 \|\| >=24.0.0` |
-| Plugin | `0.0.x` |
 
 ## Install
 
