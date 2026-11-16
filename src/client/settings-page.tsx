@@ -162,25 +162,32 @@ interface Row {
  * display/context switches first, then routing and generation, then the
  * context window, then the host-side resource caps, and the shortcut last.
  */
-const ROWS: readonly Row[] = [
+const BASIC_ROWS: readonly Row[] = [
   { key: 'enabled', kind: 'boolean', label: 'settings.row.enabled.label', hint: 'settings.row.enabled.hint' },
-  { key: 'contextAware', kind: 'boolean', label: 'settings.row.contextAware.label', hint: 'settings.row.contextAware.hint' },
-  { key: 'streaming', kind: 'boolean', label: 'settings.row.streaming.label', hint: 'settings.row.streaming.hint' },
   { key: 'provider', kind: 'provider', label: 'settings.row.provider.label', hint: 'settings.row.provider.hint' },
   { key: 'model', kind: 'model', label: 'settings.row.model.label', hint: 'settings.row.model.hint' },
   { key: 'reasoningEffort', kind: 'reasoning', label: 'settings.row.reasoningEffort.label', hint: 'settings.row.reasoningEffort.hint' },
   { key: 'temperature', kind: 'number', label: 'settings.row.temperature.label', hint: 'settings.row.temperature.hint' },
-  { key: 'maxOutputTokens', kind: 'number', label: 'settings.row.maxOutputTokens.label', hint: 'settings.row.maxOutputTokens.hint' },
-  { key: 'maxInputChars', kind: 'number', label: 'settings.row.maxInputChars.label', hint: 'settings.row.maxInputChars.hint' },
-  { key: 'timeoutMs', kind: 'number', label: 'settings.row.timeoutMs.label', hint: 'settings.row.timeoutMs.hint' },
-  { key: 'strategyMode', kind: 'strategy', label: 'settings.row.strategyMode.label', hint: 'settings.row.strategyMode.hint' },
+  { key: 'contextAware', kind: 'boolean', label: 'settings.row.contextAware.label', hint: 'settings.row.contextAware.hint' },
+  { key: 'streaming', kind: 'boolean', label: 'settings.row.streaming.label', hint: 'settings.row.streaming.hint' },
   { key: 'systemPrompt', kind: 'text', label: 'settings.row.systemPrompt.label', hint: 'settings.row.systemPrompt.hint', placeholder: 'settings.row.systemPrompt.placeholder' },
+  { key: 'shortcut', kind: 'text', label: 'settings.row.shortcut.label', hint: 'settings.row.shortcut.hint', placeholder: 'settings.row.shortcut.placeholder' },
+]
+
+/** Tuning and deployment limits, hidden behind the Advanced disclosure by default. */
+const ADVANCED_ROWS: readonly Row[] = [
+  { key: 'strategyMode', kind: 'strategy', label: 'settings.row.strategyMode.label', hint: 'settings.row.strategyMode.hint' },
+  { key: 'maxInputChars', kind: 'number', label: 'settings.row.maxInputChars.label', hint: 'settings.row.maxInputChars.hint' },
+  { key: 'maxOutputTokens', kind: 'number', label: 'settings.row.maxOutputTokens.label', hint: 'settings.row.maxOutputTokens.hint' },
+  { key: 'timeoutMs', kind: 'number', label: 'settings.row.timeoutMs.label', hint: 'settings.row.timeoutMs.hint' },
   { key: 'contextMaxMessages', kind: 'number', label: 'settings.row.contextMaxMessages.label', hint: 'settings.row.contextMaxMessages.hint' },
   { key: 'contextMaxChars', kind: 'number', label: 'settings.row.contextMaxChars.label', hint: 'settings.row.contextMaxChars.hint' },
   { key: 'maxConcurrent', kind: 'number', label: 'settings.row.maxConcurrent.label', hint: 'settings.row.maxConcurrent.hint' },
   { key: 'rateLimitPerMinute', kind: 'number', label: 'settings.row.rateLimitPerMinute.label', hint: 'settings.row.rateLimitPerMinute.hint' },
-  { key: 'shortcut', kind: 'text', label: 'settings.row.shortcut.label', hint: 'settings.row.shortcut.hint', placeholder: 'settings.row.shortcut.placeholder' },
 ]
+
+/** Every row both pages edit; the renderer splits it at the Advanced boundary. */
+const ROWS: readonly Row[] = [...BASIC_ROWS, ...ADVANCED_ROWS]
 
 /**
  * The staged form's descriptor for one row.
@@ -283,6 +290,7 @@ function sectionCopy(t: Translate, chinese: boolean): RowCopy {
       save: t('settings.save'),
       saving: t('settings.saving'),
       saved: t('settings.saved'),
+      advanced: t('settings.advanced'),
       reset: t('settings.reset'),
       invalidNumber: t('settings.invalidNumber'),
     },
@@ -310,6 +318,7 @@ function pageCopy(t: Translate): RowCopy {
       save: t('settings.save'),
       saving: t('settings.saving'),
       saved: t('settings.saved'),
+      advanced: t('settings.advanced'),
       reset: t('settings.reset'),
       invalidNumber: t('settings.invalidNumber'),
     },
@@ -1246,30 +1255,36 @@ function SettingsRows(props: {
           ? props.copy.labels.saveFailedShort
           : ''
 
+  const renderRow = (row: Row, index: number): ReactElement => {
+    const raw = viewOf(props.state, row.key)
+    // Hide the override badge once the value is back at its default; the
+    // host's `overridden` flag alone would keep it visible.
+    const view = raw.overridden && atDefaultValue(row.key, raw.text) ? { ...raw, overridden: false } : raw
+    return (
+      <div key={row.key} style={index === 0 ? undefined : SEPARATOR_STYLE}>
+        <SettingsRow
+          row={row}
+          copy={props.copy}
+          view={view}
+          disabled={!props.state.writable}
+          reasoningPair={{ provider, model }}
+          routing={routing}
+          providerValue={provider}
+          onEdit={(text: string) => onEdit(row.key, text)}
+          onReset={() => props.resetField(row.key)}
+          onCommit={() => flushField(row.key, viewOf(props.state, row.key).text)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="dsh-pe-form">
-      {ROWS.map((row, index) => {
-        const raw = viewOf(props.state, row.key)
-        // Hide the override badge once the value is back at its default; the
-        // host's `overridden` flag alone would keep it visible.
-        const view = raw.overridden && atDefaultValue(row.key, raw.text) ? { ...raw, overridden: false } : raw
-        return (
-          <div key={row.key} style={index === 0 ? undefined : SEPARATOR_STYLE}>
-            <SettingsRow
-              row={row}
-              copy={props.copy}
-              view={view}
-              disabled={!props.state.writable}
-              reasoningPair={{ provider, model }}
-              routing={routing}
-              providerValue={provider}
-              onEdit={(text: string) => onEdit(row.key, text)}
-              onReset={() => props.resetField(row.key)}
-              onCommit={() => flushField(row.key, viewOf(props.state, row.key).text)}
-            />
-          </div>
-        )
-      })}
+      {BASIC_ROWS.map(renderRow)}
+      <details className="dsh-pe-advanced">
+        <summary>{props.copy.labels.advanced}</summary>
+        {ADVANCED_ROWS.map(renderRow)}
+      </details>
       <div className="dsh-pe-form-footer">
         <div className="dsh-pe-save-group">
           {statusText === ''

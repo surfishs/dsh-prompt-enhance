@@ -271,6 +271,19 @@ export const CSS = `
   text-align: center;
   white-space: nowrap;
 }
+.dsh-pe-advanced {
+  margin-top: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l3, rgba(128, 128, 128, 0.22));
+}
+.dsh-pe-advanced > summary {
+  padding: 8px 0;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary, inherit);
+  cursor: pointer;
+  user-select: none;
+}
+.dsh-pe-advanced > summary:hover { color: var(--dsw-alias-label-primary, inherit); }
+.dsh-pe-advanced[open] > summary { margin-bottom: 4px; }
 .dsh-pe-form-footer {
   display: flex;
   justify-content: flex-end;

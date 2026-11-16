@@ -190,6 +190,7 @@ function renderSection(options: { user?: Record<string, unknown>; values?: Recor
       usePromptEnhanceLocale={(selector) => selector({ active: lang })}
     />,
   )
+  fireEvent.click(screen.getByText(lang === 'en' ? enCopy('settings.advanced') : zhCopy('settings.advanced')))
   return { mutate, model }
 }
 
@@ -203,7 +204,9 @@ function renderRowPage(options: { user?: Record<string, unknown>; writable?: boo
   model: ReturnType<typeof createSettingsForm>
 } {
   const { mutate, model, props } = setup(options)
-  render(<SettingsPage {...props} t={t} view={options.view ?? 'page'} />)
+  const view = options.view ?? 'page'
+  render(<SettingsPage {...props} t={t} view={view} />)
+  if (view === 'page') fireEvent.click(screen.getByText(zhCopy('settings.advanced')))
   return { mutate, model }
 }
 
