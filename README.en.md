@@ -14,16 +14,15 @@
 
 ## Features
 
-- **One-click enhance**: the enhance button in the composer toolbar (DeepSeek fish mark with a sparkle); the shortcut is off by default and can be set in the settings. The original draft is preserved, and a failure never touches it.
-- **Docked result card**: the result appears above the composer without covering the conversation, with model, timing and token usage. Apply, copy, regenerate or undo; sending the draft closes it automatically, Escape closes it too.
-- **Apply and undo**: after applying, the card stays open with a Replaced chip and an undo action; once closed, the undo bar remains above the composer.
-- **Regenerate**: re-runs the current composer text; after applying, it can regenerate the enhanced draft as well.
-- **Empty-draft dimming**: with no text (or attachments only), the icon dims and neither clicks nor the shortcut start a request.
-- **Truncation warning**: when the output hits the token cap, the partial result is kept and marked as possibly incomplete.
-- **`/enhance <text>`**: rewrite any text from the slash menu; the result never enters model history.
-- **Model routing**: pinned settings pair → current session model → harness default, in that order.
-- **Context aware**: uses recent conversation to resolve references; can be turned off.
-- **Live settings**: changes apply to the next call, no restart.
+- **One-click enhance**: the enhance button in the composer toolbar (the DeepSeek fish mark whose upper-left corner carries a four-point sparkle) rewrites the draft into a structured prompt; the shortcut is off by default and can be set in the settings.
+- **Docked result card**: the result appears above the composer without covering the conversation, with the model, timing and `token` usage; sending the draft closes it automatically and `Esc` closes it too.
+- **Apply, copy and undo**: after applying, the card stays open with a Replaced chip and an undo action; once closed, the undo bar remains above the composer.
+- **Regenerate**: requests another version from the current composer text; after applying, it regenerates the enhanced draft as well.
+- **Input boundaries**: with no text (or attachments only) the button dims and neither a click nor the shortcut starts a request; when the output hits the `token` cap, the partial result is kept and marked as possibly incomplete.
+- **`/enhance <text>`**: rewrites any text from the slash menu; the result never enters model history.
+- **Model routing**: a pinned `provider` + `model` pair wins; otherwise it follows the current session model, then the global default model.
+- **Context aware**: with `contextAware` on, recent turns resolve references such as "it" or "that"; it can be turned off.
+- **Settings and live updates**: fields save automatically, common rows come first and the rest fold into Advanced settings; changes apply to the next call with no restart.
 
 ## Requirements
 
