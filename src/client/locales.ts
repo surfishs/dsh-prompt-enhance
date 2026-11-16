@@ -117,7 +117,7 @@ export const zh = {
   'settings.row.strategyMode.hint': '自定义系统提示词非空时：整体替换内置策略（仍保留最小输出契约），或追加在内置策略之后（内置规则继续生效）。',
   'settings.row.systemPrompt.label': '自定义系统提示词',
   'settings.row.systemPrompt.hint': '留空使用内置增强策略。',
-  'settings.row.systemPrompt.placeholder': '把用户的中文输入翻译成英文。',
+  'settings.row.systemPrompt.placeholder': '例：把用户的中文输入翻译成英文。',
   'settings.row.contextMaxMessages.label': '上下文消息条数',
   'settings.row.contextMaxMessages.hint': '最多参考最近多少轮对话；0 表示不参考；默认 8。',
   'settings.row.contextMaxChars.label': '上下文字符上限',
