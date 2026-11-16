@@ -3,7 +3,7 @@
 All notable changes to this project are documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
-## [Unreleased]
+## [0.0.8] - 2026-11-16
 
 ### Added
 
@@ -22,6 +22,12 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 - The eleven documentation files inherited from the upstream 0.2.3–0.3.4 line (release notes and the 0.2.2-era code review); this fork's history starts at 0.0.1.
 - Dead code the new linter surfaced: an unused `previousMargin` local, an unused `SettingsFace` interface, and an unused `stripTrailingFence` helper.
+
+### Security
+
+- Development dependencies were moved off two advisory classes: `vitest` 4 no longer pulls `tinypool`, and the dev SDK now pins `zod@4.6.6`. The published runtime dependency set is unchanged.
+
+[0.0.8]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.7...v0.0.8
 
 ## [0.0.7] - 2026-11-16
 
