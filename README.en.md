@@ -35,6 +35,20 @@
 
 ## Install
 
+### Let an agent install it
+
+No command line needed. Send the block below to an agent that can run commands on your machine (DSH desktop or web):
+
+```text
+Install the DeepSeek Harness plugin @surfishs/dsh-prompt-enhance.
+
+1. First confirm my DSH profile name: usually desktop for the desktop app and web for the web build; ask me if unsure.
+2. Run: dsh plugin --profile <profile> add @surfishs/dsh-prompt-enhance
+3. If the npm install fails, use: dsh plugin --profile <profile> add github:surfishs/dsh-prompt-enhance
+4. After installing, ask me to restart DSH and confirm the plugin appears in the plugin list and that Settings → Prompt Enhance opens.
+5. Do not change my other plugins or DSH configuration.
+```
+
 From npm:
 
 ```bash
