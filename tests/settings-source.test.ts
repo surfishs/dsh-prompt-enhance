@@ -96,6 +96,40 @@ describe('installSettingsSource: SettingsForms (dsh 0.2.x)', () => {
     expect(source.read()).toBe(FALLBACK)
   })
 
+  it('warns exactly once when the live read fails, however many requests ask', () => {
+    const settings = {
+      describe: (): unknown[] => {
+        throw new Error('shape drift')
+      },
+    }
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const { ctx } = contextWith({ settings })
+      const source = installSettingsSource(ctx, options().value)
+      // read() runs on every enhance request; the fallback is indistinguishable
+      // from "this host has no section", so one line must reach the log — but
+      // one line only, or a degraded host floods it at request rate.
+      for (let i = 0; i < 5; i++) expect(source.read()).toBe(FALLBACK)
+      expect(warn).toHaveBeenCalledTimes(1)
+      expect(String(warn.mock.calls[0]?.[0])).toContain('settings section failed')
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it('does not warn when the live read answers', () => {
+    const settings = { describe: (): unknown[] => [{ ns: NAMESPACE, value: { enabled: false } }] }
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const { ctx } = contextWith({ settings })
+      const source = installSettingsSource(ctx, options().value)
+      expect(source.read()).toMatchObject({ enabled: false })
+      expect(warn).not.toHaveBeenCalled()
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
   it('falls back when the host serves no row for this plugin', () => {
     const settings = { describe: (): unknown[] => [{ ns: 'llm-deepseek', value: {} }] }
     const { ctx } = contextWith({ settings })

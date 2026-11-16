@@ -116,6 +116,8 @@ function pickRow(rows: SettingsRowLike[], rowIds: readonly string[]): SettingsRo
 export function installSettingsSource(ctx: Context, options: SettingsSourceOptions): SettingsSource {
   let reader: (() => unknown) | undefined
   let resolvedRowId: string | undefined
+  /** Latched after the first failed live read, so the warning is one line, not one per request. */
+  let warnedReadFailure = false
 
   /**
    * Hooks handed to the legacy installers. `setSource` doubles as this
@@ -208,8 +210,17 @@ export function installSettingsSource(ctx: Context, options: SettingsSourceOptio
         try {
           const value = reader()
           if (value !== undefined) return value
-        } catch {
-          // A describe() hiccup must not fail the request it was read for.
+        } catch (error) {
+          // A describe() hiccup must not fail the request it was read for. It
+          // must not stay invisible either: the fallback answer below looks
+          // exactly like "this host has no section", so a host whose settings
+          // API drifted would keep serving the composition config with no
+          // evidence anywhere. One line per source (not per request — read()
+          // runs on every enhance call) is enough to make that diagnosable.
+          if (!warnedReadFailure) {
+            warnedReadFailure = true
+            console.warn('[dsh-prompt-enhance] reading the settings section failed; using the composition config for the rest of this session.', error)
+          }
         }
       }
       return options.fallback()
