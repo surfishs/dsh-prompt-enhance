@@ -210,6 +210,8 @@ export const CSS = `
 .dsh-pe-undo {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 2px 4px;
   font-size: 12px;
@@ -218,15 +220,36 @@ export const CSS = `
 }
 .dsh-pe-undo .dsh-pe-undo-check { color: #7ed491; }
 .dsh-pe-undo-link {
-  border: none; background: var(--pe-hover); color: inherit;
-  border-radius: 5px; padding: 3px 10px; font-size: 12px; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--pe-border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
 }
-.dsh-pe-undo-link:hover { background: rgba(127,127,127,0.3); }
+.dsh-pe-undo-link:hover { background: var(--pe-hover); }
 .dsh-pe-undo-x {
-  border: none; background: transparent; color: inherit; opacity: 0.55;
-  cursor: pointer; padding: 0 4px; font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
 }
-.dsh-pe-undo-x:hover { opacity: 1; }
+.dsh-pe-undo-x:hover { opacity: 1; background: var(--pe-hover); }
 `
 
 /**
