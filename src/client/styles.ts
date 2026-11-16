@@ -59,8 +59,15 @@ export const CSS = `
   font-weight: 600;
 }
 .dsh-pe-head .dsh-pe-title { display: inline-flex; align-items: center; gap: 6px; }
-.dsh-pe-head .dsh-pe-badge {
+.dsh-pe-head .dsh-pe-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+  min-width: 0;
+}
+.dsh-pe-head .dsh-pe-badge {
+  margin-left: 0;
   border: 1px solid var(--pe-border);
   border-radius: 999px;
   padding: 1px 8px;

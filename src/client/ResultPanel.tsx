@@ -180,31 +180,33 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
           <SparkleFishIcon size={15} />
           {t('panel.title')}
         </span>
-        {state.phase === 'result' && state.result !== undefined && (
-          <span className="dsh-pe-badge">
-            {t('panel.model', { provider: state.result.provider, model: state.result.model })} · {t('panel.elapsed', { ms: formatMs(state.result.elapsedMs) })}
-            {state.result.usage === undefined
-              ? null
-              : (
-                  <>
-                    {' · '}
-                    <span title={tokenDetail(state.result.usage)}>
-                      {t('panel.tokens', { total: formatTokens(totalTokensOf(state.result.usage)) })}
-                    </span>
-                  </>
-                )}
-          </span>
-        )}
-        {copied === 'ok'
-          ? <span className="dsh-pe-applied">{t('panel.copiedShort')}</span>
-          : regenerated
-            ? <span className="dsh-pe-applied">{t('panel.regeneratedShort')}</span>
-            : applied
-              ? <span className="dsh-pe-applied">{t('panel.appliedShort')}</span>
-              : undone
-                ? <span className="dsh-pe-applied">{t('panel.undoneShort')}</span>
-                : null}
-        <button type="button" className="dsh-pe-close" aria-label={t('panel.close')} onClick={onCancel}>✕</button>
+        <div className="dsh-pe-head-actions">
+          {state.phase === 'result' && state.result !== undefined && (
+            <span className="dsh-pe-badge">
+              {t('panel.model', { provider: state.result.provider, model: state.result.model })} · {t('panel.elapsed', { ms: formatMs(state.result.elapsedMs) })}
+              {state.result.usage === undefined
+                ? null
+                : (
+                    <>
+                      {' · '}
+                      <span title={tokenDetail(state.result.usage)}>
+                        {t('panel.tokens', { total: formatTokens(totalTokensOf(state.result.usage)) })}
+                      </span>
+                    </>
+                  )}
+            </span>
+          )}
+          {copied === 'ok'
+            ? <span className="dsh-pe-applied">{t('panel.copiedShort')}</span>
+            : regenerated
+              ? <span className="dsh-pe-applied">{t('panel.regeneratedShort')}</span>
+              : applied
+                ? <span className="dsh-pe-applied">{t('panel.appliedShort')}</span>
+                : undone
+                  ? <span className="dsh-pe-applied">{t('panel.undoneShort')}</span>
+                  : null}
+          <button type="button" className="dsh-pe-close" aria-label={t('panel.close')} onClick={onCancel}>✕</button>
+        </div>
       </header>
 
       {state.phase === 'loading' && (
