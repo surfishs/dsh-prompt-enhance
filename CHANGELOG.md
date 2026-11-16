@@ -5,6 +5,24 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- ESLint (js, typescript-eslint and react-hooks recommended sets) and Prettier, with `npm run lint` / `npm run format:check` gates in CI.
+- `src/shared/limits.ts` as the single source of the field bounds shared by the schema and the request path.
+- A one-line host warning when the settings probe throws, instead of a silent fall back to the composition config.
+
+### Changed
+
+- Browser transport failures are localized from a stable reason instead of hardcoded Chinese copy, so an English UI no longer shows Chinese detail lines.
+- `settings-page` split into five modules: spec, copy, styles, controls and the page itself.
+- The browser defaults are taken from the shared default table instead of being re-typed.
+- The published package carries only `docs/images/**`, and the development docs list the new lint and format commands.
+
+### Removed
+
+- The eleven documentation files inherited from the upstream 0.2.3–0.3.4 line (release notes and the 0.2.2-era code review); this fork's history starts at 0.0.1.
+- Dead code the new linter surfaced: an unused `previousMargin` local, an unused `SettingsFace` interface, and an unused `stripTrailingFence` helper.
+
 ## [0.0.7] - 2026-11-16
 
 ### Added

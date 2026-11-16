@@ -36,6 +36,6 @@ When you're done, switch back to the npm install for daily use:
 ## Submitting
 
 1. Branch from `main`, make your change with tests.
-2. `npm run typecheck && npm test && npm run build` — all green.
+2. `npm run typecheck && npm run lint && npm run format:check && npm test && npm run build` — all green.
 3. Open a PR describing what changed and why; CI must pass.
 4. Maintainers cut releases (`npm version patch|minor|major` → build → push tags → npm publish); see the Release process in the README.

@@ -140,6 +140,8 @@ An empty or attachment-only draft dims the button and starts no request; raise `
 ```bash
 npm install
 npm run typecheck
+npm run lint
+npm run format:check
 npm test
 npm run build
 ```

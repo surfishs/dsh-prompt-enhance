@@ -140,6 +140,8 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 ```bash
 npm install
 npm run typecheck
+npm run lint
+npm run format:check
 npm test
 npm run build
 ```
