@@ -8,7 +8,7 @@
 
 import { useCallback, useState, type ReactNode } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
-import type { EnhanceError, EnhanceUsage } from '../shared/protocol'
+import type { EnhanceError, EnhanceUsage, ClientFailureReason } from '../shared/protocol'
 import type { PromptEnhanceKey } from './locales'
 import type { PanelState } from './ui-state'
 import { CopyIcon, FillIcon, RegenerateIcon, UndoIcon } from './ActionIcons'
@@ -65,6 +65,28 @@ export const UPSTREAM_ERROR_KEYS: Record<string, PromptEnhanceKey> = {
 }
 
 /**
+ * Why the BROWSER half failed → the dictionary key that carries its fix hint.
+ *
+ * Same reasoning as {@link UPSTREAM_ERROR_KEYS}: the wire reasons are kebab-case
+ * and the dictionary keys are camelCase, so an interpolated key would silently
+ * miss `stream-closed` and fall back to the generic line. A `Record` over the
+ * union (not a lookup with a fallback) also makes the type checker demand copy
+ * for every reason the protocol can carry.
+ */
+export const CLIENT_ERROR_KEYS: Record<ClientFailureReason, PromptEnhanceKey> = {
+  unreachable: 'error.client.unreachable',
+  malformed: 'error.client.malformed',
+  refused: 'error.client.refused',
+  'stream-closed': 'error.client.streamClosed',
+  cancelled: 'error.client.cancelled',
+}
+
+/** Whether a params value names one of the browser half's own failure reasons. */
+function isClientFailureReason(value: unknown): value is ClientFailureReason {
+  return typeof value === 'string' && Object.hasOwn(CLIENT_ERROR_KEYS, value)
+}
+
+/**
  * Primary line for a server-side error, localized by the stable code and its
  * structured params: an upstream `reason` picks a specific fix hint when one
  * exists, and an over-length rejection reuses the too-long input message the
@@ -78,6 +100,11 @@ function localizedErrorMessage(t: ResultPanelProps['t'], code: EnhanceError['cod
   if (code === 'upstream' && typeof params?.reason === 'string') {
     const specific = UPSTREAM_ERROR_KEYS[params.reason]
     if (specific !== undefined) return t(specific)
+  }
+  // A transport failure in this process carries a stable reason; its copy is
+  // localized here instead of being a hardcoded Chinese `message`.
+  if (code === 'internal' && isClientFailureReason(params?.reason)) {
+    return t(CLIENT_ERROR_KEYS[params.reason], params)
   }
   switch (code) {
     case 'rejected':

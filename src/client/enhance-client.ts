@@ -49,7 +49,7 @@ function parseError(value: unknown): EnhanceError {
     const params = record.params !== null && typeof record.params === 'object' ? (record.params as Record<string, string | number>) : undefined
     return { code, ...(message !== undefined ? { message } : {}), ...(params !== undefined ? { params } : {}) }
   }
-  return { code: 'internal', message: '宿主服务返回异常。' }
+  return { code: 'internal', params: { reason: 'malformed' } }
 }
 
 /** One finite, non-negative token count, or undefined when absent/malformed. */
@@ -105,7 +105,7 @@ function parseResult(value: unknown): EnhanceResult {
       ...(usage === undefined ? {} : { usage }),
     }
   }
-  throw new EnhanceClientError({ code: 'internal', message: '宿主服务返回了无法解析的结果。' })
+  throw new EnhanceClientError({ code: 'internal', params: { reason: 'malformed' } })
 }
 
 /** Read and validate the response envelope. */
@@ -114,7 +114,7 @@ async function readEnvelope(response: Response): Promise<EnhanceResult> {
   try {
     parsed = await response.json()
   } catch {
-    throw new EnhanceClientError({ code: 'internal', message: '宿主服务返回了无法解析的响应。' })
+    throw new EnhanceClientError({ code: 'internal', params: { reason: 'malformed' } })
   }
   const envelope = parsed as { ok?: unknown; value?: EnhanceResult; error?: EnhanceError } | null
   if (envelope !== null && typeof envelope === 'object' && envelope.ok === true) {
@@ -123,7 +123,7 @@ async function readEnvelope(response: Response): Promise<EnhanceResult> {
   if (envelope !== null && typeof envelope === 'object' && envelope.error !== undefined) {
     throw new EnhanceClientError(parseError(envelope.error))
   }
-  throw new EnhanceClientError({ code: 'internal', message: `宿主服务返回异常（HTTP ${response.status}）。` })
+  throw new EnhanceClientError({ code: 'internal', params: { reason: 'malformed', status: response.status } })
 }
 
 /**
@@ -147,7 +147,7 @@ async function rejectionOf(response: Response): Promise<EnhanceClientError> {
   } catch {
     // Not the JSON envelope (proxy error page, empty body): fall through.
   }
-  return new EnhanceClientError({ code: 'internal', message: `宿主服务拒绝了请求（HTTP ${response.status}），请稍后重试。` })
+  return new EnhanceClientError({ code: 'internal', params: { reason: 'refused', status: response.status } })
 }
 
 /** One SSE frame: the event name line and the `data:` payload line. */
@@ -220,10 +220,10 @@ export async function requestEnhanceStream(body: EnhanceRequestBody, options: En
     } as RequestInit)
   } catch (error) {
     if (options.signal?.aborted) {
-      throw new EnhanceClientError({ code: 'internal', message: '已取消增强；原输入未改动。' })
+      throw new EnhanceClientError({ code: 'internal', params: { reason: 'cancelled' } })
     }
     void error
-    throw new EnhanceClientError({ code: 'internal', message: '无法连接宿主服务，请确认 dsh web 正在运行后重试。' })
+    throw new EnhanceClientError({ code: 'internal', params: { reason: 'unreachable' } })
   }
   const contentType = String(response.headers.get('content-type') ?? '').toLowerCase()
   // A refusal is the server answering, not a missing stream: report it as-is
@@ -263,7 +263,7 @@ export async function requestEnhanceStream(body: EnhanceRequestBody, options: En
       .then(() => reader.cancel())
       .catch(() => {})
   }
-  throw new EnhanceClientError({ code: 'internal', message: '宿主服务提前关闭了增强流，请重试；原输入未改动。' })
+  throw new EnhanceClientError({ code: 'internal', params: { reason: 'stream-closed' } })
 }
 
 /**
@@ -284,10 +284,10 @@ export async function requestEnhance(body: EnhanceRequestBody, signal?: AbortSig
     } as RequestInit)
   } catch (error) {
     if (signal?.aborted) {
-      throw new EnhanceClientError({ code: 'internal', message: '已取消增强；原输入未改动。' })
+      throw new EnhanceClientError({ code: 'internal', params: { reason: 'cancelled' } })
     }
     void error
-    throw new EnhanceClientError({ code: 'internal', message: '无法连接宿主服务，请确认 dsh web 正在运行后重试。' })
+    throw new EnhanceClientError({ code: 'internal', params: { reason: 'unreachable' } })
   }
   return readEnvelope(response)
 }

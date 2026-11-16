@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { en, zh, type PromptEnhanceKey } from '../src/client/locales'
-import { UPSTREAM_ERROR_KEYS } from '../src/client/ResultPanel'
+import { CLIENT_ERROR_KEYS, UPSTREAM_ERROR_KEYS } from '../src/client/ResultPanel'
 
 /** Every wire reason `UpstreamReason` declares (src/enhancer.ts). */
 const WIRE_REASONS = ['auth', 'invalid-credential', 'rate-limit', 'quota', 'empty', 'context-window', 'tool-call', 'max-tokens'] as const
@@ -53,5 +53,29 @@ describe('UPSTREAM_ERROR_KEYS (wire reason → dictionary key)', () => {
 
   it('keeps the wire vocabulary distinct — no reason may alias another', () => {
     expect(new Set(Object.values(UPSTREAM_ERROR_KEYS)).size).toBe(Object.keys(UPSTREAM_ERROR_KEYS).length)
+  })
+})
+
+describe('CLIENT_ERROR_KEYS (browser transport reason → dictionary key)', () => {
+  // The browser half used to build these lines as hardcoded Chinese strings, so
+  // an English UI rendered Chinese under its localized title. The reason is now
+  // structured and mapped here; these assertions are what keep the two
+  // vocabularies (kebab-case reasons, camelCase keys) from drifting apart again.
+  it('points every reason at copy that exists in both dictionaries', () => {
+    for (const [reason, key] of Object.entries(CLIENT_ERROR_KEYS)) {
+      expect(zh[key], `zh is missing '${key}' (reason '${reason}')`).toBeTruthy()
+      expect(en[key], `en is missing '${key}' (reason '${reason}')`).toBeTruthy()
+      expect(String(zh[key]).trim()).not.toBe('')
+      expect(String(en[key]).trim()).not.toBe('')
+    }
+  })
+
+  it('keeps the reasons distinct — no reason may alias another', () => {
+    expect(new Set(Object.values(CLIENT_ERROR_KEYS)).size).toBe(Object.keys(CLIENT_ERROR_KEYS).length)
+  })
+
+  it('keeps the client vocabulary separate from the upstream one', () => {
+    const upstreamKeys = new Set(Object.values(UPSTREAM_ERROR_KEYS))
+    for (const key of Object.values(CLIENT_ERROR_KEYS)) expect(upstreamKeys.has(key)).toBe(false)
   })
 })

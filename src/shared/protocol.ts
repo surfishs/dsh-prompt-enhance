@@ -89,6 +89,27 @@ export interface EnhanceResult {
  */
 export type EnhanceErrorCode = 'rejected' | 'rate-limit' | 'concurrency-limit' | 'cooldown' | 'timeout' | 'upstream' | 'unconfigured' | 'internal' | 'effort-unsupported'
 
+/**
+ * Why the BROWSER half could not turn a response into a result.
+ *
+ * These never cross the wire: they are produced and consumed in the same
+ * process, but they travel on the same `EnhanceError` shape so the panel has one
+ * rendering path. They exist because a transport failure used to be a hardcoded
+ * Chinese string, which an English UI then showed verbatim under its localized
+ * primary line. A stable reason lets the panel localize it like any other error.
+ */
+export type ClientFailureReason =
+  /** The fetch itself failed: no host, wrong port, dsh web not running. */
+  | 'unreachable'
+  /** The body or envelope could not be parsed into anything usable. */
+  | 'malformed'
+  /** The host answered, but not with the plugin's JSON envelope. */
+  | 'refused'
+  /** The stream ended without a `done` frame. */
+  | 'stream-closed'
+  /** The caller aborted the request. */
+  | 'cancelled'
+
 /** Structured failure carried on every non-2xx / ok:false response. */
 export interface EnhanceError {
   code: EnhanceErrorCode
@@ -108,6 +129,8 @@ export interface EnhanceError {
    * - timeout: { seconds }
    * - rejected with { count, max }: the over-length input message
    * - upstream: optional { reason } selecting a fix hint (auth, quota, …)
+   * - internal, browser half only: { reason } — a {@link ClientFailureReason},
+   *   plus { status } on the two reasons that carry an HTTP status
    */
   params?: Record<string, string | number>
   /**
