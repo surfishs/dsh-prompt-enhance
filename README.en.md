@@ -8,7 +8,7 @@
 
 [简体中文](./README.md) | English
 
-![Prompt Enhance: the docked result card above the composer](./docs/images/panel.png)
+![Prompt Enhance: the docked result card above the composer](./docs/images/panel.en.png)
 
 ---
 
