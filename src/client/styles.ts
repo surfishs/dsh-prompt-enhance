@@ -272,43 +272,17 @@ export const CSS = `
   white-space: nowrap;
 }
 .dsh-pe-form-footer {
-  --pe-footer-surface: color-mix(
-    in srgb,
-    var(--dsw-alias-bg-base, #fff) 94%,
-    var(--dsw-alias-label-primary, #000) 6%
-  );
-  position: sticky;
-  bottom: 0;
-  z-index: 8;
   display: flex;
   justify-content: flex-end;
-  margin: 12px -20px -20px;
-  padding: 10px 20px 12px;
-  border-top: 1px solid color-mix(
-    in srgb,
-    var(--dsw-alias-border-l3, #8a8a8a) 70%,
-    transparent
-  );
-  border-bottom: 1px solid color-mix(
-    in srgb,
-    var(--dsw-alias-border-l3, #8a8a8a) 70%,
-    transparent
-  );
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--pe-footer-surface) 0%, transparent) 0%,
-    color-mix(in srgb, var(--pe-footer-surface) 82%, transparent) 24%,
-    var(--pe-footer-surface) 100%
-  );
-  box-shadow: 0 -8px 18px color-mix(in srgb, #000 6%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dsw-alias-border-l3, rgba(128, 128, 128, 0.22));
 }
 .dsh-pe-save-group {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
   max-width: 100%;
@@ -316,13 +290,11 @@ export const CSS = `
 }
 .dsh-pe-save-status {
   min-width: 0;
-  max-width: min(60vw, 420px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
   font-size: 12px;
   color: var(--dsw-alias-label-secondary, inherit);
   text-align: right;
+  overflow-wrap: anywhere;
 }
 .dsh-pe-save-button {
   flex: none;
