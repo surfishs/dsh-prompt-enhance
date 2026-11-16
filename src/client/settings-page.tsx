@@ -14,7 +14,7 @@
  *   control. Copy there is single-language, read through the locale seat.
  *
  * Both surfaces share one staged form: value rows draw a native input, boolean
- * rows the shell's `Switch`, enum rows its `SegmentedControl`. The primitives
+ * rows the shell's `Switch`, enum rows a local segmented choice. The primitives
  * package ships field helpers only for text and numbers, so this module
  * supplies the boolean and enum descriptors itself — a descriptor is
  * `{ field, format, parse }`, and `parse` decides the JSON value written,
@@ -22,7 +22,7 @@
  * @module dsh-prompt-enhance/client/settings-page
  */
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ReasoningCapabilities } from '../shared/reasoning'
@@ -30,7 +30,6 @@ import { DEFAULT_VALUES } from '../shared/defaults'
 import { fetchReasoningCapabilities } from './reasoning-options'
 import { useLlmRouting, type LlmRoutingState } from './llm-catalog'
 import {
-  SegmentedControl,
   SettingsForm,
   SettingsFormModel,
   Switch,
@@ -664,6 +663,125 @@ function BooleanRow(props: RowProps): ReactElement {
   )
 }
 
+/** Track surface for the local segmented choice; the thumb is absolutely placed. */
+const SEGMENT_TRACK_STYLE: CSSProperties = {
+  position: 'relative',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 2,
+  padding: 3,
+  maxWidth: '100%',
+  overflowX: 'auto',
+  borderRadius: 8,
+  background: 'var(--dsw-alias-bg-layer-2, rgba(128, 128, 128, 0.12))',
+}
+/** One label cell; it never moves when the selection changes. */
+const SEGMENT_BUTTON_STYLE: CSSProperties = {
+  position: 'relative',
+  zIndex: 1,
+  flex: 'none',
+  border: 0,
+  padding: '4px 10px',
+  borderRadius: 6,
+  background: 'transparent',
+  color: 'inherit',
+  font: 'inherit',
+  fontSize: 12,
+  lineHeight: 1.4,
+  whiteSpace: 'nowrap',
+  cursor: 'pointer',
+}
+/** The selected pill. Absolute placement keeps it out of the label layout. */
+const SEGMENT_THUMB_STYLE: CSSProperties = {
+  position: 'absolute',
+  top: 3,
+  bottom: 3,
+  zIndex: 0,
+  borderRadius: 6,
+  background: 'var(--dsw-alias-bg-layer-1, #fff)',
+  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.12)',
+  transition: 'left 140ms ease, width 140ms ease',
+  pointerEvents: 'none',
+}
+
+/**
+ * A segmented choice whose thumb cannot move its labels.
+ *
+ * The shell's control renders the selected pill in flow in some host builds:
+ * as the selection moves right, the pill's own box takes space and shifts the
+ * text cells. This local copy keeps the same tab roles and visual treatment,
+ * but places the thumb absolutely and measures the active cell after layout.
+ */
+function StableSegmentedControl(props: {
+  id: string
+  value: string
+  options: readonly { value: string; label: string; title?: string }[]
+  disabled?: boolean
+  label: string
+  onChange: (next: string) => void
+}): ReactElement {
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const [thumb, setThumb] = useState<{ left: number; width: number } | undefined>(undefined)
+  const optionKey = props.options.map((option) => `${option.value}\u0000${option.label}`).join('\u0001')
+
+  useLayoutEffect(() => {
+    const root = rootRef.current
+    if (root === null) return
+    let frame = 0
+    const measure = (): void => {
+      const active = root.querySelector<HTMLButtonElement>('[data-active="true"]')
+      if (active === null) {
+        setThumb(undefined)
+        return
+      }
+      setThumb({ left: active.offsetLeft, width: active.offsetWidth })
+    }
+    const schedule = (): void => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    }
+    schedule()
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule)
+    observer?.observe(root)
+    return () => {
+      cancelAnimationFrame(frame)
+      observer?.disconnect()
+    }
+  }, [optionKey, props.value])
+
+  return (
+    <div
+      ref={rootRef}
+      id={props.id}
+      role="tablist"
+      aria-label={props.label}
+      style={{ ...SEGMENT_TRACK_STYLE, opacity: props.disabled === true ? 0.55 : 1 }}
+    >
+      {thumb === undefined ? null : (
+        <span
+          aria-hidden
+          style={{ ...SEGMENT_THUMB_STYLE, left: thumb.left, width: thumb.width }}
+        />
+      )}
+      {props.options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="tab"
+          aria-selected={option.value === props.value}
+          data-active={option.value === props.value ? 'true' : 'false'}
+          title={option.title}
+          disabled={props.disabled}
+          onClick={() => props.onChange(option.value)}
+          style={SEGMENT_BUTTON_STYLE}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /**
  * A fixed-choice row: the shell's segmented control under the title.
  * @param props - the row, its choices, its state, and its actions.
@@ -676,7 +794,7 @@ function ChoiceRow(props: RowProps & { options: readonly { value: string; label:
         <span style={LABEL_STYLE}>{props.label}</span>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
       </div>
-      <SegmentedControl
+      <StableSegmentedControl
         id={props.id}
         value={props.view.text}
         options={props.options}
@@ -813,7 +931,7 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
           : null}
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
       </div>
-      <SegmentedControl
+      <StableSegmentedControl
         id={props.id}
         // A route that declares no tiers is presented as "follow provider
         // default"; the stored tier stays in the config and the host omits it
