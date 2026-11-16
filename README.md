@@ -45,7 +45,7 @@
 1. 先确认我的 DSH profile 名：桌面版通常是 desktop，Web 版通常是 web；不确定就问我。
 2. 执行：dsh plugin --profile <profile> add @surfishs/dsh-prompt-enhance
 3. 如果 npm 安装失败，改用：dsh plugin --profile <profile> add github:surfishs/dsh-prompt-enhance
-4. 安装完成后提示我重启 DSH，并让我确认插件出现在插件列表中，且「设置 → 提示词增强」能正常打开。
+4. 安装完成后提示我重启 DSH，并让我确认插件出现在插件列表中。
 5. 不要修改我的其他插件或 DSH 配置。
 ```
 
