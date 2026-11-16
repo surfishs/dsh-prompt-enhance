@@ -31,7 +31,6 @@ import { fetchReasoningCapabilities } from './reasoning-options'
 import { useLlmRouting, type LlmRoutingState } from './llm-catalog'
 import {
   SegmentedControl,
-  SettingsForm,
   SettingsFormModel,
   Switch,
   settingsNumberField,
@@ -282,6 +281,7 @@ function sectionCopy(t: Translate, chinese: boolean): RowCopy {
       saveFailed: t('settings.saveFailed'),
       save: t('settings.save'),
       saving: t('settings.saving'),
+      saved: t('settings.saved'),
       reset: t('settings.reset'),
       invalidNumber: t('settings.invalidNumber'),
     },
@@ -307,6 +307,7 @@ function pageCopy(t: Translate): RowCopy {
       saveFailed: t('settings.saveFailed'),
       save: t('settings.save'),
       saving: t('settings.saving'),
+      saved: t('settings.saved'),
       reset: t('settings.reset'),
       invalidNumber: t('settings.invalidNumber'),
     },
@@ -526,6 +527,7 @@ interface FormProps {
   resetField?: (key: string) => void
   save?: () => void
   discard?: () => void
+  writeField?: (key: string, text: string) => Promise<'saved' | 'invalid' | 'failed'>
 }
 
 /** One locale snapshot, as the client locale service exposes it. */
@@ -577,6 +579,8 @@ interface RowProps {
   onEdit: (text: string) => void
   /** Clear the stored value so the row re-inherits the composition default. */
   onReset: () => void
+  /** Commit the current text now, e.g. on blur or Enter. */
+  onCommit?: () => void
 }
 
 /**
@@ -1001,9 +1005,15 @@ function TextControl(props: {
   invalid?: boolean
   disabled?: boolean
   onChange: (value: string) => void
+  onCommit?: () => void
 }): ReactElement {
   const [focused, setFocused] = useState(false)
-  const borderColor = props.invalid === true
+  const [revealedInvalid, setRevealedInvalid] = useState(false)
+  useEffect(() => {
+    if (props.invalid !== true) setRevealedInvalid(false)
+  }, [props.invalid])
+  const showInvalid = props.invalid === true && revealedInvalid
+  const borderColor = showInvalid
     ? 'var(--dsw-alias-state-error-primary, #f85149)'
     : focused ? 'var(--dsw-alias-state-business-primary, #4f8cff)' : undefined
   return (
@@ -1011,7 +1021,7 @@ function TextControl(props: {
       id={props.id}
       type="text"
       inputMode={props.numeric === true ? 'numeric' : undefined}
-      aria-invalid={props.invalid === true || undefined}
+      aria-invalid={showInvalid || undefined}
       disabled={props.disabled}
       placeholder={props.placeholder}
       value={props.value}
@@ -1021,7 +1031,17 @@ function TextControl(props: {
         ...borderColor === undefined ? {} : { borderColor },
       }}
       onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
+      onBlur={() => {
+        setFocused(false)
+        if (props.invalid === true) setRevealedInvalid(true)
+        props.onCommit?.()
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter') return
+        event.preventDefault()
+        if (props.invalid === true) setRevealedInvalid(true)
+        props.onCommit?.()
+      }}
       onChange={(event) => props.onChange(event.target.value)}
     />
   )
@@ -1043,6 +1063,7 @@ function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string }):
         invalid={invalid}
         disabled={props.disabled}
         onChange={props.onEdit}
+        onCommit={props.onCommit}
       />
       <p style={HINT_STYLE}>{props.hint}</p>
       {invalid ? <p style={INVALID_STYLE}>{props.copy.labels.invalidNumber}</p> : null}
@@ -1055,7 +1076,7 @@ function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string }):
  * @param props - the row, its copy, its state, its actions, and the pinned pair.
  * @returns the row element.
  */
-function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled: boolean; reasoningPair: { provider: string; model: string }; routing: LlmRoutingState; providerValue: string; onEdit: (text: string) => void; onReset: () => void }): ReactElement {
+function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled: boolean; reasoningPair: { provider: string; model: string }; routing: LlmRoutingState; providerValue: string; onEdit: (text: string) => void; onReset: () => void; onCommit?: () => void }): ReactElement {
   const shared = {
     id: `dsh-prompt-enhance-${props.row.key}`,
     label: props.copy.title(props.row),
@@ -1065,6 +1086,7 @@ function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled
     disabled: props.disabled,
     onEdit: props.onEdit,
     onReset: props.onReset,
+    onCommit: props.onCommit,
   }
   switch (props.row.kind) {
     case 'boolean':
@@ -1094,14 +1116,89 @@ function SettingsRows(props: {
   resetField: (key: string) => void
   save?: () => void
   discard?: () => void
+  writeField?: (key: string, text: string) => Promise<'saved' | 'invalid' | 'failed'>
 }): ReactElement {
   // The reasoning row reads the staged pair so options follow the fields before
   // they are saved (typing a custom model refreshes them on its own).
   const provider = viewOf(props.state, 'provider').text.trim()
   const model = viewOf(props.state, 'model').text.trim()
   const routing = useLlmRouting(provider, model)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const sequence = useRef(0)
+
+  const runSave = async (key: string, text: string): Promise<void> => {
+    if (props.writeField === undefined) return
+    const ticket = ++sequence.current
+    setSaveState('saving')
+    const result = await props.writeField(key, text)
+    if (ticket !== sequence.current) return
+    if (result === 'invalid') {
+      setSaveState('idle')
+      return
+    }
+    if (result === 'failed') {
+      setSaveState('failed')
+      return
+    }
+    setSaveState('saved')
+    if (savedTimer.current !== undefined) clearTimeout(savedTimer.current)
+    savedTimer.current = setTimeout(() => {
+      setSaveState('idle')
+      savedTimer.current = undefined
+    }, 2000)
+  }
+
+  const scheduleSave = (key: string, text: string, immediate: boolean): void => {
+    const pending = timers.current.get(key)
+    if (pending !== undefined) clearTimeout(pending)
+    if (immediate) {
+      timers.current.delete(key)
+      void runSave(key, text)
+      return
+    }
+    const timer = setTimeout(() => {
+      timers.current.delete(key)
+      void runSave(key, text)
+    }, 800)
+    timers.current.set(key, timer)
+  }
+
+  const onEdit = (key: string, text: string): void => {
+    props.edit(key, text)
+    const row = ROWS.find((item) => item.key === key)
+    const debounced = row !== undefined && (row.kind === 'text' || row.kind === 'number')
+    scheduleSave(key, text, !debounced)
+  }
+
+  const flushField = (key: string, text?: string): void => {
+    const pending = timers.current.get(key)
+    if (pending !== undefined) {
+      clearTimeout(pending)
+      timers.current.delete(key)
+    }
+    void runSave(key, text ?? viewOf(props.state, key).text)
+  }
+
+  useEffect(() => () => {
+    for (const timer of timers.current.values()) clearTimeout(timer)
+    timers.current.clear()
+    if (savedTimer.current !== undefined) clearTimeout(savedTimer.current)
+  }, [])
+
+  const statusText = props.state.writable === false
+    ? props.copy.labels.readOnly
+    : saveState === 'saving'
+      ? props.copy.labels.saving
+      : saveState === 'saved'
+        ? props.copy.labels.saved
+        : saveState === 'failed'
+          ? props.copy.labels.saveFailed
+          : ''
+
   return (
-    <SettingsForm labels={props.copy.labels} state={props.state} onSave={props.save} onDiscard={props.discard}>
+    <div className="dsh-pe-form">
       {ROWS.map((row, index) => {
         const raw = viewOf(props.state, row.key)
         // Hide the override badge once the value is back at its default; the
@@ -1117,13 +1214,25 @@ function SettingsRows(props: {
               reasoningPair={{ provider, model }}
               routing={routing}
               providerValue={provider}
-              onEdit={(text: string) => props.edit(row.key, text)}
+              onEdit={(text: string) => onEdit(row.key, text)}
               onReset={() => props.resetField(row.key)}
+              onCommit={() => flushField(row.key, viewOf(props.state, row.key).text)}
             />
           </div>
         )
       })}
-    </SettingsForm>
+      <div className="dsh-pe-form-footer">
+        <span className="dsh-pe-save-status" role="status" aria-live="polite">{statusText}</span>
+        <button
+          type="button"
+          className="dsh-pe-save-button"
+          disabled={props.save === undefined || props.state.writable === false}
+          onClick={props.save}
+        >
+          {props.copy.labels.save}
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -1159,6 +1268,7 @@ export function SettingsSection(props: SectionProps): unknown {
         resetField={resetField}
         save={props.save}
         discard={props.discard}
+        writeField={props.writeField}
       />
     </div>
   )
@@ -1191,6 +1301,7 @@ export function SettingsPage(props: PageProps): unknown {
       resetField={resetField}
       save={props.save}
       discard={props.discard}
+      writeField={props.writeField}
     />
   )
 }
@@ -1199,6 +1310,8 @@ export function SettingsPage(props: PageProps): unknown {
 interface ConfigScopeLike {
   getSnapshot?: () => unknown
   subscribe?: (listener: () => void) => () => void
+  set?: (field: string, value: unknown) => Promise<boolean>
+  unset?: (field: string) => Promise<boolean>
 }
 
 /** Structural face of the host's config-forms provider. */
@@ -1216,6 +1329,7 @@ interface SlotsFace {
 /** Bridges one settings scope onto both pages' staged form. */
 class SettingsPageController {
   private readonly form: SettingsFormModel
+  private readonly scope: ConfigScopeLike
   private readonly store: unknown
   private readonly getLocale: (() => LocaleFaceLike | undefined) | undefined
 
@@ -1225,6 +1339,7 @@ class SettingsPageController {
    */
   constructor(scope: ConfigScopeLike, getLocale?: () => LocaleFaceLike | undefined) {
     this.getLocale = getLocale
+    this.scope = scope
     this.form = createSettingsForm(scope)
     this.store = this.form.bind(() => {
       const out = this.form.shell()
@@ -1242,7 +1357,11 @@ class SettingsPageController {
   /** The props the slots hand their pages. */
   inject(): Record<string, unknown> {
     const face = this.getLocale?.()
-    const props: Record<string, unknown> = { hooks: { promptEnhance: this.store }, ...this.form.actions() }
+    const props: Record<string, unknown> = {
+      hooks: { promptEnhance: this.store },
+      ...this.form.actions(),
+      writeField: (key: string, text: string) => this.writeField(key, text),
+    }
     if (face !== undefined) {
       // A small observable the slot turns into `usePromptEnhanceLocale`; the
       // page reads the active language from it and re-renders on a switch.
@@ -1253,6 +1372,26 @@ class SettingsPageController {
       props.translate = face.bind(LOCALE_NS)
     }
     return props
+  }
+
+  /** Write one field through the host's per-field mutation API. */
+  private async writeField(key: string, text: string): Promise<'saved' | 'invalid' | 'failed'> {
+    const descriptor = FIELD_SPECS.find((item) => item.field === key)
+    if (descriptor === undefined) return 'failed'
+    const parsed = descriptor.parse(text)
+    if (parsed === undefined) return 'invalid'
+    if (this.scope.set === undefined) return 'failed'
+    try {
+      if (parsed.kind === 'clear') {
+        if (this.scope.unset === undefined) return 'failed'
+        if (!(await this.scope.unset(key))) return 'failed'
+      } else {
+        if (!(await this.scope.set(key, parsed.value))) return 'failed'
+      }
+      return 'saved'
+    } catch {
+      return 'failed'
+    }
   }
 
   /** Release the form's subscriptions. */

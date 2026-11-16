@@ -271,6 +271,35 @@ export const CSS = `
   text-align: center;
   white-space: nowrap;
 }
+.dsh-pe-form-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dsw-alias-border-l3, rgba(128, 128, 128, 0.22));
+}
+.dsh-pe-save-status {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary, inherit);
+}
+.dsh-pe-save-button {
+  flex: none;
+  margin-left: auto;
+  height: 28px;
+  padding: 0 14px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.32));
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dsh-pe-save-button:hover:not(:disabled) { background: rgba(127, 127, 127, 0.12); }
+.dsh-pe-save-button:disabled { opacity: 0.5; cursor: default; }
 `
 
 /**
