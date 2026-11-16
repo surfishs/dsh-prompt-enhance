@@ -277,7 +277,8 @@ export const CSS = `
 }
 .dsh-pe-advanced > summary {
   padding: 8px 0;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--dsw-alias-label-secondary, inherit);
   cursor: pointer;
   user-select: none;
