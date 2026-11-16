@@ -80,9 +80,17 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 ## Usage
 
-Leave a draft in the composer, then click the enhance button in the toolbar (or your configured shortcut). An empty or attachment-only draft dims the button and cannot be clicked; over-length or reference-chip drafts are rejected locally. The result appears in a card docked above the composer: apply, copy, regenerate or close it; after applying, the card stays open with a Replaced chip and an undo action; sending the draft closes it automatically, and Escape closes it too. A result that hit the token cap is marked as possibly incomplete.
+1. **Start**: leave a draft in the composer and click the enhance button in the toolbar (or your configured shortcut).
+2. **Review**: the result appears in a card docked above the composer. You can:
+   - **Apply**: write it back; the card stays open with a Replaced chip;
+   - **Copy**: copy the result;
+   - **Regenerate**: run the current draft again.
+3. **Undo**: after applying, click Undo to restore; after closing the card, the undo bar remains above the composer.
+4. **Close**: sending the draft closes the card automatically; Escape also closes it.
 
-`/enhance <text>` rewrites any text from the slash menu; the result is copyable and never enters model history.
+An empty or attachment-only draft dims the button and makes it unclickable; over-length or reference-chip drafts are rejected locally. A result that hits the token cap is marked as possibly incomplete.
+
+`/enhance <text>`: rewrite any text from the slash menu; the result is copyable and never enters model history.
 
 ## Configuration
 
