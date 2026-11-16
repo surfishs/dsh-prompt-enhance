@@ -264,7 +264,7 @@ export const CSS = `
   font-size: 12px;
 }
 .dsh-pe-undo-x:hover { opacity: 1; background: var(--dsw-alias-bg-layer-2, rgba(128, 128, 128, 0.12)); }
-.dsh-pe-reasoning-segments [role="tab"] {
+.dsh-pe-segmented-labels [role="tab"] {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

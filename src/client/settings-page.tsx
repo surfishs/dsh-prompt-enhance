@@ -669,7 +669,7 @@ function BooleanRow(props: RowProps): ReactElement {
  * @param props - the row, its choices, its state, and its actions.
  * @returns the row element.
  */
-function ChoiceRow(props: RowProps & { options: readonly { value: string; label: string }[] }): ReactElement {
+function ChoiceRow(props: RowProps & { options: readonly { value: string; label: string; title?: string }[] }): ReactElement {
   return (
     <div style={ROW_STYLE}>
       <div style={HEAD_STYLE}>
@@ -678,8 +678,9 @@ function ChoiceRow(props: RowProps & { options: readonly { value: string; label:
       </div>
       <SegmentedControl
         id={props.id}
+        className="dsh-pe-segmented-labels"
         value={props.view.text}
-        options={props.options}
+        options={props.options.map((option) => ({ ...option, title: option.title ?? option.label }))}
         disabled={props.disabled}
         label={props.label}
         onChange={(next: string) => props.onEdit(next)}
@@ -819,7 +820,7 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
       </div>
       <SegmentedControl
         id={props.id}
-        className="dsh-pe-reasoning-segments"
+        className="dsh-pe-segmented-labels"
         // A route that declares no tiers is presented as "follow provider
         // default"; the stored tier stays in the config and the host omits it
         // on the call, so the displayed state matches what actually happens.
