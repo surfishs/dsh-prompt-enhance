@@ -1,5 +1,5 @@
 /**
- * The composer mark: the DeepSeek fish with the two-star sparkle tucked into
+ * The composer mark: the DeepSeek fish with a four-point sparkle tucked into
  * its upper-left corner. The fish is the brand path used by the Harness
  * bundles; the star is the NovelAI-style enhance mark. Both are painted with
  * currentColor so the icon follows the button's label color, and the busy
