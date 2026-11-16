@@ -119,7 +119,10 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 ## 安全
 
-增强路由只由本机 dsh 宿主提供，仅接受回环地址与本地 `Host` / `Origin`。`contextAware` 开启时，会话历史会随草稿发给当前配置的模型服务商——不要把敏感会话的上下文外发。
+- **仅本机可访问**：增强路由由本机 DSH 宿主提供，只接受回环地址和本地 `Host` / `Origin`，不接受外部来源。
+- **不保存模型密钥**：插件不读取或存储模型 API key，调用走宿主已有的 LLM 配置。
+- **上下文按需发送**：`contextAware` 开启时，最近几轮 user/assistant 文本和当前草稿会发给当前配置的模型服务商（默认最多 8 条消息、4000 字符）；system、reasoning、工具结果和附件不会进入上下文。关闭后只发送草稿。
+- **敏感会话**：如果内容不能外发，请关闭 `contextAware`，或改用你信任的本地/私有模型服务。
 
 ## 故障排查
 

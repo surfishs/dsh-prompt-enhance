@@ -119,7 +119,10 @@ An empty or attachment-only draft dims the button and starts no request; raise `
 
 ## Security
 
-The enhance route is served by your own local dsh host and accepts loopback addresses with a local `Host` / `Origin` only. With `contextAware` on, recent conversation history is sent with the draft to the configured model provider — do not send context from sensitive sessions.
+- **Local access only**: the enhance route is served by the local DSH host and accepts only loopback addresses and local `Host` / `Origin` values, not external origins.
+- **No model keys stored**: the plugin does not read or store model API keys; calls use the host's existing LLM configuration.
+- **Context sent only when enabled**: with `contextAware` on, the most recent user/assistant text and the current draft are sent to the configured model provider (default: up to 8 messages and 4,000 characters); system messages, reasoning, tool results and attachments are excluded. With it off, only the draft is sent.
+- **Sensitive conversations**: if the content must not leave the machine, turn off `contextAware` or use a local/private model route you trust.
 
 ## Troubleshooting
 
