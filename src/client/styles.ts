@@ -215,12 +215,15 @@ export const CSS = `
   margin-left: auto;
   padding: 3px 6px 3px 10px;
   border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.32));
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--dsw-alias-bg-layer-1, transparent);
   font-size: 12px;
   color: inherit;
 }
-.dsh-pe-undo .dsh-pe-undo-check { color: #7ed491; }
+.dsh-pe-undo .dsh-pe-undo-check {
+  color: var(--dsw-alias-state-success-primary, #2da44e);
+  font-weight: 600;
+}
 .dsh-pe-undo-link {
   display: inline-flex;
   align-items: center;
@@ -234,8 +237,10 @@ export const CSS = `
   color: inherit;
   font-size: 12px;
   cursor: pointer;
+  transition: background-color 120ms ease;
 }
-.dsh-pe-undo-link:hover { background: var(--dsw-alias-bg-layer-2, rgba(128, 128, 128, 0.12)); }
+.dsh-pe-undo-link:hover { background: rgba(127, 127, 127, 0.16); }
+.dsh-pe-undo-link:active { background: rgba(127, 127, 127, 0.22); }
 .dsh-pe-undo-x {
   display: inline-flex;
   align-items: center;
