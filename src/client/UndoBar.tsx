@@ -12,6 +12,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import * as ui from './ui-state'
 import { useSessionKey } from './session-key'
+import { useDockAlignment } from './useDockAlignment'
 
 /** Props of the input.dock entry: the InputZone owner share + session kit + locale seat. */
 export type UndoBarProps = PropsRuntime<'conversation.input.dock'> & PropsLocale<'dsh-prompt-enhance'>
@@ -40,8 +41,11 @@ export function UndoBar(props: UndoBarProps): ReactNode {
   // The result card owns the undo affordance while it is open; the standalone
   // row takes over only after the card is closed.
   const panel = ui.getPanel()
-  if (panel !== undefined && panel.sessionId === uiKey) return null
-  if (entry === undefined || entry.applied !== draft) return null
+  const visible = (panel === undefined || panel.sessionId !== uiKey)
+    && entry !== undefined
+    && entry.applied === draft
+  const rootRef = useDockAlignment(visible)
+  if (!visible) return null
 
   const undo = (): void => {
     inputActions.setDraft(entry.original)
@@ -52,11 +56,13 @@ export function UndoBar(props: UndoBarProps): ReactNode {
   }
 
   return (
-    <div className="dsh-pe-undo">
-      <span className="dsh-pe-undo-check" aria-hidden>✓</span>
-      <span>{t('undo.applied')}</span>
-      <button type="button" className="dsh-pe-undo-link" onClick={undo}>{t('undo.undo')}</button>
-      <button type="button" className="dsh-pe-undo-x" aria-label={t('undo.dismiss')} onClick={dismiss}>✕</button>
+    <div ref={rootRef} className="dsh-pe-dock">
+      <div className="dsh-pe-undo">
+        <span className="dsh-pe-undo-check" aria-hidden>✓</span>
+        <span>{t('undo.applied')}</span>
+        <button type="button" className="dsh-pe-undo-link" onClick={undo}>{t('undo.undo')}</button>
+        <button type="button" className="dsh-pe-undo-x" aria-label={t('undo.dismiss')} onClick={dismiss}>✕</button>
+      </div>
     </div>
   )
 }
