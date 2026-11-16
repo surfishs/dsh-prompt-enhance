@@ -5,6 +5,20 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-11-16
+
+### Fixed
+
+- Align the standalone undo row with the composer after the result card closes.
+- Keep the result close button pinned to the header corner while the result is still streaming.
+
+### Changed
+
+- Right-align the undo row, shorten its copy, strengthen the success check, and give it a bordered pill with a clearer 28px Undo button.
+- Refresh the README install and usage guidance and the panel screenshot.
+
+[0.0.5]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.4...v0.0.5
+
 ## [0.0.4] - 2026-11-16
 
 ### Changed
@@ -84,4 +98,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.0.1]: https://github.com/surfishs/dsh-prompt-enhance/commits/v0.0.1
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.5...HEAD
