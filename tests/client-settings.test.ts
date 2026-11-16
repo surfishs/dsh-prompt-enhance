@@ -22,9 +22,12 @@ describe('decodeClientSettings', () => {
   })
 
   it('reads well-formed fields', () => {
-    expect(
-      decodeClientSettings({ enabled: false, maxInputChars: 8000, shortcut: 'ctrl+shift+e', streaming: false }),
-    ).toEqual({ enabled: false, maxInputChars: 8000, shortcut: 'ctrl+shift+e', streaming: false })
+    expect(decodeClientSettings({ enabled: false, maxInputChars: 8000, shortcut: 'ctrl+shift+e', streaming: false })).toEqual({
+      enabled: false,
+      maxInputChars: 8000,
+      shortcut: 'ctrl+shift+e',
+      streaming: false,
+    })
   })
 
   it('falls back field-by-field on bad values', () => {

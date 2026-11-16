@@ -46,7 +46,13 @@ describe('effectiveReasoningEffort', () => {
 
   it('keeps an explicit tier when the route declares tiers', async () => {
     const resolveModelInfo = vi.fn(async () => ({
-      reasoning: { efforts: [{ id: 'off', name: 'Off' }, { id: 'high', name: 'High' }], defaultEffort: 'high' },
+      reasoning: {
+        efforts: [
+          { id: 'off', name: 'Off' },
+          { id: 'high', name: 'High' },
+        ],
+        defaultEffort: 'high',
+      },
     }))
     expect(await effectiveReasoningEffort({ resolveModelInfo }, 'deepseek-official', 'deepseek-flash', 'high')).toBe('high')
     const cached = await readCachedCapabilities('deepseek-official', 'deepseek-flash')
@@ -55,7 +61,9 @@ describe('effectiveReasoningEffort', () => {
   })
 
   it('leaves the configured effort alone when resolution fails', async () => {
-    const resolveModelInfo = vi.fn(async () => { throw new Error('boom') })
+    const resolveModelInfo = vi.fn(async () => {
+      throw new Error('boom')
+    })
     expect(await effectiveReasoningEffort({ resolveModelInfo }, 'p', 'm', 'low')).toBe('low')
   })
 

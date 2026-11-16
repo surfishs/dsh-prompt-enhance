@@ -180,11 +180,7 @@ export function formatContextBlock(turns: readonly ContextTurn[]): string {
  * @returns the framed snippet, or `undefined` when there is no usable history
  *   — the caller then runs the original single-prompt enhancement.
  */
-export function buildConversationContext(
-  messages: readonly unknown[] | undefined,
-  options: ContextWindowOptions,
-  draft?: string,
-): string | undefined {
+export function buildConversationContext(messages: readonly unknown[] | undefined, options: ContextWindowOptions, draft?: string): string | undefined {
   if (messages === undefined) return undefined
   const turns = selectTurns(messages, options, draft)
   if (turns.length === 0) return undefined

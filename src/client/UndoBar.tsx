@@ -42,9 +42,7 @@ export function UndoBar(props: UndoBarProps): ReactNode {
   // The result card owns the undo affordance while it is open; the standalone
   // row takes over only after the card is closed.
   const panel = ui.getPanel()
-  const visible = (panel === undefined || panel.sessionId !== uiKey)
-    && entry !== undefined
-    && entry.applied === draft
+  const visible = (panel === undefined || panel.sessionId !== uiKey) && entry !== undefined && entry.applied === draft
   const rootRef = useDockAlignment(visible)
   if (!visible) return null
 
@@ -59,10 +57,17 @@ export function UndoBar(props: UndoBarProps): ReactNode {
   return (
     <div ref={rootRef} className="dsh-pe-dock">
       <div className="dsh-pe-undo">
-        <span className="dsh-pe-undo-check" aria-hidden>✓</span>
+        <span className="dsh-pe-undo-check" aria-hidden>
+          ✓
+        </span>
         <span>{t('undo.applied')}</span>
-        <button type="button" className="dsh-pe-undo-link" onClick={undo}><UndoIcon />{t('undo.undo')}</button>
-        <button type="button" className="dsh-pe-undo-x" aria-label={t('undo.dismiss')} onClick={dismiss}>✕</button>
+        <button type="button" className="dsh-pe-undo-link" onClick={undo}>
+          <UndoIcon />
+          {t('undo.undo')}
+        </button>
+        <button type="button" className="dsh-pe-undo-x" aria-label={t('undo.dismiss')} onClick={dismiss}>
+          ✕
+        </button>
       </div>
     </div>
   )

@@ -85,53 +85,55 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   const empty = draft.trim() === ''
 
   /** Guard chain + fetch + panel transition for this session. */
-  const start = useCallback((overrideText?: string): void => {
-    const source = overrideText ?? draft
-    if (anyBusy || source.trim() === '') return
-    if (!settings.enabled) {
-      const disabled = t('error.disabled')
-      ui.openError(uiKey, draft, { code: 'rejected', localized: disabled })
-      return
-    }
-    const check = checkInputText(source, settings.maxInputChars)
-    if (!check.ok) {
-      const message = check.code === 'empty'
-        ? t('error.empty')
-        : t('error.tooLong', { count: check.count, max: check.max })
-      ui.openError(uiKey, source, { code: 'rejected', localized: message })
-      return
-    }
-    if (occurrenceCount > 0) {
-      const occurrences = t('error.occurrences')
-      ui.openError(uiKey, source, { code: 'rejected', localized: occurrences })
-      return
-    }
-    if (phase !== 'plain') {
-      const busyPhase = t('error.phase')
-      ui.openError(uiKey, source, { code: 'rejected', localized: busyPhase })
-      return
-    }
-    const controller = new AbortController()
-    ui.openLoading({ sessionId: uiKey, original: source, abort: () => controller.abort() })
-    const settle = (result: Parameters<typeof ui.settleResult>[1]): void => ui.settleResult(uiKey, result)
-    const fail = (error: unknown): void => {
-      const detail: EnhanceError = error instanceof EnhanceClientError
-        ? error.detail
-        : { code: 'internal', message: error instanceof Error ? error.message : String(error) }
-      ui.settleError(uiKey, detail)
-    }
-    // Progressive display when enabled: the panel fills in as the model
-    // writes, and degrades to the one-shot call on its own when the host or
-    // the transport cannot stream.
-    if (settings.streaming) {
-      requestEnhanceStream({ sessionId: wireId, text: source }, {
-        signal: controller.signal,
-        onDelta: (delta: string): void => ui.appendDelta(uiKey, delta),
-      }).then(settle, fail)
-      return
-    }
-    requestEnhance({ sessionId: wireId, text: source }, controller.signal).then(settle, fail)
-  }, [anyBusy, draft, occurrenceCount, phase, settings, uiKey, wireId, t])
+  const start = useCallback(
+    (overrideText?: string): void => {
+      const source = overrideText ?? draft
+      if (anyBusy || source.trim() === '') return
+      if (!settings.enabled) {
+        const disabled = t('error.disabled')
+        ui.openError(uiKey, draft, { code: 'rejected', localized: disabled })
+        return
+      }
+      const check = checkInputText(source, settings.maxInputChars)
+      if (!check.ok) {
+        const message = check.code === 'empty' ? t('error.empty') : t('error.tooLong', { count: check.count, max: check.max })
+        ui.openError(uiKey, source, { code: 'rejected', localized: message })
+        return
+      }
+      if (occurrenceCount > 0) {
+        const occurrences = t('error.occurrences')
+        ui.openError(uiKey, source, { code: 'rejected', localized: occurrences })
+        return
+      }
+      if (phase !== 'plain') {
+        const busyPhase = t('error.phase')
+        ui.openError(uiKey, source, { code: 'rejected', localized: busyPhase })
+        return
+      }
+      const controller = new AbortController()
+      ui.openLoading({ sessionId: uiKey, original: source, abort: () => controller.abort() })
+      const settle = (result: Parameters<typeof ui.settleResult>[1]): void => ui.settleResult(uiKey, result)
+      const fail = (error: unknown): void => {
+        const detail: EnhanceError = error instanceof EnhanceClientError ? error.detail : { code: 'internal', message: error instanceof Error ? error.message : String(error) }
+        ui.settleError(uiKey, detail)
+      }
+      // Progressive display when enabled: the panel fills in as the model
+      // writes, and degrades to the one-shot call on its own when the host or
+      // the transport cannot stream.
+      if (settings.streaming) {
+        requestEnhanceStream(
+          { sessionId: wireId, text: source },
+          {
+            signal: controller.signal,
+            onDelta: (delta: string): void => ui.appendDelta(uiKey, delta),
+          },
+        ).then(settle, fail)
+        return
+      }
+      requestEnhance({ sessionId: wireId, text: source }, controller.signal).then(settle, fail)
+    },
+    [anyBusy, draft, occurrenceCount, phase, settings, uiKey, wireId, t],
+  )
 
   // The session registry holds a stable identity; run always dispatches to
   // the latest start callback. The refresh rides an effect (never the render
@@ -175,7 +177,9 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         aria-disabled={empty || otherBusy || undefined}
         onClick={() => start()}
       >
-        <span className="dsh-pe-btn-icon" aria-hidden><SparkleFishIcon size={15} spinning={busy} /></span>
+        <span className="dsh-pe-btn-icon" aria-hidden>
+          <SparkleFishIcon size={15} spinning={busy} />
+        </span>
       </button>
     </>
   )

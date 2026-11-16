@@ -38,13 +38,15 @@ function fakeRes(): { status: number; body: string; writeHead: (status: number) 
 
 describe('listProviderCatalog', () => {
   it('lists registered providers first, then dormant ones, without duplicates', () => {
-    const catalog = listProviderCatalog(ctxOf({
-      listProviders: () => [{ id: 'deepseek-official', name: 'DeepSeek' }],
-      listConfigurableProviders: () => [
-        { provider: 'deepseek-official', displayName: 'DeepSeek', settingsNs: 'x', settingsPath: [] },
-        { provider: 'qwen', displayName: 'Qwen', settingsNs: 'x', settingsPath: [] },
-      ],
-    }))
+    const catalog = listProviderCatalog(
+      ctxOf({
+        listProviders: () => [{ id: 'deepseek-official', name: 'DeepSeek' }],
+        listConfigurableProviders: () => [
+          { provider: 'deepseek-official', displayName: 'DeepSeek', settingsNs: 'x', settingsPath: [] },
+          { provider: 'qwen', displayName: 'Qwen', settingsNs: 'x', settingsPath: [] },
+        ],
+      }),
+    )
     expect(catalog.providers).toEqual([
       { id: 'deepseek-official', name: 'DeepSeek', registered: true },
       { id: 'qwen', name: 'Qwen', registered: false },
@@ -58,14 +60,24 @@ describe('listProviderCatalog', () => {
 
 describe('listModelCatalog', () => {
   it('maps the adapter’s model entries', async () => {
-    const catalog = await listModelCatalog(ctxOf({
-      listModels: async () => [{ provider: 'deepseek-official', id: 'deepseek-flash', name: 'DeepSeek Flash', description: 'fast' }],
-    }), 'deepseek-official')
+    const catalog = await listModelCatalog(
+      ctxOf({
+        listModels: async () => [{ provider: 'deepseek-official', id: 'deepseek-flash', name: 'DeepSeek Flash', description: 'fast' }],
+      }),
+      'deepseek-official',
+    )
     expect(catalog.models).toEqual([{ id: 'deepseek-flash', name: 'DeepSeek Flash', description: 'fast' }])
   })
 
   it('reports an empty list with a reason when the lookup fails', async () => {
-    const catalog = await listModelCatalog(ctxOf({ listModels: async () => { throw new Error('boom') } }), 'p')
+    const catalog = await listModelCatalog(
+      ctxOf({
+        listModels: async () => {
+          throw new Error('boom')
+        },
+      }),
+      'p',
+    )
     expect(catalog.models).toEqual([])
     expect(catalog.reason).toBe('list-failed')
   })
@@ -83,7 +95,15 @@ describe('checkRoute', () => {
   })
 
   it('reports a resolved failure (warning-only, never a throw)', async () => {
-    const result = await checkRoute(ctxOf({ resolveModelInfo: async () => { throw new Error('no route') } }), 'p', 'm')
+    const result = await checkRoute(
+      ctxOf({
+        resolveModelInfo: async () => {
+          throw new Error('no route')
+        },
+      }),
+      'p',
+      'm',
+    )
     expect(result).toEqual({ available: false, reason: 'unresolved' })
   })
 })
@@ -111,12 +131,7 @@ describe('serveCatalog', () => {
 
   it('serves the route check for a complete pair', async () => {
     const res = fakeRes()
-    await serveCatalog(
-      ctxOf({ resolveModelInfo: async () => ({}) }),
-      { ...trusted, url: `${LLM_ROUTE_CHECK_ENDPOINT}?provider=p&model=m` } as never,
-      res as never,
-      LLM_ROUTE_CHECK_ENDPOINT,
-    )
+    await serveCatalog(ctxOf({ resolveModelInfo: async () => ({}) }), { ...trusted, url: `${LLM_ROUTE_CHECK_ENDPOINT}?provider=p&model=m` } as never, res as never, LLM_ROUTE_CHECK_ENDPOINT)
     expect(res.status).toBe(200)
     expect(JSON.parse(res.body)).toEqual({ ok: true, value: { available: true } })
   })

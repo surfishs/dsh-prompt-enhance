@@ -29,13 +29,7 @@ import type { ReasoningCapabilities } from '../shared/reasoning'
 import { DEFAULT_VALUES } from '../shared/defaults'
 import { fetchReasoningCapabilities } from './reasoning-options'
 import { useLlmRouting, type LlmRoutingState } from './llm-catalog'
-import {
-  SegmentedControl,
-  SettingsFormModel,
-  Switch,
-  settingsNumberField,
-  settingsTextField,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+import { SegmentedControl, SettingsFormModel, Switch, settingsNumberField, settingsTextField } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsFieldDescriptor } from '@deepseek-ai/dsh-client-ui-primitives'
 import { NS as LOCALE_NS, zh } from './locales'
 import type { PromptEnhanceKey } from './locales'
@@ -201,7 +195,10 @@ function descriptorOf(row: Row): SettingsFieldDescriptor {
     case 'boolean':
       return settingsBooleanField(row.key)
     case 'strategy':
-      return settingsEnumField(row.key, STRATEGY_OPTIONS.map((option) => option.value))
+      return settingsEnumField(
+        row.key,
+        STRATEGY_OPTIONS.map((option) => option.value),
+      )
     case 'reasoning':
       // Effort ids are adapter-owned and discovered at render time, so the
       // descriptor cannot enumerate them; the segmented control is the only
@@ -657,13 +654,7 @@ function atDefaultValue(key: string, text: string): boolean {
  */
 function OverrideActions(props: { copy: RowCopy; disabled: boolean; onReset: () => void }): ReactElement {
   return (
-    <button
-      type="button"
-      className="dsh-pe-chip-reset"
-      style={{ ...RESET_STYLE, ...props.disabled ? { opacity: 0.5, cursor: 'default' } : {} }}
-      disabled={props.disabled}
-      onClick={props.onReset}
-    >
+    <button type="button" className="dsh-pe-chip-reset" style={{ ...RESET_STYLE, ...(props.disabled ? { opacity: 0.5, cursor: 'default' } : {}) }} disabled={props.disabled} onClick={props.onReset}>
       {props.copy.labels.reset}
     </button>
   )
@@ -680,12 +671,7 @@ function BooleanRow(props: RowProps): ReactElement {
       <div style={HEAD_STYLE}>
         <span style={LABEL_STYLE}>{props.label}</span>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
-        <Switch
-          checked={props.view.text === 'true'}
-          disabled={props.disabled}
-          label={props.label}
-          onChange={(next: boolean) => props.onEdit(next ? 'true' : 'false')}
-        />
+        <Switch checked={props.view.text === 'true'} disabled={props.disabled} label={props.label} onChange={(next: boolean) => props.onEdit(next ? 'true' : 'false')} />
       </div>
       <p style={HINT_STYLE}>{props.hint}</p>
     </div>
@@ -761,11 +747,7 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
         feedbackTimer.current = undefined
       }, 3000)
     }
-    fetchReasoningCapabilities(
-      props.provider === '' ? undefined : props.provider,
-      props.model === '' ? undefined : props.model,
-      { refresh: force, signal: controller.signal },
-    )
+    fetchReasoningCapabilities(props.provider === '' ? undefined : props.provider, props.model === '' ? undefined : props.model, { refresh: force, signal: controller.signal })
       .then((answer) => {
         if (controller.signal.aborted) return
         setCapabilities(answer)
@@ -792,8 +774,7 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
   // Every provider — DeepSeek included — shows the adapter's own tier names;
   // only the "follow provider default" sentinel is plugin copy.
   const current = props.view.text
-  const realTierKnown = phase === 'ready' && capabilities !== undefined && capabilities.source !== 'unavailable'
-    && capabilities.efforts.some((effort) => effort.id === current)
+  const realTierKnown = phase === 'ready' && capabilities !== undefined && capabilities.source !== 'unavailable' && capabilities.efforts.some((effort) => effort.id === current)
   const noTiers = phase === 'ready' && capabilities !== undefined && capabilities.source === 'unavailable' && capabilities.reason === 'no-efforts'
   const options: { value: string; label: string; title?: string }[] = []
   // A value the route does not declare (stale config, or while the list is
@@ -821,8 +802,7 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
     label: props.copy.choice('settings.reasoning.inherit'),
     title: props.copy.choice('settings.reasoning.inherit'),
   })
-  const unsupported = !noTiers && phase === 'ready' && capabilities?.source !== 'unavailable'
-    && current !== '' && current !== 'inherit' && !realTierKnown
+  const unsupported = !noTiers && phase === 'ready' && capabilities?.source !== 'unavailable' && current !== '' && current !== 'inherit' && !realTierKnown
   const refreshing = feedback === 'refreshing'
   const refresh = (): void => {
     forceRef.current = true
@@ -832,19 +812,11 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
     <div style={ROW_STYLE}>
       <div style={HEAD_STYLE}>
         <span style={LABEL_STYLE}>{props.label}</span>
-        {phase === 'ready' || refreshing
-          ? (
-              <button
-                type="button"
-                className="dsh-pe-chip-refresh"
-                style={{ ...REFRESH_STYLE, opacity: props.disabled || refreshing ? 0.5 : 1 }}
-                disabled={props.disabled || refreshing}
-                onClick={refresh}
-              >
-                {props.copy.choice(refreshing ? 'settings.reasoning.refreshing' : 'settings.reasoning.refresh')}
-              </button>
-            )
-          : null}
+        {phase === 'ready' || refreshing ? (
+          <button type="button" className="dsh-pe-chip-refresh" style={{ ...REFRESH_STYLE, opacity: props.disabled || refreshing ? 0.5 : 1 }} disabled={props.disabled || refreshing} onClick={refresh}>
+            {props.copy.choice(refreshing ? 'settings.reasoning.refreshing' : 'settings.reasoning.refresh')}
+          </button>
+        ) : null}
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
       </div>
       <SegmentedControl
@@ -863,14 +835,18 @@ function ReasoningRow(props: RowProps & { provider: string; model: string }): Re
       />
       <p style={HINT_STYLE}>{props.hint}</p>
       {phase === 'loading' ? <p style={STATUS_STYLE}>{props.copy.choice('settings.reasoning.loading')}</p> : null}
-      {phase === 'ready' && capabilities?.source === 'unavailable'
-        ? <p style={STATUS_STYLE}>{props.copy.choice(noTiers ? 'settings.reasoning.noTiers' : 'settings.reasoning.unavailable')}</p>
-        : null}
-      {unsupported ? (
-        <p style={STATUS_STYLE}>{props.copy.interpolate('settings.reasoning.unsupported', { effort: props.view.text })}</p>
+      {phase === 'ready' && capabilities?.source === 'unavailable' ? <p style={STATUS_STYLE}>{props.copy.choice(noTiers ? 'settings.reasoning.noTiers' : 'settings.reasoning.unavailable')}</p> : null}
+      {unsupported ? <p style={STATUS_STYLE}>{props.copy.interpolate('settings.reasoning.unsupported', { effort: props.view.text })}</p> : null}
+      {feedback === 'ok' ? (
+        <p style={STATUS_STYLE} aria-live="polite">
+          {props.copy.choice('settings.reasoning.refreshOk')}
+        </p>
       ) : null}
-      {feedback === 'ok' ? <p style={STATUS_STYLE} aria-live="polite">{props.copy.choice('settings.reasoning.refreshOk')}</p> : null}
-      {feedback === 'failed' ? <p style={STATUS_STYLE} aria-live="polite">{props.copy.choice('settings.reasoning.refreshFailed')}</p> : null}
+      {feedback === 'failed' ? (
+        <p style={STATUS_STYLE} aria-live="polite">
+          {props.copy.choice('settings.reasoning.refreshFailed')}
+        </p>
+      ) : null}
     </div>
   )
 }
@@ -885,7 +861,7 @@ function SelectControl(props: { id: string; value: string; disabled?: boolean; o
   return (
     <select
       id={props.id}
-      style={{ ...SELECT_STYLE, ...focused ? { borderColor: 'var(--dsw-alias-state-business-primary, #4f8cff)' } : {} }}
+      style={{ ...SELECT_STYLE, ...(focused ? { borderColor: 'var(--dsw-alias-state-business-primary, #4f8cff)' } : {}) }}
       value={props.value}
       disabled={props.disabled}
       onFocus={() => setFocused(true)}
@@ -911,28 +887,39 @@ function ProviderRow(props: RowProps & { routing: LlmRoutingState }): ReactEleme
   return (
     <div style={ROW_STYLE}>
       <div style={HEAD_STYLE}>
-        <label htmlFor={props.id} style={LABEL_STYLE}>{props.label}</label>
+        <label htmlFor={props.id} style={LABEL_STYLE}>
+          {props.label}
+        </label>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
       </div>
       <SelectControl id={props.id} value={current} disabled={props.disabled} onChange={(value) => props.onEdit(value)}>
         <option value="">{props.copy.choice('settings.routing.followSession')}</option>
-        {missing ? <option value={current} title={current}>{props.copy.interpolate('settings.routing.currentProvider', { value: current })}</option> : null}
+        {missing ? (
+          <option value={current} title={current}>
+            {props.copy.interpolate('settings.routing.currentProvider', { value: current })}
+          </option>
+        ) : null}
         <optgroup label={props.copy.choice('settings.routing.groupRegistered')}>
-          {props.routing.providers.entries.filter((entry) => entry.registered).map((entry) => (
-            <option key={entry.id} value={entry.id} title={entry.id}>{entry.name}</option>
-          ))}
+          {props.routing.providers.entries
+            .filter((entry) => entry.registered)
+            .map((entry) => (
+              <option key={entry.id} value={entry.id} title={entry.id}>
+                {entry.name}
+              </option>
+            ))}
         </optgroup>
-        {props.routing.providers.entries.some((entry) => !entry.registered)
-          ? (
-              <optgroup label={props.copy.choice('settings.routing.groupDormant')}>
-                {props.routing.providers.entries.filter((entry) => !entry.registered).map((entry) => (
-                  <option key={entry.id} value={entry.id} disabled title={props.copy.choice('settings.routing.unconfiguredTitle')}>
-                    {entry.name}{props.copy.choice('settings.routing.unconfiguredSuffix')}
-                  </option>
-                ))}
-              </optgroup>
-            )
-          : null}
+        {props.routing.providers.entries.some((entry) => !entry.registered) ? (
+          <optgroup label={props.copy.choice('settings.routing.groupDormant')}>
+            {props.routing.providers.entries
+              .filter((entry) => !entry.registered)
+              .map((entry) => (
+                <option key={entry.id} value={entry.id} disabled title={props.copy.choice('settings.routing.unconfiguredTitle')}>
+                  {entry.name}
+                  {props.copy.choice('settings.routing.unconfiguredSuffix')}
+                </option>
+              ))}
+          </optgroup>
+        ) : null}
       </SelectControl>
       <p style={HINT_STYLE}>{props.hint}</p>
       {props.routing.providers.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.providersLoading')}</p> : null}
@@ -968,7 +955,9 @@ function ModelRow(props: RowProps & { routing: LlmRoutingState; providerValue: s
   return (
     <div style={ROW_STYLE}>
       <div style={HEAD_STYLE}>
-        <label htmlFor={props.id} style={LABEL_STYLE}>{props.label}</label>
+        <label htmlFor={props.id} style={LABEL_STYLE}>
+          {props.label}
+        </label>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
       </div>
       <SelectControl
@@ -986,21 +975,18 @@ function ModelRow(props: RowProps & { routing: LlmRoutingState; providerValue: s
       >
         <option value="">{provider === '' ? props.copy.choice('settings.routing.followSession') : props.copy.choice('settings.routing.selectModel')}</option>
         {props.routing.models.entries.map((entry) => (
-          <option key={entry.id} value={entry.id} title={entry.id}>{entry.name}</option>
+          <option key={entry.id} value={entry.id} title={entry.id}>
+            {entry.name}
+          </option>
         ))}
-        {provider !== '' && current !== '' && !known
-          ? <option value={current} title={current}>{props.copy.interpolate('settings.routing.currentModel', { value: current })}</option>
-          : null}
+        {provider !== '' && current !== '' && !known ? (
+          <option value={current} title={current}>
+            {props.copy.interpolate('settings.routing.currentModel', { value: current })}
+          </option>
+        ) : null}
         {provider !== '' ? <option value="__custom__">{props.copy.choice('settings.routing.custom')}</option> : null}
       </SelectControl>
-      {showCustom ? (
-        <TextControl
-          value={current}
-          placeholder={props.copy.choice('settings.routing.customPlaceholder')}
-          disabled={props.disabled}
-          onChange={props.onEdit}
-        />
-      ) : null}
+      {showCustom ? <TextControl value={current} placeholder={props.copy.choice('settings.routing.customPlaceholder')} disabled={props.disabled} onChange={props.onEdit} /> : null}
       <p style={HINT_STYLE}>{props.hint}</p>
       {props.routing.models.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsLoading')}</p> : null}
       {props.routing.models.failed && !showCustom ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsFailed')}</p> : null}
@@ -1038,9 +1024,7 @@ function TextControl(props: {
     if (props.invalid !== true) setRevealedInvalid(false)
   }, [props.invalid])
   const showInvalid = props.invalid === true && revealedInvalid
-  const borderColor = showInvalid
-    ? 'var(--dsw-alias-state-error-primary, #f85149)'
-    : focused ? 'var(--dsw-alias-state-business-primary, #4f8cff)' : undefined
+  const borderColor = showInvalid ? 'var(--dsw-alias-state-error-primary, #f85149)' : focused ? 'var(--dsw-alias-state-business-primary, #4f8cff)' : undefined
   return (
     <input
       id={props.id}
@@ -1052,8 +1036,8 @@ function TextControl(props: {
       value={props.value}
       style={{
         ...INPUT_STYLE,
-        ...props.disabled === true ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {},
-        ...borderColor === undefined ? {} : { borderColor },
+        ...(props.disabled === true ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {}),
+        ...(borderColor === undefined ? {} : { borderColor }),
       }}
       onFocus={() => setFocused(true)}
       onBlur={() => {
@@ -1077,7 +1061,9 @@ function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string }):
   return (
     <div style={ROW_STYLE}>
       <div style={HEAD_STYLE}>
-        <label htmlFor={props.id} style={LABEL_STYLE}>{props.label}</label>
+        <label htmlFor={props.id} style={LABEL_STYLE}>
+          {props.label}
+        </label>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
       </div>
       <TextControl
@@ -1101,7 +1087,18 @@ function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string }):
  * @param props - the row, its copy, its state, its actions, and the pinned pair.
  * @returns the row element.
  */
-function SettingsRow(props: { row: Row; copy: RowCopy; view: FieldView; disabled: boolean; reasoningPair: { provider: string; model: string }; routing: LlmRoutingState; providerValue: string; onEdit: (text: string) => void; onReset: () => void; onCommit?: () => void }): ReactElement {
+function SettingsRow(props: {
+  row: Row
+  copy: RowCopy
+  view: FieldView
+  disabled: boolean
+  reasoningPair: { provider: string; model: string }
+  routing: LlmRoutingState
+  providerValue: string
+  onEdit: (text: string) => void
+  onReset: () => void
+  onCommit?: () => void
+}): ReactElement {
   const shared = {
     id: `dsh-prompt-enhance-${props.row.key}`,
     label: props.copy.title(props.row),
@@ -1224,9 +1221,7 @@ function SettingsRows(props: {
       markSaved()
       return
     }
-    const changed = ROWS
-      .map((row) => ({ key: row.key, text: viewOf(props.state, row.key).text }))
-      .filter((item) => savedValues.current.get(item.key) !== item.text)
+    const changed = ROWS.map((row) => ({ key: row.key, text: viewOf(props.state, row.key).text })).filter((item) => savedValues.current.get(item.key) !== item.text)
     if (changed.length === 0) {
       markSaved()
       return
@@ -1278,21 +1273,25 @@ function SettingsRows(props: {
     void runSave(key, text ?? viewOf(props.state, key).text)
   }
 
-  useEffect(() => () => {
-    for (const timer of timers.current.values()) clearTimeout(timer)
-    timers.current.clear()
-    if (savedTimer.current !== undefined) clearTimeout(savedTimer.current)
-  }, [])
+  useEffect(
+    () => () => {
+      for (const timer of timers.current.values()) clearTimeout(timer)
+      timers.current.clear()
+      if (savedTimer.current !== undefined) clearTimeout(savedTimer.current)
+    },
+    [],
+  )
 
-  const statusText = props.state.writable === false
-    ? props.copy.labels.readOnly
-    : saveState === 'saving'
-      ? props.copy.labels.saving
-      : saveState === 'saved'
-        ? props.copy.labels.saved
-        : saveState === 'failed'
-          ? props.copy.labels.saveFailedShort
-          : ''
+  const statusText =
+    props.state.writable === false
+      ? props.copy.labels.readOnly
+      : saveState === 'saving'
+        ? props.copy.labels.saving
+        : saveState === 'saved'
+          ? props.copy.labels.saved
+          : saveState === 'failed'
+            ? props.copy.labels.saveFailedShort
+            : ''
 
   const renderRow = (row: Row, index: number): ReactElement => {
     const raw = viewOf(props.state, row.key)
@@ -1326,14 +1325,18 @@ function SettingsRows(props: {
       </details>
       <div className="dsh-pe-form-footer">
         <div className="dsh-pe-save-group">
-          {statusText === ''
-            ? null
-            : <span className="dsh-pe-save-status" role="status" aria-live="polite">{statusText}</span>}
+          {statusText === '' ? null : (
+            <span className="dsh-pe-save-status" role="status" aria-live="polite">
+              {statusText}
+            </span>
+          )}
           <button
             type="button"
             className="dsh-pe-save-button"
             disabled={props.save === undefined || props.state.writable === false}
-            onClick={() => { void manualSave() }}
+            onClick={() => {
+              void manualSave()
+            }}
           >
             {props.copy.labels.save}
           </button>
@@ -1368,15 +1371,7 @@ export function SettingsSection(props: SectionProps): unknown {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <PageHeader title={t('settings.title')} description={t('settings.description')} version={PLUGIN_VERSION} />
-      <SettingsRows
-        copy={sectionCopy(t, chinese)}
-        state={state}
-        edit={edit}
-        resetField={resetField}
-        save={props.save}
-        discard={props.discard}
-        writeField={props.writeField}
-      />
+      <SettingsRows copy={sectionCopy(t, chinese)} state={state} edit={edit} resetField={resetField} save={props.save} discard={props.discard} writeField={props.writeField} />
     </div>
   )
 }
@@ -1400,17 +1395,7 @@ export function SettingsPage(props: PageProps): unknown {
   }
   const edit = props.edit ?? ((): void => {})
   const resetField = props.resetField ?? ((): void => {})
-  return (
-    <SettingsRows
-      copy={pageCopy(t)}
-      state={state}
-      edit={edit}
-      resetField={resetField}
-      save={props.save}
-      discard={props.discard}
-      writeField={props.writeField}
-    />
-  )
+  return <SettingsRows copy={pageCopy(t)} state={state} edit={edit} resetField={resetField} save={props.save} discard={props.discard} writeField={props.writeField} />
 }
 
 /** Structural face of one bound settings scope. */
@@ -1543,20 +1528,18 @@ export function installSettingsPages(ctx: ClientContext, getLocale?: () => Local
     // The Settings dialog's page, unchanged in behaviour: a fresh id puts it
     // beside the shipped sections, and the frame handles an unloaded plugin.
     ctx.effect(() => {
-      const stop = slots.inject(
-        SETTINGS_SECTION_SLOT,
-        () =>
-          slots.register(
-            {
-              name: SETTINGS_SECTION_SLOT,
-              id: SETTINGS_SECTION_ID,
-              order: SETTINGS_SECTION_ORDER,
-              label: () => sectionTitle(getLocale),
-              locale: LOCALE_NS,
-              inject: () => controller.inject(),
-            },
-            SettingsSection,
-          ),
+      const stop = slots.inject(SETTINGS_SECTION_SLOT, () =>
+        slots.register(
+          {
+            name: SETTINGS_SECTION_SLOT,
+            id: SETTINGS_SECTION_ID,
+            order: SETTINGS_SECTION_ORDER,
+            label: () => sectionTitle(getLocale),
+            locale: LOCALE_NS,
+            inject: () => controller.inject(),
+          },
+          SettingsSection,
+        ),
       ) as () => void
       return stop
     }, 'dsh-prompt-enhance: settings section')
@@ -1566,18 +1549,16 @@ export function installSettingsPages(ctx: ClientContext, getLocale?: () => Local
     // for a namespace the Host does not serve.
     const whileServed = typeof forms.whileServed === 'function' ? forms.whileServed.bind(forms) : undefined
     const registerRowPage = (): (() => void) => {
-      const stop = slots.inject(
-        SETTINGS_ROW_CONFIG_SLOT,
-        () =>
-          slots.register(
-            {
-              name: SETTINGS_ROW_CONFIG_SLOT,
-              key: SETTINGS_ROW_CONFIG_KEY,
-              locale: LOCALE_NS,
-              inject: () => controller.inject(),
-            },
-            SettingsPage,
-          ),
+      const stop = slots.inject(SETTINGS_ROW_CONFIG_SLOT, () =>
+        slots.register(
+          {
+            name: SETTINGS_ROW_CONFIG_SLOT,
+            key: SETTINGS_ROW_CONFIG_KEY,
+            locale: LOCALE_NS,
+            inject: () => controller.inject(),
+          },
+          SettingsPage,
+        ),
       ) as () => void
       return stop
     }

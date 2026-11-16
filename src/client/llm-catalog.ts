@@ -46,28 +46,26 @@ function endpoint(path: string, params: Record<string, string> = {}): URL {
 export async function fetchProviders(signal?: AbortSignal): Promise<ProviderCatalogEntry[] | undefined> {
   const value = await getJson<ProviderCatalog>(endpoint(LLM_PROVIDERS_ENDPOINT), signal)
   if (value === undefined || !Array.isArray(value.providers)) return undefined
-  return value.providers.filter((entry): entry is ProviderCatalogEntry => (
-    entry !== null && typeof entry === 'object'
-    && typeof entry.id === 'string' && entry.id !== ''
-    && typeof entry.name === 'string' && entry.name !== ''
-    && typeof entry.registered === 'boolean'
-  ))
+  return value.providers.filter(
+    (entry): entry is ProviderCatalogEntry =>
+      entry !== null && typeof entry === 'object' && typeof entry.id === 'string' && entry.id !== '' && typeof entry.name === 'string' && entry.name !== '' && typeof entry.registered === 'boolean',
+  )
 }
 
 /** Models of one provider, or undefined when the read failed. */
 export async function fetchModels(provider: string, signal?: AbortSignal): Promise<ModelCatalog | undefined> {
   const value = await getJson<ModelCatalog>(endpoint(LLM_MODELS_ENDPOINT, { provider }), signal)
   if (value === undefined || !Array.isArray(value.models)) return undefined
-  const models = value.models.filter((entry): entry is ModelCatalogEntry => (
-    entry !== null && typeof entry === 'object'
-    && typeof entry.id === 'string' && entry.id !== ''
-    && typeof entry.name === 'string' && entry.name !== ''
-  )).map((entry) => ({
-    id: entry.id,
-    name: entry.name,
-    ...typeof entry.description === 'string' && entry.description !== '' ? { description: entry.description } : {},
-  }))
-  return { models, ...typeof value.reason === 'string' ? { reason: value.reason as ModelCatalog['reason'] } : {} }
+  const models = value.models
+    .filter(
+      (entry): entry is ModelCatalogEntry => entry !== null && typeof entry === 'object' && typeof entry.id === 'string' && entry.id !== '' && typeof entry.name === 'string' && entry.name !== '',
+    )
+    .map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      ...(typeof entry.description === 'string' && entry.description !== '' ? { description: entry.description } : {}),
+    }))
+  return { models, ...(typeof value.reason === 'string' ? { reason: value.reason as ModelCatalog['reason'] } : {}) }
 }
 
 /** Whether one exact route resolves; undefined when the check itself failed. */

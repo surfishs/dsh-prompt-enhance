@@ -140,9 +140,7 @@ export function installClientSettingsSource(ctx: ClientContext, options: ClientS
      */
     const resolveEntryId = (): string | undefined => {
       const served = servedNamespaces(forms)
-      return options.rowIds.find((id) => served.includes(id))
-        ?? served.find((ns) => ns.includes('dsh-prompt-enhance'))
-        ?? options.rowIds[0]
+      return options.rowIds.find((id) => served.includes(id)) ?? served.find((ns) => ns.includes('dsh-prompt-enhance')) ?? options.rowIds[0]
     }
 
     /** Bind (or rebind) the form of the entry the host currently serves. */
@@ -183,23 +181,29 @@ export function installClientSettingsSource(ctx: ClientContext, options: ClientS
     // list is what names the row: follow it so a late load (or a rename the
     // first pass could not see) still lands on the plugin's section instead of
     // leaving the mirror on its bundled defaults.
-    ctx.effect(() => () => {
-      try {
-        unsubscribeForm?.()
-      } catch {
-        // Service already gone.
-      }
-    }, 'dsh-prompt-enhance: settings form mirror')
+    ctx.effect(
+      () => () => {
+        try {
+          unsubscribeForm?.()
+        } catch {
+          // Service already gone.
+        }
+      },
+      'dsh-prompt-enhance: settings form mirror',
+    )
     try {
       const watch = forms.describe?.()?.subscribe?.(() => bind())
       if (typeof watch === 'function') {
-        ctx.effect(() => () => {
-          try {
-            watch()
-          } catch {
-            // Service already gone.
-          }
-        }, 'dsh-prompt-enhance: settings namespace watch')
+        ctx.effect(
+          () => () => {
+            try {
+              watch()
+            } catch {
+              // Service already gone.
+            }
+          },
+          'dsh-prompt-enhance: settings namespace watch',
+        )
       }
     } catch {
       // A describe face without a subscription still leaves the first bind.
@@ -227,13 +231,16 @@ export function installClientSettingsSource(ctx: ClientContext, options: ClientS
     } catch {
       unsubscribe = undefined
     }
-    ctx.effect(() => () => {
-      try {
-        unsubscribe?.()
-      } catch {
-        // Service already gone.
-      }
-    }, 'dsh-prompt-enhance: settings binder mirror')
+    ctx.effect(
+      () => () => {
+        try {
+          unsubscribe?.()
+        } catch {
+          // Service already gone.
+        }
+      },
+      'dsh-prompt-enhance: settings binder mirror',
+    )
   })
 
   // 3. 0.1.1-rc: the element-level settings scope.
@@ -258,12 +265,15 @@ export function installClientSettingsSource(ctx: ClientContext, options: ClientS
     } catch {
       unsubscribe = undefined
     }
-    ctx.effect(() => () => {
-      try {
-        unsubscribe?.()
-      } catch {
-        // Service already gone.
-      }
-    }, 'dsh-prompt-enhance: settings scope mirror')
+    ctx.effect(
+      () => () => {
+        try {
+          unsubscribe?.()
+        } catch {
+          // Service already gone.
+        }
+      },
+      'dsh-prompt-enhance: settings scope mirror',
+    )
   })
 }

@@ -360,12 +360,7 @@ export function SettingsValueField(props: ValueFieldProps): ReactElement {
     null,
     createElement('label', { htmlFor: props.id }, props.label),
     props.overridden === true
-      ? createElement(
-          'span',
-          null,
-          createElement('span', null, props.overriddenLabel),
-          createElement('button', { type: 'button', disabled: props.disabled, onClick: props.onReset }, props.resetLabel),
-        )
+      ? createElement('span', null, createElement('span', null, props.overriddenLabel), createElement('button', { type: 'button', disabled: props.disabled, onClick: props.onReset }, props.resetLabel))
       : null,
     createElement('input', {
       id: props.id,

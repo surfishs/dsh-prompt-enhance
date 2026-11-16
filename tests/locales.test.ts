@@ -19,16 +19,7 @@ import { en, zh, type PromptEnhanceKey } from '../src/client/locales'
 import { UPSTREAM_ERROR_KEYS } from '../src/client/ResultPanel'
 
 /** Every wire reason `UpstreamReason` declares (src/enhancer.ts). */
-const WIRE_REASONS = [
-  'auth',
-  'invalid-credential',
-  'rate-limit',
-  'quota',
-  'empty',
-  'context-window',
-  'tool-call',
-  'max-tokens',
-] as const
+const WIRE_REASONS = ['auth', 'invalid-credential', 'rate-limit', 'quota', 'empty', 'context-window', 'tool-call', 'max-tokens'] as const
 
 describe('locale dictionaries', () => {
   it('ships the same key set in zh and en', () => {

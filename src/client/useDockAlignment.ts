@@ -28,7 +28,6 @@ export function useDockAlignment(active: boolean): RefObject<HTMLDivElement> {
       // parent; use a layout margin instead. The previous margin is subtracted
       // from the measured left so repeated runs do not accumulate drift.
       root.style.transform = ''
-      const previousMargin = parseFloat(root.style.marginLeft) || 0
       const rootRect = root.getBoundingClientRect()
       const editors = Array.from(document.querySelectorAll<HTMLElement>('textarea, [contenteditable="true"], [role="textbox"]'))
       const editor = editors.find((node) => {
@@ -53,25 +52,16 @@ export function useDockAlignment(active: boolean): RefObject<HTMLDivElement> {
       for (let depth = 0; depth < 12 && node !== null; depth++) {
         const rect = node.getBoundingClientRect()
         const style = getComputedStyle(node)
-        if (
-          rect.width >= editorRect.width
-          && rect.width > 360
-          && rect.height > 48
-          && (parseFloat(style.borderTopLeftRadius) || 0) >= 4
-          && style.backgroundColor !== 'rgba(0, 0, 0, 0)'
-        ) {
+        if (rect.width >= editorRect.width && rect.width > 360 && rect.height > 48 && (parseFloat(style.borderTopLeftRadius) || 0) >= 4 && style.backgroundColor !== 'rgba(0, 0, 0, 0)') {
           candidates.push({ node, rect })
         }
         node = node.parentElement
       }
       const editorCenter = editorRect.left + editorRect.width / 2
-      const cardEntry = candidates
-        .filter((candidate) => (
-          candidate.rect.width <= window.innerWidth * 0.8
-          && Math.abs(candidate.rect.left + candidate.rect.width / 2 - editorCenter) < 40
-        ))
-        .sort((a, b) => b.rect.width - a.rect.width)[0]
-        ?? candidates.sort((a, b) => b.rect.width - a.rect.width)[0]
+      const cardEntry =
+        candidates
+          .filter((candidate) => candidate.rect.width <= window.innerWidth * 0.8 && Math.abs(candidate.rect.left + candidate.rect.width / 2 - editorCenter) < 40)
+          .sort((a, b) => b.rect.width - a.rect.width)[0] ?? candidates.sort((a, b) => b.rect.width - a.rect.width)[0]
       if (cardEntry === undefined) return
       const cardRect = cardEntry.rect
       const width = `${cardRect.width}px`

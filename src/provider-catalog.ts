@@ -79,7 +79,7 @@ function modelOf(model: LlmModelInfo): ModelCatalogEntry {
   return {
     id: model.id,
     name: model.name,
-    ...model.description === undefined ? {} : { description: model.description },
+    ...(model.description === undefined ? {} : { description: model.description }),
   }
 }
 

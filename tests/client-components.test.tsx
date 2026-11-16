@@ -95,11 +95,7 @@ function makeFakeInput(initial: Partial<InputState> & { draft: string }) {
   }
 }
 
-function renderComposer(
-  input: ReturnType<typeof makeFakeInput>,
-  inputActions: Parameters<typeof EnhanceButton>[0]['inputActions'],
-  sessionId: string | undefined,
-): void {
+function renderComposer(input: ReturnType<typeof makeFakeInput>, inputActions: Parameters<typeof EnhanceButton>[0]['inputActions'], sessionId: string | undefined): void {
   const props = { t, sessionId, useInput: input.useInput, inputActions } as never
   render(
     <>
@@ -270,10 +266,14 @@ describe('enhance → apply → undo loop', () => {
     fireEvent.click(enhanceButton())
     await screen.findByText('增强文本')
     // User edits during the result view → stale warning appears…
-    act(() => { input.set({ draft: '编辑后的新文本' }) })
+    act(() => {
+      input.set({ draft: '编辑后的新文本' })
+    })
     expect(await screen.findByText(`⚠ ${zh['panel.stale.warn']}`)).toBeTruthy()
     // …and disappears again when the draft matches the source text.
-    act(() => { input.set({ draft: '旧原文' }) })
+    act(() => {
+      input.set({ draft: '旧原文' })
+    })
     await screen.findByText('增强文本')
     expect(screen.queryByText(`⚠ ${zh['panel.stale.warn']}`)).toBeNull()
   })
@@ -286,7 +286,9 @@ describe('enhance → apply → undo loop', () => {
 
     fireEvent.click(enhanceButton())
     await screen.findByText('增强文本')
-    act(() => { input.set({ draft: '用户编辑的新文本' }) })
+    act(() => {
+      input.set({ draft: '用户编辑的新文本' })
+    })
     fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
     expect(setDraft).toHaveBeenLastCalledWith('增强文本')
     // Undo restores the user's latest edits, not the stale pre-enhance text.
@@ -335,7 +337,9 @@ describe('enhance → apply → undo loop', () => {
 
     fireEvent.click(enhanceButton())
     await screen.findByText('增强文本')
-    act(() => { input.set({ draft: '2222' }) })
+    act(() => {
+      input.set({ draft: '2222' })
+    })
 
     fireEvent.click(screen.getByRole('button', { name: zh['panel.regenerate'] }))
     expect(requestEnhance).toHaveBeenCalledTimes(2)
@@ -365,7 +369,9 @@ describe('incremental streaming display', () => {
     renderComposer(input, { setDraft: vi.fn() } as never, 's2')
     const result = { text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 }
     let release!: (value: typeof result) => void
-    const gate = new Promise<typeof result>((resolve) => { release = resolve })
+    const gate = new Promise<typeof result>((resolve) => {
+      release = resolve
+    })
     vi.mocked(requestEnhanceStream).mockImplementation(async (_body, options) => {
       options.onDelta('增强')
       return gate
@@ -411,7 +417,9 @@ describe('incremental streaming display', () => {
       // No listener fire happened yet: the buffer absorbed everything.
       expect(listener.mock.calls.length).toBe(beforeBatching)
       await Promise.resolve()
-      expect(ui.getPanel()?.streaming).toBe('tok0 tok1 tok2 tok3 tok4 tok5 tok6 tok7 tok8 tok9 tok10 tok11 tok12 tok13 tok14 tok15 tok16 tok17 tok18 tok19 tok20 tok21 tok22 tok23 tok24 tok25 tok26 tok27 tok28 tok29 tok30 tok31 tok32 tok33 tok34 tok35 tok36 tok37 tok38 tok39 tok40 tok41 tok42 tok43 tok44 tok45 tok46 tok47 tok48 tok49 ')
+      expect(ui.getPanel()?.streaming).toBe(
+        'tok0 tok1 tok2 tok3 tok4 tok5 tok6 tok7 tok8 tok9 tok10 tok11 tok12 tok13 tok14 tok15 tok16 tok17 tok18 tok19 tok20 tok21 tok22 tok23 tok24 tok25 tok26 tok27 tok28 tok29 tok30 tok31 tok32 tok33 tok34 tok35 tok36 tok37 tok38 tok39 tok40 tok41 tok42 tok43 tok44 tok45 tok46 tok47 tok48 tok49 ',
+      )
       // One notify for the whole batch, not 50.
       expect(listener.mock.calls.length).toBe(beforeBatching + 1)
     } finally {

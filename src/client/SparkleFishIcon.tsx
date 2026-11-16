@@ -20,22 +20,12 @@ const STAR_PATH = 'M5.715 0 L7.2 4.2 L11.43 5.715 L7.2 7.2 L5.715 11.43 L4.2 7.2
 export function SparkleFishIcon(props: { size?: number; spinning?: boolean }): ReactElement {
   const size = props.size ?? 15
   return (
-    <svg
-      width={size * 1.3}
-      height={size}
-      viewBox="0 0 26 20"
-      fill="none"
-      aria-hidden="true"
-      focusable="false"
-      style={{ display: 'block', flexShrink: 0 }}
-    >
+    <svg width={size * 1.3} height={size} viewBox="0 0 26 20" fill="none" aria-hidden="true" focusable="false" style={{ display: 'block', flexShrink: 0 }}>
       <g transform="translate(5,3) scale(0.85)">
         <path d={FISH_PATH} fill="currentColor" />
       </g>
       <path d={STAR_PATH} transform="translate(1.2,0.8) scale(0.55)" fill="currentColor" />
-      {props.spinning === true
-        ? <animate attributeName="opacity" values="1;0.35;1" dur="1.1s" repeatCount="indefinite" />
-        : null}
+      {props.spinning === true ? <animate attributeName="opacity" values="1;0.35;1" dur="1.1s" repeatCount="indefinite" /> : null}
     </svg>
   )
 }

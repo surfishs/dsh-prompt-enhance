@@ -60,13 +60,19 @@ describe('resolveReasoningCapabilities', () => {
   it('maps the route’s declared efforts and default', async () => {
     const resolveModelInfo = vi.fn(async () => ({
       reasoning: {
-        efforts: [{ id: 'off', name: 'Off' }, { id: 'max', name: 'Max', description: 'hardest' }],
+        efforts: [
+          { id: 'off', name: 'Off' },
+          { id: 'max', name: 'Max', description: 'hardest' },
+        ],
         defaultEffort: 'max',
       },
     }))
     const capabilities = await resolveReasoningCapabilities(ctxOf({ resolveModelInfo }), 'zhipu', 'glm-4.6')
     expect(capabilities).toEqual({
-      efforts: [{ id: 'off', name: 'Off' }, { id: 'max', name: 'Max', description: 'hardest' }],
+      efforts: [
+        { id: 'off', name: 'Off' },
+        { id: 'max', name: 'Max', description: 'hardest' },
+      ],
       defaultEffort: 'max',
       source: 'resolved',
     })
@@ -116,7 +122,15 @@ describe('resolveReasoningCapabilities', () => {
 
   it('maps a lookup timeout to the timeout reason', async () => {
     const timeout = Object.assign(new Error('timed out'), { name: 'TimeoutError' })
-    const capabilities = await resolveReasoningCapabilities(ctxOf({ resolveModelInfo: async () => { throw timeout } }), 'p', 'm')
+    const capabilities = await resolveReasoningCapabilities(
+      ctxOf({
+        resolveModelInfo: async () => {
+          throw timeout
+        },
+      }),
+      'p',
+      'm',
+    )
     expect(capabilities).toEqual({ efforts: [], source: 'unavailable', reason: 'timeout' })
   })
 })
@@ -126,32 +140,20 @@ describe('serveReasoningEfforts', () => {
 
   it('rejects a partial pair instead of describing a route that cannot be called', async () => {
     const res = fakeRes()
-    await serveReasoningEfforts(
-      ctxOf({}),
-      { ...trusted, method: 'GET', url: '/dsh-prompt-enhance/reasoning-efforts?provider=zhipu' } as never,
-      res as never,
-    )
+    await serveReasoningEfforts(ctxOf({}), { ...trusted, method: 'GET', url: '/dsh-prompt-enhance/reasoning-efforts?provider=zhipu' } as never, res as never)
     expect(res.status).toBe(422)
   })
 
   it('rejects a non-GET method', async () => {
     const res = fakeRes()
-    await serveReasoningEfforts(
-      ctxOf({}),
-      { ...trusted, method: 'POST', url: '/dsh-prompt-enhance/reasoning-efforts' } as never,
-      res as never,
-    )
+    await serveReasoningEfforts(ctxOf({}), { ...trusted, method: 'POST', url: '/dsh-prompt-enhance/reasoning-efforts' } as never, res as never)
     expect(res.status).toBe(405)
   })
 
   it('returns the capability envelope for a pinned pair', async () => {
     const res = fakeRes()
     const llm = { resolveModelInfo: async () => ({ reasoning: { efforts: [{ id: 'low', name: 'Low' }] } }) }
-    await serveReasoningEfforts(
-      ctxOf(llm),
-      { ...trusted, method: 'GET', url: '/dsh-prompt-enhance/reasoning-efforts?provider=zhipu&model=glm-4.6' } as never,
-      res as never,
-    )
+    await serveReasoningEfforts(ctxOf(llm), { ...trusted, method: 'GET', url: '/dsh-prompt-enhance/reasoning-efforts?provider=zhipu&model=glm-4.6' } as never, res as never)
     expect(res.status).toBe(200)
     expect(JSON.parse(res.body)).toEqual({ ok: true, value: { efforts: [{ id: 'low', name: 'Low' }], source: 'resolved' } })
   })

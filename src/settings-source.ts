@@ -151,7 +151,7 @@ export function installSettingsSource(ctx: Context, options: SettingsSourceOptio
         settingsCtx.effect(() => {
           try {
             const dispose = service.configure?.({ auto: true }, (ctx as unknown as { fiber?: unknown }).fiber)
-            return typeof dispose === 'function' ? dispose as () => void : () => {}
+            return typeof dispose === 'function' ? (dispose as () => void) : () => {}
           } catch {
             // Already registered (a re-applied entry) or unsupported: the
             // auto-generated page is the default anyway.
@@ -177,26 +177,29 @@ export function installSettingsSource(ctx: Context, options: SettingsSourceOptio
 
     // 3. 0.1.1-rc: the standalone module export. Loaded dynamically so a build
     //    whose settings module no longer exports it cannot fail at import time.
-    void import('@deepseek-ai/dsh-settings').then((mod) => {
-      const legacy = mod as unknown as {
-        installSettingsSection?: (owner: Context, ns: unknown, schema: unknown, entry: unknown, hooks: unknown) => void
-        settingsNamespace?: (ns: string) => unknown
-      }
-      if (typeof legacy.installSettingsSection !== 'function') return
-      try {
-        legacy.installSettingsSection(
-          ctx,
-          typeof legacy.settingsNamespace === 'function' ? legacy.settingsNamespace(options.namespace) : options.namespace,
-          options.schema,
-          options.entry,
-          legacyHooks,
-        )
-      } catch {
-        // Same policy as above: no settings is a degradation, not a failure.
-      }
-    }, () => {
-      // Module unresolvable on this host: the composition entry stands.
-    })
+    void import('@deepseek-ai/dsh-settings').then(
+      (mod) => {
+        const legacy = mod as unknown as {
+          installSettingsSection?: (owner: Context, ns: unknown, schema: unknown, entry: unknown, hooks: unknown) => void
+          settingsNamespace?: (ns: string) => unknown
+        }
+        if (typeof legacy.installSettingsSection !== 'function') return
+        try {
+          legacy.installSettingsSection(
+            ctx,
+            typeof legacy.settingsNamespace === 'function' ? legacy.settingsNamespace(options.namespace) : options.namespace,
+            options.schema,
+            options.entry,
+            legacyHooks,
+          )
+        } catch {
+          // Same policy as above: no settings is a degradation, not a failure.
+        }
+      },
+      () => {
+        // Module unresolvable on this host: the composition entry stands.
+      },
+    )
   })
 
   return {

@@ -20,10 +20,12 @@ afterEach(() => {
 
 describe('fetchReasoningCapabilities', () => {
   it('sends the pinned pair and no refresh flag by default', async () => {
-    const fetchMock = vi.fn(async (_url: URL) => json({
-      ok: true,
-      value: { efforts: [{ id: 'max', name: 'Max' }], defaultEffort: 'high', source: 'resolved' },
-    }))
+    const fetchMock = vi.fn(async (_url: URL) =>
+      json({
+        ok: true,
+        value: { efforts: [{ id: 'max', name: 'Max' }], defaultEffort: 'high', source: 'resolved' },
+      }),
+    )
     vi.stubGlobal('fetch', fetchMock)
     const capabilities = await fetchReasoningCapabilities('zhipu', 'glm-4.6')
     expect(capabilities).toEqual({ efforts: [{ id: 'max', name: 'Max' }], defaultEffort: 'high', source: 'resolved' })
@@ -50,7 +52,10 @@ describe('fetchReasoningCapabilities', () => {
   })
 
   it('maps a malformed payload to unavailable', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => json({ ok: true, value: { efforts: 'nope', source: 'resolved' } })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json({ ok: true, value: { efforts: 'nope', source: 'resolved' } })),
+    )
     const capabilities = await fetchReasoningCapabilities('p', 'm')
     expect(capabilities.source).toBe('unavailable')
   })

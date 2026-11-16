@@ -129,10 +129,7 @@ export function apply(ctx: ClientContext): void {
     if (slots === undefined) return
     return slots.inject('conversation.input.right', () => {
       try {
-        return slots.register(
-          { name: 'conversation.input.right', id: 'dsh-prompt-enhance', order: 60, locale: NS },
-          EnhanceButton as unknown as never,
-        )
+        return slots.register({ name: 'conversation.input.right', id: 'dsh-prompt-enhance', order: 60, locale: NS }, EnhanceButton as unknown as never)
       } catch (error) {
         return report('composer enhance button slot', error)
       }
@@ -144,10 +141,7 @@ export function apply(ctx: ClientContext): void {
     if (slots === undefined) return
     return slots.inject('conversation.input.dock', () => {
       try {
-        return slots.register(
-          { name: 'conversation.input.dock', id: 'dsh-prompt-enhance-result', order: 30, locale: NS },
-          ResultDock as unknown as never,
-        )
+        return slots.register({ name: 'conversation.input.dock', id: 'dsh-prompt-enhance-result', order: 30, locale: NS }, ResultDock as unknown as never)
       } catch (error) {
         return report('result dock slot', error)
       }
@@ -159,10 +153,7 @@ export function apply(ctx: ClientContext): void {
     if (slots === undefined) return
     return slots.inject('conversation.input.dock', () => {
       try {
-        return slots.register(
-          { name: 'conversation.input.dock', id: 'dsh-prompt-enhance-undo', order: 90, locale: NS },
-          UndoBar as unknown as never,
-        )
+        return slots.register({ name: 'conversation.input.dock', id: 'dsh-prompt-enhance-undo', order: 90, locale: NS }, UndoBar as unknown as never)
       } catch (error) {
         return report('undo bar slot', error)
       }

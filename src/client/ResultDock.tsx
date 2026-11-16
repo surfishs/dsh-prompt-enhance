@@ -40,15 +40,28 @@ export function ResultDock(props: ResultDockProps): ReactNode {
   })
   // The host exposes the session store as a standard hook; older hosts may
   // omit it, in which case the input phase is the only send signal.
-  const useSession = (props as ResultDockProps & {
-    useSession?: (selector: (s: unknown) => unknown) => unknown
-  }).useSession
-  const sessionRunning = useSession === undefined
-    ? false
-    : Boolean(useSession((state) => (state as { running?: unknown }).running))
-  const sessionQueued = useSession === undefined
-    ? 0
-    : Number(useSession((state) => ((state as { queue?: unknown[] }).queue?.length ?? 0)))
+  const useSession = (
+    props as ResultDockProps & {
+      useSession?: (selector: (s: unknown) => unknown) => unknown
+    }
+  ).useSession
+  // Whether the host supplies `useSession` is a property of the HOST VERSION,
+  // not of session state, so the hook count below is constant for the whole
+  // lifetime of a mount — the reason this conditional call is safe here. It is
+  // still invisible to the linter, which cannot know that. Replacing it with an
+  // unconditional call would mean fabricating a hook on hosts that ship none,
+  // and that trade is worse than the documented suppression; a real refactor
+  // needs a live host to validate against.
+  const sessionRunning =
+    useSession === undefined
+      ? false
+      : // eslint-disable-next-line react-hooks/rules-of-hooks
+        Boolean(useSession((state) => (state as { running?: unknown }).running))
+  const sessionQueued =
+    useSession === undefined
+      ? 0
+      : // eslint-disable-next-line react-hooks/rules-of-hooks
+        Number(useSession((state) => (state as { queue?: unknown[] }).queue?.length ?? 0))
 
   // The applied chip is derived from the undo stack: it is true exactly while
   // the composer still holds the applied text, and drops itself when the user

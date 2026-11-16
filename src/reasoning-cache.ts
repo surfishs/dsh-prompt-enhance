@@ -66,7 +66,7 @@ function effortOf(value: unknown): ReasoningEffortInfo | undefined {
   return {
     id: record.id,
     name: record.name,
-    ...typeof record.description === 'string' && record.description !== '' ? { description: record.description } : {},
+    ...(typeof record.description === 'string' && record.description !== '' ? { description: record.description } : {}),
   }
 }
 
@@ -117,7 +117,7 @@ export async function readCachedCapabilities(provider: string, model: string): P
   if (efforts.length !== entry.efforts.length) return undefined
   return {
     efforts,
-    ...typeof entry.defaultEffort === 'string' && entry.defaultEffort !== '' ? { defaultEffort: entry.defaultEffort } : {},
+    ...(typeof entry.defaultEffort === 'string' && entry.defaultEffort !== '' ? { defaultEffort: entry.defaultEffort } : {}),
   }
 }
 
@@ -134,8 +134,8 @@ export async function writeCachedCapabilities(provider: string, model: string, e
     provider,
     model,
     efforts,
-    ...defaultEffort === undefined ? {} : { defaultEffort },
-    ...noEfforts ? { noEfforts: true } : {},
+    ...(defaultEffort === undefined ? {} : { defaultEffort }),
+    ...(noEfforts ? { noEfforts: true } : {}),
     savedAt: Date.now(),
   }
   await writeDocument(document)

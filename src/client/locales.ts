@@ -194,7 +194,8 @@ export const en: Record<PromptEnhanceKey, string> = {
   'error.disabled': 'Prompt enhance is disabled in the plugin settings.',
   'error.rejected': 'The enhance request was rejected.',
   'error.timeout': 'The enhancement timed out ({seconds}s). Retry; your draft is untouched.',
-  'error.unconfigured': 'No model resolved for the enhancement: pair provider/model in the plugin settings, or send a message in the current session first (the enhancement will follow the session model).',
+  'error.unconfigured':
+    'No model resolved for the enhancement: pair provider/model in the plugin settings, or send a message in the current session first (the enhancement will follow the session model).',
   'error.effortUnsupported': 'This model does not support the selected reasoning effort "{effort}". Choose another tier, or use "follow provider default".',
   'error.upstream': 'The model provider returned an error. Retry; your draft is untouched.',
   'error.internal': 'Enhancement failed. Retry; your draft is untouched.',
@@ -211,7 +212,8 @@ export const en: Record<PromptEnhanceKey, string> = {
   'error.upstream.maxTokens': 'The rewrite hit the output cap (maxOutputTokens) — raise it in settings or shorten the draft.',
   'settings.summary': 'Model, context, and resource limits',
   'settings.title': 'Prompt enhance',
-  'settings.description': 'Turns a composer draft into a structured prompt: role and goal, executable steps, output format, acceptance criteria, edge cases. The draft is preserved, failures never touch it, and saved values apply to the next call.',
+  'settings.description':
+    'Turns a composer draft into a structured prompt: role and goal, executable steps, output format, acceptance criteria, edge cases. The draft is preserved, failures never touch it, and saved values apply to the next call.',
   'settings.save': 'Save',
   'settings.saving': 'Saving…',
   'settings.saved': 'Saved',
@@ -250,7 +252,8 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.routing.custom': 'Custom…',
   'settings.routing.customPlaceholder': 'Type a model id',
   'settings.routing.pairIncomplete': 'provider and model must be set together; with only one filled, the save follows the session instead.',
-  'settings.routing.routeUnavailable': 'This provider/model is currently unavailable; you can still save, but enhancement calls may fail. Check that model services are configured and the model id is correct.',
+  'settings.routing.routeUnavailable':
+    'This provider/model is currently unavailable; you can still save, but enhancement calls may fail. Check that model services are configured and the model id is correct.',
   'settings.routing.retry': 'Retry',
   'settings.row.temperature.label': 'Temperature',
   'settings.row.temperature.hint': 'Sampling temperature (0–1, step 0.05); lower stays closer to the original. Default 0.3.',
@@ -263,7 +266,8 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.row.timeoutMs.label': 'Timeout (ms)',
   'settings.row.timeoutMs.hint': 'End-to-end timeout of one enhancement call. Default 60000.',
   'settings.row.strategyMode.label': 'Prompt composition',
-  'settings.row.strategyMode.hint': 'How a non-empty custom system prompt combines with the built-in strategy: replace it (the minimal output contract still applies), or append after it (the built-in rules still apply).',
+  'settings.row.strategyMode.hint':
+    'How a non-empty custom system prompt combines with the built-in strategy: replace it (the minimal output contract still applies), or append after it (the built-in rules still apply).',
   'settings.row.systemPrompt.label': 'Custom system prompt',
   'settings.row.systemPrompt.hint': 'Leave empty to use the built-in enhancement strategy.',
   'settings.row.systemPrompt.placeholder': 'e.g. translate the user text from Chinese into English.',

@@ -55,7 +55,7 @@ function effortOf(effort: LlmModelReasoningInfo['efforts'][number]): { id: strin
   return {
     id: effort.id,
     name: effort.name,
-    ...effort.description === undefined ? {} : { description: effort.description },
+    ...(effort.description === undefined ? {} : { description: effort.description }),
   }
 }
 
@@ -75,12 +75,7 @@ function effortOf(effort: LlmModelReasoningInfo['efforts'][number]): { id: strin
  * @param options - `refresh` bypasses and replaces the cached answer.
  * @returns the capability answer; never throws.
  */
-export async function resolveReasoningCapabilities(
-  ctx: Context,
-  provider: string | undefined,
-  model: string | undefined,
-  options: { refresh?: boolean } = {},
-): Promise<ReasoningCapabilities> {
+export async function resolveReasoningCapabilities(ctx: Context, provider: string | undefined, model: string | undefined, options: { refresh?: boolean } = {}): Promise<ReasoningCapabilities> {
   if (provider === undefined || model === undefined) {
     const fallback = defaultRouteOf(ctx)
     if (fallback === undefined) return unavailable('no-default-model')
@@ -93,7 +88,7 @@ export async function resolveReasoningCapabilities(
       if (cached.noEfforts === true) return unavailable('no-efforts')
       return {
         efforts: cached.efforts,
-        ...cached.defaultEffort === undefined ? {} : { defaultEffort: cached.defaultEffort },
+        ...(cached.defaultEffort === undefined ? {} : { defaultEffort: cached.defaultEffort }),
         source: 'resolved',
       }
     }
@@ -115,7 +110,7 @@ export async function resolveReasoningCapabilities(
     await writeCachedCapabilities(provider, model, efforts, reasoning.defaultEffort)
     return {
       efforts,
-      ...reasoning.defaultEffort === undefined ? {} : { defaultEffort: reasoning.defaultEffort },
+      ...(reasoning.defaultEffort === undefined ? {} : { defaultEffort: reasoning.defaultEffort }),
       source: 'resolved',
     }
   } catch (error) {

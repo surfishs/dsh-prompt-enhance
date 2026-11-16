@@ -26,12 +26,7 @@ describe('selectTurns', () => {
   })
 
   it('ignores system turns, tool blocks, and textless messages', () => {
-    const turns = selectTurns([
-      turn('system', 'you are a helper'),
-      turn('user', null),
-      turn('user', '   '),
-      turn('assistant', 'real answer'),
-    ], WINDOW)
+    const turns = selectTurns([turn('system', 'you are a helper'), turn('user', null), turn('user', '   '), turn('assistant', 'real answer')], WINDOW)
     expect(turns).toEqual([{ role: 'assistant', text: 'real answer' }])
   })
 
@@ -41,16 +36,12 @@ describe('selectTurns', () => {
   })
 
   it('keeps the newest turns when the message cap binds', () => {
-    const turns = selectTurns([
-      turn('user', 'one'), turn('assistant', 'two'), turn('user', 'three'), turn('assistant', 'four'),
-    ], { ...WINDOW, maxMessages: 2 })
+    const turns = selectTurns([turn('user', 'one'), turn('assistant', 'two'), turn('user', 'three'), turn('assistant', 'four')], { ...WINDOW, maxMessages: 2 })
     expect(turns.map((each) => each.text)).toEqual(['three', 'four'])
   })
 
   it('spends the character budget from the newest turn backwards', () => {
-    const turns = selectTurns([
-      turn('user', 'aaaa'), turn('assistant', 'bbbb'), turn('user', 'cccc'),
-    ], { maxMessages: 8, maxChars: 9 })
+    const turns = selectTurns([turn('user', 'aaaa'), turn('assistant', 'bbbb'), turn('user', 'cccc')], { maxMessages: 8, maxChars: 9 })
     // "cccc" (4) + "bbbb" (4) fit; the oldest turn is the one dropped.
     expect(turns.map((each) => each.text)).toEqual(['bbbb', 'cccc'])
   })

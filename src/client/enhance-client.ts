@@ -5,7 +5,16 @@
  * @module dsh-prompt-enhance/client/enhance-client
  */
 
-import { ENHANCE_ENDPOINT, ENHANCE_STREAM_ENDPOINT, type EnhanceError, type EnhanceErrorCode, type EnhanceRequestBody, type EnhanceResult, type EnhanceStreamEvent, type EnhanceUsage } from '../shared/protocol'
+import {
+  ENHANCE_ENDPOINT,
+  ENHANCE_STREAM_ENDPOINT,
+  type EnhanceError,
+  type EnhanceErrorCode,
+  type EnhanceRequestBody,
+  type EnhanceResult,
+  type EnhanceStreamEvent,
+  type EnhanceUsage,
+} from '../shared/protocol'
 
 /** Typed fetch failure carrying the wire error. */
 export class EnhanceClientError extends Error {
@@ -29,29 +38,15 @@ function jsonBody(body: EnhanceRequestBody): Uint8Array {
 }
 
 /** The stable error codes the host may send; anything else normalizes to `internal`. */
-const KNOWN_ERROR_CODES = new Set<EnhanceErrorCode>([
-  'rejected',
-  'rate-limit',
-  'concurrency-limit',
-  'cooldown',
-  'timeout',
-  'upstream',
-  'unconfigured',
-  'internal',
-  'effort-unsupported',
-])
+const KNOWN_ERROR_CODES = new Set<EnhanceErrorCode>(['rejected', 'rate-limit', 'concurrency-limit', 'cooldown', 'timeout', 'upstream', 'unconfigured', 'internal', 'effort-unsupported'])
 
 /** Narrow one wire error, normalizing unknown codes. `message`/`params` are optional. */
 function parseError(value: unknown): EnhanceError {
   const record = value as Partial<EnhanceError> | null
   if (record !== null && typeof record === 'object') {
-    const code: EnhanceErrorCode = typeof record.code === 'string' && KNOWN_ERROR_CODES.has(record.code as EnhanceErrorCode)
-      ? record.code as EnhanceErrorCode
-      : 'internal'
+    const code: EnhanceErrorCode = typeof record.code === 'string' && KNOWN_ERROR_CODES.has(record.code as EnhanceErrorCode) ? (record.code as EnhanceErrorCode) : 'internal'
     const message = typeof record.message === 'string' && record.message !== '' ? record.message : undefined
-    const params = record.params !== null && typeof record.params === 'object'
-      ? record.params as Record<string, string | number>
-      : undefined
+    const params = record.params !== null && typeof record.params === 'object' ? (record.params as Record<string, string | number>) : undefined
     return { code, ...(message !== undefined ? { message } : {}), ...(params !== undefined ? { params } : {}) }
   }
   return { code: 'internal', message: '宿主服务返回异常。' }
@@ -80,9 +75,9 @@ function parseUsage(value: unknown): EnhanceUsage | undefined {
   return {
     inputTokens,
     outputTokens,
-    ...totalTokens === undefined ? {} : { totalTokens },
-    ...cacheReadTokens === undefined ? {} : { cacheReadTokens },
-    ...cacheWriteTokens === undefined ? {} : { cacheWriteTokens },
+    ...(totalTokens === undefined ? {} : { totalTokens }),
+    ...(cacheReadTokens === undefined ? {} : { cacheReadTokens }),
+    ...(cacheWriteTokens === undefined ? {} : { cacheWriteTokens }),
   }
 }
 
@@ -90,11 +85,16 @@ function parseUsage(value: unknown): EnhanceUsage | undefined {
 function parseResult(value: unknown): EnhanceResult {
   const record = value as Partial<EnhanceResult> | null
   if (
-    record !== null && typeof record === 'object'
-    && typeof record.text === 'string' && record.text !== ''
-    && typeof record.provider === 'string' && record.provider !== ''
-    && typeof record.model === 'string' && record.model !== ''
-    && typeof record.elapsedMs === 'number' && Number.isFinite(record.elapsedMs)
+    record !== null &&
+    typeof record === 'object' &&
+    typeof record.text === 'string' &&
+    record.text !== '' &&
+    typeof record.provider === 'string' &&
+    record.provider !== '' &&
+    typeof record.model === 'string' &&
+    record.model !== '' &&
+    typeof record.elapsedMs === 'number' &&
+    Number.isFinite(record.elapsedMs)
   ) {
     const usage = parseUsage((record as { usage?: unknown }).usage)
     return {
@@ -102,7 +102,7 @@ function parseResult(value: unknown): EnhanceResult {
       provider: record.provider,
       model: record.model,
       elapsedMs: record.elapsedMs,
-      ...usage === undefined ? {} : { usage },
+      ...(usage === undefined ? {} : { usage }),
     }
   }
   throw new EnhanceClientError({ code: 'internal', message: '宿主服务返回了无法解析的结果。' })
@@ -140,7 +140,7 @@ async function readEnvelope(response: Response): Promise<EnhanceResult> {
  */
 async function rejectionOf(response: Response): Promise<EnhanceClientError> {
   try {
-    const parsed = await response.json() as { error?: unknown } | null
+    const parsed = (await response.json()) as { error?: unknown } | null
     if (parsed !== null && typeof parsed === 'object' && parsed.error !== undefined) {
       return new EnhanceClientError(parseError(parsed.error))
     }
@@ -235,7 +235,9 @@ export async function requestEnhanceStream(body: EnhanceRequestBody, options: En
     // one-shot path instead.
     // `cancel()` may return a promise in some runtimes and undefined in
     // others, so wrap before catching rather than assuming a promise.
-    void Promise.resolve().then(() => stream?.cancel()).catch(() => {})
+    void Promise.resolve()
+      .then(() => stream?.cancel())
+      .catch(() => {})
     return requestEnhance(body, options.signal)
   }
   const reader = stream.getReader()
@@ -257,7 +259,9 @@ export async function requestEnhanceStream(body: EnhanceRequestBody, options: En
       }
     }
   } finally {
-    void Promise.resolve().then(() => reader.cancel()).catch(() => {})
+    void Promise.resolve()
+      .then(() => reader.cancel())
+      .catch(() => {})
   }
   throw new EnhanceClientError({ code: 'internal', message: '宿主服务提前关闭了增强流，请重试；原输入未改动。' })
 }

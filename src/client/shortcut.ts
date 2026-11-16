@@ -60,7 +60,12 @@ type ModifierFlags = Record<'ctrl' | 'alt' | 'shift' | 'meta', boolean>
  */
 export function parseShortcut(spec: string | undefined): ShortcutCombo | null {
   if (spec === undefined) return null
-  const tokens = spec.trim().toLowerCase().split('+').map((token) => token.trim()).filter((token) => token !== '')
+  const tokens = spec
+    .trim()
+    .toLowerCase()
+    .split('+')
+    .map((token) => token.trim())
+    .filter((token) => token !== '')
   if (tokens.length === 0 || tokens.length > 5) return null
   const modifiers: ModifierFlags = { ctrl: false, alt: false, shift: false, meta: false }
   const last = tokens[tokens.length - 1] ?? ''
@@ -86,10 +91,6 @@ export function parseShortcut(spec: string | undefined): ShortcutCombo | null {
 export function matchesShortcut(event: KeyboardEvent, combo: ShortcutCombo | null): boolean {
   if (combo === null) return false
   return (
-    event.ctrlKey === combo.ctrl
-    && event.altKey === combo.alt
-    && event.shiftKey === combo.shift
-    && event.metaKey === combo.meta
-    && (event.code === combo.code || event.key.toLowerCase() === combo.key)
+    event.ctrlKey === combo.ctrl && event.altKey === combo.alt && event.shiftKey === combo.shift && event.metaKey === combo.meta && (event.code === combo.code || event.key.toLowerCase() === combo.key)
   )
 }

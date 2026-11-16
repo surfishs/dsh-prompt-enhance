@@ -51,15 +51,21 @@ describe('route resolution helpers', () => {
     const legacy = fakeCtx({ settings: { get: () => ({ provider: 'legacy-p', model: 'legacy-m' }) } })
     expect(defaultRouteOf(legacy)).toEqual({ provider: 'legacy-p', model: 'legacy-m' })
 
-    const emptyModern = fakeCtx(
-      { settings: { get: () => ({ provider: 'legacy-p', model: 'legacy-m' }) } },
-      { agentDefaultModel: { currentSelection: () => undefined } },
-    )
+    const emptyModern = fakeCtx({ settings: { get: () => ({ provider: 'legacy-p', model: 'legacy-m' }) } }, { agentDefaultModel: { currentSelection: () => undefined } })
     expect(defaultRouteOf(emptyModern)).toEqual({ provider: 'legacy-p', model: 'legacy-m' })
   })
 
   it('survives an agentDefaultModel that throws', () => {
-    const ctx = fakeCtx({}, { agentDefaultModel: { currentSelection: () => { throw new Error('boom') } } })
+    const ctx = fakeCtx(
+      {},
+      {
+        agentDefaultModel: {
+          currentSelection: () => {
+            throw new Error('boom')
+          },
+        },
+      },
+    )
     expect(() => defaultRouteOf(ctx)).not.toThrow()
     expect(defaultRouteOf(ctx)).toBeUndefined()
   })
@@ -69,7 +75,7 @@ describe('route resolution helpers', () => {
   // what throws — so guarding only the call would still 502 every request.
   it('survives reading agentDefaultModel without inject', () => {
     const ctx = {
-      get: (key: string) => undefined,
+      get: (_key: string) => undefined,
       get agentDefaultModel(): never {
         throw new Error('cannot get property "agentDefaultModel" without inject')
       },
@@ -103,7 +109,15 @@ describe('route resolution helpers', () => {
   // signature change) must degrade to the default route instead of failing
   // the whole enhance request.
   it('degrades when the header method throws', () => {
-    const ctx = fakeCtx({ sessions: { get: () => ({ requestHeader: () => { throw new Error('boom') } }) } })
+    const ctx = fakeCtx({
+      sessions: {
+        get: () => ({
+          requestHeader: () => {
+            throw new Error('boom')
+          },
+        }),
+      },
+    })
     expect(sessionRouteOf(ctx, 's1')).toBeUndefined()
   })
 

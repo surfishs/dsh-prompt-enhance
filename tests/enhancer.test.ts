@@ -161,8 +161,7 @@ describe('enhanceText', () => {
 
   it('surfaces a rejected explicit effort instead of silently replacing it', async () => {
     const llm = stubLlm(() => refusalStream('low'))
-    await expect(enhanceText(llm, { ...baseOptions, reasoningEffort: 'low' }))
-      .rejects.toMatchObject({ detail: { code: 'effort-unsupported', params: { effort: 'low' } } })
+    await expect(enhanceText(llm, { ...baseOptions, reasoningEffort: 'low' })).rejects.toMatchObject({ detail: { code: 'effort-unsupported', params: { effort: 'low' } } })
     // The chosen tier never ran; replacing it with the provider default would
     // hide that from the user, so the call is not retried at all.
     expect(llm.calls).toHaveLength(1)
@@ -176,6 +175,10 @@ describe('enhanceText', () => {
   it('retries the same way when the refusal arrives as a thrown error', async () => {
     const llm = stubLlm((options) => {
       if (options.reasoningEffort !== undefined) {
+        // Deliberately a generator that throws before its first `yield`: it
+        // models an adapter that refuses the effort while opening the stream,
+        // which is exactly the shape `isEffortRejectionThrow` must recognise.
+        // eslint-disable-next-line require-yield
         return (async function* (): AsyncGenerator<StreamChunk> {
           throw Object.assign(new Error(`provider "agnes" model "agnes-2.5-flash" does not support reasoning effort "${options.reasoningEffort}"`), { code: 'UNSUPPORTED_REASONING_EFFORT' })
         })()
@@ -269,7 +272,10 @@ describe('toEnhanceError', () => {
 
   it('passes through structured details', async () => {
     try {
-      await enhanceText(stubLlm(() => textStream([], { reason: 'error', code: 'RATE_LIMIT', message: '429' })), baseOptions)
+      await enhanceText(
+        stubLlm(() => textStream([], { reason: 'error', code: 'RATE_LIMIT', message: '429' })),
+        baseOptions,
+      )
       expect.unreachable()
     } catch (error) {
       expect(toEnhanceError(error).code).toBe('upstream')

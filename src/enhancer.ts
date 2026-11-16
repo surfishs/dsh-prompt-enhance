@@ -163,8 +163,8 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
         // `inherit` deliberately leaves the field unset, for a route that
         // rejects an explicit effort; `ReasoningEffortId` is a brand over the
         // effort id, hence the cast.
-        ...effort === 'inherit' ? {} : { reasoningEffort: effort as NonNullable<GenerateOptions['reasoningEffort']> },
-        ...options.sessionId !== undefined ? { sessionId: options.sessionId as GenerateOptions['sessionId'] } : {},
+        ...(effort === 'inherit' ? {} : { reasoningEffort: effort as NonNullable<GenerateOptions['reasoningEffort']> }),
+        ...(options.sessionId !== undefined ? { sessionId: options.sessionId as GenerateOptions['sessionId'] } : {}),
       }
       const assembler = new BlockAssembler()
       const iterator = llm.stream(generate)[Symbol.asyncIterator]()
@@ -221,9 +221,7 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
     // One model call per attempt; the loop exists only for the single effort
     // downgrade below, so it can never spin more than twice.
     let retriedWithoutEffort = false
-    const readAttempt = async (): Promise<
-      { ok: true; blocks: ReturnType<BlockAssembler['blocks']>; usage: BlockAssembler['usage']; truncated: boolean } | { ok: false; detail: EnhanceError }
-    > => {
+    const readAttempt = async (): Promise<{ ok: true; blocks: ReturnType<BlockAssembler['blocks']>; usage: BlockAssembler['usage']; truncated: boolean } | { ok: false; detail: EnhanceError }> => {
       while (true) {
         let attempt: { assembler: BlockAssembler; exhausted: boolean }
         try {
@@ -292,28 +290,32 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
     if (blocks.some((block) => block.type === 'tool-call')) {
       fail({ code: 'upstream', params: { reason: 'tool-call' } })
     }
-    const joined = blocks.filter((block) => block.type === 'text').map((block) => block.text).join('\n')
+    const joined = blocks
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n')
     const text = normalizeOutput(joined)
     if (text === '') {
       fail({ code: 'upstream', params: { reason: 'empty' } })
     }
     const usage = outcome.usage
-    const reportedUsage = usage === undefined
-      ? undefined
-      : {
-          inputTokens: usage.inputTokens,
-          outputTokens: usage.outputTokens,
-          ...usage.totalTokens === undefined ? {} : { totalTokens: usage.totalTokens },
-          ...usage.cacheReadTokens === undefined ? {} : { cacheReadTokens: usage.cacheReadTokens },
-          ...usage.cacheWriteTokens === undefined ? {} : { cacheWriteTokens: usage.cacheWriteTokens },
-        }
+    const reportedUsage =
+      usage === undefined
+        ? undefined
+        : {
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
+            ...(usage.totalTokens === undefined ? {} : { totalTokens: usage.totalTokens }),
+            ...(usage.cacheReadTokens === undefined ? {} : { cacheReadTokens: usage.cacheReadTokens }),
+            ...(usage.cacheWriteTokens === undefined ? {} : { cacheWriteTokens: usage.cacheWriteTokens }),
+          }
     return {
       text,
       provider: options.route.provider,
       model: options.route.model,
       elapsedMs: Date.now() - started,
-      ...reportedUsage === undefined ? {} : { usage: reportedUsage },
-      ...outcome.truncated ? { truncated: true } : {},
+      ...(reportedUsage === undefined ? {} : { usage: reportedUsage }),
+      ...(outcome.truncated ? { truncated: true } : {}),
     }
   } catch (error) {
     if (error instanceof EnhanceFailure) throw error
@@ -353,15 +355,7 @@ function finishToDetail(reason: FinishReason): EnhanceError | undefined {
 }
 
 /** Stable upstream reasons the dictionaries and formatEnhanceError both know. */
-export type UpstreamReason =
-  | 'auth'
-  | 'invalid-credential'
-  | 'rate-limit'
-  | 'quota'
-  | 'empty'
-  | 'context-window'
-  | 'tool-call'
-  | 'max-tokens'
+export type UpstreamReason = 'auth' | 'invalid-credential' | 'rate-limit' | 'quota' | 'empty' | 'context-window' | 'tool-call' | 'max-tokens'
 
 /** Known provider failure codes with a dedicated fix hint; others stay generic. */
 const REASON_CODES: Record<string, UpstreamReason> = {
@@ -406,14 +400,29 @@ export function formatEnhanceError(error: EnhanceError): string {
   const params = error.params ?? {}
   let text: string
   switch (error.code) {
-    case 'rejected': text = '增强请求被拒绝。'; break
-    case 'rate-limit': text = `请求过于频繁：每分钟最多 ${params.limit ?? '?'} 次增强，请 ${params.retryAfterSeconds ?? '稍候'} 秒后再试。`; break
-    case 'concurrency-limit': text = `已有 ${params.max ?? '?'} 个增强在进行中，请等待其中一个完成后再试。`; break
-    case 'cooldown': text = `连续 ${params.failures ?? '?'} 次增强失败，已暂停调用以避免持续冲击模型服务；请 ${params.retryAfterSeconds ?? '?'} 秒后重试，或先检查插件设置中的模型配置。`; break
-    case 'timeout': text = `增强超时（${params.seconds ?? '?'} 秒），可重试；原输入未改动。`; break
-    case 'unconfigured': text = '尚未确定增强用的模型：请在插件设置中成对填写 provider/model，或先在当前会话发送一条消息（将跟随会话模型）。'; break
-    case 'upstream': text = typeof params.reason === 'string' ? (REASON_HINTS[params.reason as UpstreamReason] ?? '模型服务返回错误，请重试；原输入未改动。') : '模型服务返回错误，请重试；原输入未改动。'; break
-    default: text = '增强失败，请重试；原输入未改动。'
+    case 'rejected':
+      text = '增强请求被拒绝。'
+      break
+    case 'rate-limit':
+      text = `请求过于频繁：每分钟最多 ${params.limit ?? '?'} 次增强，请 ${params.retryAfterSeconds ?? '稍候'} 秒后再试。`
+      break
+    case 'concurrency-limit':
+      text = `已有 ${params.max ?? '?'} 个增强在进行中，请等待其中一个完成后再试。`
+      break
+    case 'cooldown':
+      text = `连续 ${params.failures ?? '?'} 次增强失败，已暂停调用以避免持续冲击模型服务；请 ${params.retryAfterSeconds ?? '?'} 秒后重试，或先检查插件设置中的模型配置。`
+      break
+    case 'timeout':
+      text = `增强超时（${params.seconds ?? '?'} 秒），可重试；原输入未改动。`
+      break
+    case 'unconfigured':
+      text = '尚未确定增强用的模型：请在插件设置中成对填写 provider/model，或先在当前会话发送一条消息（将跟随会话模型）。'
+      break
+    case 'upstream':
+      text = typeof params.reason === 'string' ? (REASON_HINTS[params.reason as UpstreamReason] ?? '模型服务返回错误，请重试；原输入未改动。') : '模型服务返回错误，请重试；原输入未改动。'
+      break
+    default:
+      text = '增强失败，请重试；原输入未改动。'
   }
   const detail = error.message
   if (detail !== undefined && detail !== '') return `${text}\n${detail}`

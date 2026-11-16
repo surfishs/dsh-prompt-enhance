@@ -37,13 +37,7 @@ export interface ReasoningEffortInfo {
 }
 
 /** Stable reason for an `unavailable` answer. */
-export type ReasoningReason =
-  | 'no-default-model'
-  | 'default-not-deepseek'
-  | 'llm-unavailable'
-  | 'no-efforts'
-  | 'timeout'
-  | 'resolve-failed'
+export type ReasoningReason = 'no-default-model' | 'default-not-deepseek' | 'llm-unavailable' | 'no-efforts' | 'timeout' | 'resolve-failed'
 
 /**
  * One capability answer.

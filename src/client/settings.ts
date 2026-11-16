@@ -70,9 +70,8 @@ export function decodeClientSettings(section: unknown): ClientSettings {
   if (record === null || typeof record !== 'object') return DEFAULT_CLIENT_SETTINGS
   return {
     enabled: typeof record.enabled === 'boolean' ? record.enabled : DEFAULT_CLIENT_SETTINGS.enabled,
-    maxInputChars: typeof record.maxInputChars === 'number' && Number.isFinite(record.maxInputChars) && record.maxInputChars > 0
-      ? Math.floor(record.maxInputChars)
-      : DEFAULT_CLIENT_SETTINGS.maxInputChars,
+    maxInputChars:
+      typeof record.maxInputChars === 'number' && Number.isFinite(record.maxInputChars) && record.maxInputChars > 0 ? Math.floor(record.maxInputChars) : DEFAULT_CLIENT_SETTINGS.maxInputChars,
     shortcut: typeof record.shortcut === 'string' ? record.shortcut : DEFAULT_CLIENT_SETTINGS.shortcut,
     streaming: typeof record.streaming === 'boolean' ? record.streaming : DEFAULT_CLIENT_SETTINGS.streaming,
   }

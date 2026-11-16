@@ -71,12 +71,6 @@ export function createStreamNormalizer(): StreamTextNormalizer {
     opened = true
   }
 
-  const stripTrailingFence = (): string => {
-    const rest = buffer.replace(/```[ \t]*$/, '')
-    buffer = ''
-    return rest
-  }
-
   return {
     push(chunk: string): string {
       buffer += chunk

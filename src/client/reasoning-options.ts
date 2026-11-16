@@ -19,7 +19,7 @@ function effortOf(value: unknown): ReasoningEffortInfo | undefined {
   return {
     id: record.id,
     name: record.name,
-    ...typeof record.description === 'string' && record.description !== '' ? { description: record.description } : {},
+    ...(typeof record.description === 'string' && record.description !== '' ? { description: record.description } : {}),
   }
 }
 
@@ -27,19 +27,15 @@ function effortOf(value: unknown): ReasoningEffortInfo | undefined {
 function capabilitiesOf(value: unknown): ReasoningCapabilities {
   if (value === null || typeof value !== 'object') return { efforts: [], source: 'unavailable', reason: 'resolve-failed' }
   const record = value as { efforts?: unknown; defaultEffort?: unknown; source?: unknown; reason?: unknown }
-  const source = record.source === 'resolved' || record.source === 'default' || record.source === 'unavailable'
-    ? record.source
-    : 'unavailable'
-  const efforts = Array.isArray(record.efforts)
-    ? record.efforts.map(effortOf).filter((effort): effort is ReasoningEffortInfo => effort !== undefined)
-    : []
-  const reason = typeof record.reason === 'string' ? record.reason as ReasoningCapabilities['reason'] : undefined
+  const source = record.source === 'resolved' || record.source === 'default' || record.source === 'unavailable' ? record.source : 'unavailable'
+  const efforts = Array.isArray(record.efforts) ? record.efforts.map(effortOf).filter((effort): effort is ReasoningEffortInfo => effort !== undefined) : []
+  const reason = typeof record.reason === 'string' ? (record.reason as ReasoningCapabilities['reason']) : undefined
   if (source !== 'unavailable' && efforts.length === 0) return { efforts: [], source: 'unavailable', reason: 'no-efforts' }
   return {
     efforts,
     source,
-    ...typeof record.defaultEffort === 'string' && record.defaultEffort !== '' ? { defaultEffort: record.defaultEffort } : {},
-    ...reason === undefined ? {} : { reason },
+    ...(typeof record.defaultEffort === 'string' && record.defaultEffort !== '' ? { defaultEffort: record.defaultEffort } : {}),
+    ...(reason === undefined ? {} : { reason }),
   }
 }
 
@@ -50,11 +46,7 @@ function capabilitiesOf(value: unknown): ReasoningCapabilities {
  * @param options - `refresh` bypasses the host cache; `signal` cancels.
  * @returns the validated answer; transport failures surface as `unavailable`.
  */
-export async function fetchReasoningCapabilities(
-  provider: string | undefined,
-  model: string | undefined,
-  options: { refresh?: boolean; signal?: AbortSignal } = {},
-): Promise<ReasoningCapabilities> {
+export async function fetchReasoningCapabilities(provider: string | undefined, model: string | undefined, options: { refresh?: boolean; signal?: AbortSignal } = {}): Promise<ReasoningCapabilities> {
   const url = new URL(REASONING_EFFORTS_ENDPOINT, globalThis.location?.origin ?? 'http://127.0.0.1')
   if (provider !== undefined && model !== undefined) {
     url.searchParams.set('provider', provider)

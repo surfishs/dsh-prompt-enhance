@@ -33,12 +33,7 @@ export const ENHANCE_STREAM_ENDPOINT = '/dsh-prompt-enhance/enhance-stream'
  * same list in the same order, so the host section and the browser mirror can
  * never resolve to two different documents.
  */
-export const PROMPT_ENHANCE_ROW_IDS: readonly string[] = [
-  'dsh-prompt-enhance',
-  'prompt-enhance',
-  'web-ui-dsh-prompt-enhance',
-  'web-ui-prompt-enhance',
-]
+export const PROMPT_ENHANCE_ROW_IDS: readonly string[] = ['dsh-prompt-enhance', 'prompt-enhance', 'web-ui-dsh-prompt-enhance', 'web-ui-prompt-enhance']
 
 /** Request body of one enhance call. */
 export interface EnhanceRequestBody {
@@ -92,16 +87,7 @@ export interface EnhanceResult {
  * a `Retry-After` in seconds with it), while the concurrency cap clears as
  * soon as an in-flight call finishes — no predictable delay to advertise.
  */
-export type EnhanceErrorCode =
-  | 'rejected'
-  | 'rate-limit'
-  | 'concurrency-limit'
-  | 'cooldown'
-  | 'timeout'
-  | 'upstream'
-  | 'unconfigured'
-  | 'internal'
-  | 'effort-unsupported'
+export type EnhanceErrorCode = 'rejected' | 'rate-limit' | 'concurrency-limit' | 'cooldown' | 'timeout' | 'upstream' | 'unconfigured' | 'internal' | 'effort-unsupported'
 
 /** Structured failure carried on every non-2xx / ok:false response. */
 export interface EnhanceError {
@@ -134,9 +120,7 @@ export interface EnhanceError {
 }
 
 /** Response envelope of the enhance route. */
-export type EnhanceResponse =
-  | { ok: true; value: EnhanceResult }
-  | { ok: false; error: EnhanceError }
+export type EnhanceResponse = { ok: true; value: EnhanceResult } | { ok: false; error: EnhanceError }
 
 /**
  * One SSE frame of the incremental route. `delta` carries newly displayable
@@ -144,7 +128,4 @@ export type EnhanceResponse =
  * carries the authoritative result — the SAME normalized body the one-shot
  * route returns — and `error` carries the structured failure.
  */
-export type EnhanceStreamEvent =
-  | { type: 'delta'; text: string }
-  | { type: 'done'; value: EnhanceResult }
-  | { type: 'error'; error: EnhanceError }
+export type EnhanceStreamEvent = { type: 'delta'; text: string } | { type: 'done'; value: EnhanceResult } | { type: 'error'; error: EnhanceError }

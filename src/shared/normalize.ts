@@ -22,7 +22,10 @@ export function normalizeOutput(raw: string): string {
   const fenceMarkCount = (text.match(/```/g) ?? []).length
   if (text.startsWith('```') && /```[\s]*$/.test(text) && fenceMarkCount === 2) {
     if (text.includes('\n')) {
-      text = text.slice(text.indexOf('\n') + 1).replace(/```[\s]*$/, '').trim()
+      text = text
+        .slice(text.indexOf('\n') + 1)
+        .replace(/```[\s]*$/, '')
+        .trim()
     } else {
       text = text.slice(3, -3).trim()
     }

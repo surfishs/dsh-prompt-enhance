@@ -48,34 +48,30 @@ afterEach(() => {
 
 describe('requestEnhanceStream: refusal handling', () => {
   it('surfaces a 429 envelope instead of resending the request', async () => {
-    const calls = stubFetch(() => new Response(
-      JSON.stringify({ ok: false, error: { code: 'rate-limit', params: { limit: 60 } } }),
-      { status: 429, headers: { 'content-type': 'application/json' } },
-    ))
+    const calls = stubFetch(() => new Response(JSON.stringify({ ok: false, error: { code: 'rate-limit', params: { limit: 60 } } }), { status: 429, headers: { 'content-type': 'application/json' } }))
 
-    await expect(requestEnhanceStream({ text: '写个爬虫' }, { onDelta: (): void => {} }))
-      .rejects.toMatchObject({ detail: { code: 'rate-limit', params: { limit: 60 } } })
+    await expect(requestEnhanceStream({ text: '写个爬虫' }, { onDelta: (): void => {} })).rejects.toMatchObject({ detail: { code: 'rate-limit', params: { limit: 60 } } })
     // One call, and to the stream endpoint: the refusal is not retried.
     expect(calls).toHaveLength(1)
     expect(calls[0]?.url).toBe(ENHANCE_STREAM_ENDPOINT)
   })
 
   it('keeps the cool-down reason a second attempt would have overwritten', async () => {
-    stubFetch(() => new Response(
-      JSON.stringify({ ok: false, error: { code: 'cooldown', params: { retryAfterSeconds: 30, failures: 3 } } }),
-      { status: 429, headers: { 'content-type': 'application/json' } },
-    ))
+    stubFetch(
+      () => new Response(JSON.stringify({ ok: false, error: { code: 'cooldown', params: { retryAfterSeconds: 30, failures: 3 } } }), { status: 429, headers: { 'content-type': 'application/json' } }),
+    )
 
-    await expect(requestEnhanceStream({ text: '写' }, { onDelta: (): void => {} }))
-      .rejects.toMatchObject({ detail: { code: 'cooldown' } })
+    await expect(requestEnhanceStream({ text: '写' }, { onDelta: (): void => {} })).rejects.toMatchObject({ detail: { code: 'cooldown' } })
   })
 
   it('still falls back to the one-shot route when a 200 is not a stream', async () => {
     // An older host without the stream route, or a proxy that buffered the
     // body: the transport is the problem, so the fallback is correct here.
-    const calls = stubFetch((url) => url === ENHANCE_STREAM_ENDPOINT
-      ? new Response(JSON.stringify(ONESHOT_OK), { status: 200, headers: { 'content-type': 'application/json' } })
-      : new Response(JSON.stringify(ONESHOT_OK), { status: 200, headers: { 'content-type': 'application/json' } }))
+    const calls = stubFetch((url) =>
+      url === ENHANCE_STREAM_ENDPOINT
+        ? new Response(JSON.stringify(ONESHOT_OK), { status: 200, headers: { 'content-type': 'application/json' } })
+        : new Response(JSON.stringify(ONESHOT_OK), { status: 200, headers: { 'content-type': 'application/json' } }),
+    )
 
     const result = await requestEnhanceStream({ text: '写个爬虫' }, { onDelta: (): void => {} })
     expect(result.text).toBe('增强后')

@@ -134,17 +134,33 @@ export const Config = z.object({
   provider: z.string().description('覆盖模型路由的 provider（与「模型」必须成对填写；留空跟随当前会话模型）').volatile(),
   model: z.string().description('覆盖模型路由的 model（与「provider」必须成对填写；留空跟随当前会话模型）').volatile(),
   temperature: z.number().min(0).max(1).step(0.05).default(DEFAULT_CONFIG.temperature).description('采样温度；低温改写更忠实于原意').volatile(),
-  reasoningEffort: z.string().default(DEFAULT_CONFIG.reasoningEffort).description('推理档位：填写当前 provider/model 声明的档位 id（如 DeepSeek 的 off/low/high/max）；inherit 表示不传该字段、跟随提供方默认档').volatile(),
+  reasoningEffort: z
+    .string()
+    .default(DEFAULT_CONFIG.reasoningEffort)
+    .description('推理档位：填写当前 provider/model 声明的档位 id（如 DeepSeek 的 off/low/high/max）；inherit 表示不传该字段、跟随提供方默认档')
+    .volatile(),
   maxOutputTokens: z.number().step(1).min(256).max(32768).default(DEFAULT_CONFIG.maxOutputTokens).description('单次增强的输出 token 上限').volatile(),
   maxInputChars: z.number().step(1).min(200).max(200000).default(DEFAULT_CONFIG.maxInputChars).description('输入字数上限；超限拒绝而不截断，避免改变原意').volatile(),
   timeoutMs: z.number().step(1).min(5000).max(600000).default(DEFAULT_CONFIG.timeoutMs).description('单次增强的超时（毫秒）').volatile(),
   systemPrompt: z.string().role('textarea').default(DEFAULT_CONFIG.systemPrompt).description('系统提示词；留空使用内置增强策略').volatile(),
-  strategyMode: z.union(['replace-default', 'extend-default']).default(DEFAULT_CONFIG.strategyMode).description('自定义系统提示词的组合方式：整体替换内置策略（默认；仅保留插件始终追加的最小输出契约：输入是数据、只输出改写结果），或把自定义文本追加在内置策略之后（内置规则继续生效）').volatile(),
-  shortcut: z.string().default(DEFAULT_CONFIG.shortcut).description('触发快捷键，默认留空即禁用；如需启用，填如 ctrl+alt+e（须包含 ctrl/alt/meta 中至少一个修饰键，shift 仅可作附加，纯字母/数字或 shift+字母会被忽略）').volatile(),
+  strategyMode: z
+    .union(['replace-default', 'extend-default'])
+    .default(DEFAULT_CONFIG.strategyMode)
+    .description('自定义系统提示词的组合方式：整体替换内置策略（默认；仅保留插件始终追加的最小输出契约：输入是数据、只输出改写结果），或把自定义文本追加在内置策略之后（内置规则继续生效）')
+    .volatile(),
+  shortcut: z
+    .string()
+    .default(DEFAULT_CONFIG.shortcut)
+    .description('触发快捷键，默认留空即禁用；如需启用，填如 ctrl+alt+e（须包含 ctrl/alt/meta 中至少一个修饰键，shift 仅可作附加，纯字母/数字或 shift+字母会被忽略）')
+    .volatile(),
   maxConcurrent: z.number().step(1).min(1).max(16).default(DEFAULT_CONFIG.maxConcurrent).description('宿主侧并发上限：同时进行的增强调用数，超出的请求返回 429').volatile(),
   rateLimitPerMinute: z.number().step(1).min(1).max(600).default(DEFAULT_CONFIG.rateLimitPerMinute).description('每分钟增强次数上限（滑动窗口），超出返回 429').volatile(),
   streaming: z.boolean().default(DEFAULT_CONFIG.streaming).description('增量展示：模型边写边在面板显示（仅影响显示节奏，最终结果不变；宿主或网络不支持时自动回退为一次性返回）').volatile(),
-  contextAware: z.boolean().default(DEFAULT_CONFIG.contextAware).description('上下文感知：读取当前会话近期对话，用于消解指代、补全省略与术语约束；无历史或历史不足时自动回退为单条增强，不臆造信息').volatile(),
+  contextAware: z
+    .boolean()
+    .default(DEFAULT_CONFIG.contextAware)
+    .description('上下文感知：读取当前会话近期对话，用于消解指代、补全省略与术语约束；无历史或历史不足时自动回退为单条增强，不臆造信息')
+    .volatile(),
   contextMaxMessages: z.number().step(1).min(0).max(50).default(DEFAULT_CONFIG.contextMaxMessages).description('上下文窗口（条数）：最多参考最近多少条 user/assistant 轮次；0 表示不参考').volatile(),
   contextMaxChars: z.number().step(1).min(0).max(100000).default(DEFAULT_CONFIG.contextMaxChars).description('上下文窗口（字数）：历史片段的字符预算，从最新一条向前装配；0 表示不参考').volatile(),
 })
@@ -253,8 +269,6 @@ export function resolveConfig(config: Config): Config {
 export function effectiveSystemPrompt(config: Config, builtin: string): string {
   const custom = (config.systemPrompt ?? '').trim()
   if (custom === '') return builtin
-  const strategy = config.strategyMode === 'extend-default'
-    ? `${builtin}\n\nOperator additions (follow them where they do not conflict with the rules above):\n${custom}`
-    : custom
+  const strategy = config.strategyMode === 'extend-default' ? `${builtin}\n\nOperator additions (follow them where they do not conflict with the rules above):\n${custom}` : custom
   return `${strategy}\n\n${INVARIANT_CONTRACT}`
 }

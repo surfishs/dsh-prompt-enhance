@@ -61,15 +61,12 @@ describe('ResultPanel upstream error copy', () => {
     cleanup()
   })
 
-  it.each(REASON_EXPECTATIONS.map(({ reason, specific }) => [reason, specific] as const))(
-    'renders the specific fix hint for reason %s',
-    (reason, specific) => {
-      const container = renderError({ code: 'upstream', params: { reason } })
-      expect(container.textContent).toContain(specific)
-      // The generic line must NOT be what the operator reads.
-      expect(container.textContent).not.toContain(zh['error.upstream'])
-    },
-  )
+  it.each(REASON_EXPECTATIONS.map(({ reason, specific }) => [reason, specific] as const))('renders the specific fix hint for reason %s', (reason, specific) => {
+    const container = renderError({ code: 'upstream', params: { reason } })
+    expect(container.textContent).toContain(specific)
+    // The generic line must NOT be what the operator reads.
+    expect(container.textContent).not.toContain(zh['error.upstream'])
+  })
 
   it('keeps every specific hint distinct from the generic line', () => {
     for (const { specific } of REASON_EXPECTATIONS) {
@@ -111,7 +108,11 @@ describe('locale parity for the upstream keys', () => {
   it('has the same upstream key set in both dictionaries', () => {
     const upstream = Object.keys(zh).filter((key) => key.startsWith('error.upstream.')) as PromptEnhanceKey[]
     // Eight reasons, each with dedicated copy — the count the panel table expects.
-    expect(upstream.sort()).toEqual(Object.keys(en).filter((key) => key.startsWith('error.upstream.')).sort())
+    expect(upstream.sort()).toEqual(
+      Object.keys(en)
+        .filter((key) => key.startsWith('error.upstream.'))
+        .sort(),
+    )
     expect(upstream.length).toBe(REASON_EXPECTATIONS.length)
   })
 })

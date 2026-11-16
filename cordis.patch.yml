@@ -12,4 +12,4 @@
 # panel, and the undo bar (conversation.input.dock).
 - insert:
     - id: dsh-prompt-enhance
-      name: "@surfishs/dsh-prompt-enhance"
+      name: '@surfishs/dsh-prompt-enhance'

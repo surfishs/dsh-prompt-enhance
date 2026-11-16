@@ -100,10 +100,23 @@ describe('resolveConfig', () => {
     expect(resolved).not.toHaveProperty('legacySetting')
     expect(resolved.enabled).toBe(DEFAULT_CONFIG.enabled)
     expect(Object.keys(resolved).sort()).toEqual([
-      'contextAware', 'contextMaxChars', 'contextMaxMessages', 'enabled',
-      'maxConcurrent', 'maxInputChars', 'maxOutputTokens', 'model',
-      'provider', 'rateLimitPerMinute', 'reasoningEffort',
-      'shortcut', 'strategyMode', 'streaming', 'systemPrompt', 'temperature', 'timeoutMs',
+      'contextAware',
+      'contextMaxChars',
+      'contextMaxMessages',
+      'enabled',
+      'maxConcurrent',
+      'maxInputChars',
+      'maxOutputTokens',
+      'model',
+      'provider',
+      'rateLimitPerMinute',
+      'reasoningEffort',
+      'shortcut',
+      'strategyMode',
+      'streaming',
+      'systemPrompt',
+      'temperature',
+      'timeoutMs',
     ])
   })
 

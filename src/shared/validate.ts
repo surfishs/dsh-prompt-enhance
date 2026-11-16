@@ -7,10 +7,7 @@
  */
 
 /** Verdict of one input check. */
-export type InputCheck =
-  | { ok: true }
-  | { ok: false; code: 'empty' }
-  | { ok: false; code: 'too-long'; count: number; max: number }
+export type InputCheck = { ok: true } | { ok: false; code: 'empty' } | { ok: false; code: 'too-long'; count: number; max: number }
 
 /**
  * Zero-width and bidi control code points stripped before emptiness checks.
@@ -24,10 +21,7 @@ export type InputCheck =
  * counts toward the cap (the cap is the user-facing "characters" count).
  */
 function isInvisibleCodePoint(cp: number): boolean {
-  return (cp >= 0x200B && cp <= 0x200D)
-    || cp === 0xFEFF
-    || (cp >= 0x202A && cp <= 0x202E)
-    || (cp >= 0x2066 && cp <= 0x2069)
+  return (cp >= 0x200b && cp <= 0x200d) || cp === 0xfeff || (cp >= 0x202a && cp <= 0x202e) || (cp >= 0x2066 && cp <= 0x2069)
 }
 
 /**

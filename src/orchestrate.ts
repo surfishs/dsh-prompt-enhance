@@ -33,16 +33,13 @@ interface EpochHeaderLike {
  * flip in either direction degrades to the other branch instead of a TypeError.
  */
 interface SessionsFace {
-  get(id: string): {
-    requestHeader?: (() => EpochHeaderLike | undefined) | EpochHeaderLike
-    /** The derived LLM message history; absent on hosts that never expose it. */
-    deriveMessages?: () => readonly unknown[]
-  } | undefined
-}
-
-/** Structural face of the settings provider for cross-namespace reads. */
-interface SettingsFace {
-  get(ns: string): unknown
+  get(id: string):
+    | {
+        requestHeader?: (() => EpochHeaderLike | undefined) | EpochHeaderLike
+        /** The derived LLM message history; absent on hosts that never expose it. */
+        deriveMessages?: () => readonly unknown[]
+      }
+    | undefined
 }
 
 /**
@@ -196,11 +193,7 @@ export function conversationContextOf(ctx: Context, sessionId: string | undefine
     // A session-layer hiccup must not turn one enhance request into a 502.
     return undefined
   }
-  return buildConversationContext(
-    messages,
-    { maxMessages: config.contextMaxMessages, maxChars: config.contextMaxChars },
-    draft,
-  )
+  return buildConversationContext(messages, { maxMessages: config.contextMaxMessages, maxChars: config.contextMaxChars }, draft)
 }
 
 /** One orchestration request. */
@@ -260,11 +253,16 @@ export async function effectiveReasoningEffort(llm: unknown, provider: string, m
       await writeCachedCapabilities(provider, model, [], undefined, true)
       return 'inherit'
     }
-    await writeCachedCapabilities(provider, model, reasoning.efforts.map((effort) => ({
-      id: effort.id,
-      name: effort.name,
-      ...effort.description === undefined ? {} : { description: effort.description },
-    })), reasoning.defaultEffort)
+    await writeCachedCapabilities(
+      provider,
+      model,
+      reasoning.efforts.map((effort) => ({
+        id: effort.id,
+        name: effort.name,
+        ...(effort.description === undefined ? {} : { description: effort.description }),
+      })),
+      reasoning.defaultEffort,
+    )
     return configured
   } catch {
     return configured
@@ -289,9 +287,7 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
     if (llm === undefined) {
       throw new EnhanceFailure({ code: 'internal' })
     }
-    const context = options.context !== undefined
-      ? options.context
-      : conversationContextOf(ctx, options.sessionId, config, options.text)
+    const context = options.context !== undefined ? options.context : conversationContextOf(ctx, options.sessionId, config, options.text)
     const effort = await effectiveReasoningEffort(llm, route.provider, route.model, config.reasoningEffort)
     const result = await enhanceText(llm, {
       route,

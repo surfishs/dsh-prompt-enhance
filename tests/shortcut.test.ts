@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { matchesShortcut, parseShortcut } from '../src/client/shortcut'
 
-const keydown = (fields: Partial<KeyboardEvent> & { key: string; code?: string }): KeyboardEvent =>
-  ({ ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...fields }) as KeyboardEvent
+const keydown = (fields: Partial<KeyboardEvent> & { key: string; code?: string }): KeyboardEvent => ({ ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...fields }) as KeyboardEvent
 
 describe('parseShortcut', () => {
   it('parses the default combo with case and space freedom', () => {

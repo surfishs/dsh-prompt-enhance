@@ -136,9 +136,7 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     // empty text (server-side only — the client guards it first) stays generic.
     writeJson(res, 422, {
       ok: false,
-      error: check.code === 'too-long'
-        ? { code: 'rejected', params: { count: check.count, max: check.max } }
-        : { code: 'rejected' },
+      error: check.code === 'too-long' ? { code: 'rejected', params: { count: check.count, max: check.max } } : { code: 'rejected' },
     })
     return
   }
@@ -209,7 +207,7 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
       text: record.text,
       sessionRoute: sessionRouteOf(ctx, sessionId),
       signal: callerAbort.signal,
-      ...sessionId !== undefined ? { sessionId } : {},
+      ...(sessionId !== undefined ? { sessionId } : {}),
     }
     if (stream) {
       // The stream already opens before the model call, so the client sees
@@ -334,9 +332,11 @@ const mounts = new WeakMap<Context, RouteMount>()
  */
 export function registerEnhanceRoute(ctx: Context, readConfig: () => Config): void {
   ctx.inject(['webServer'], (routeCtx: Context) => {
-    const webserver = routeCtx.get('webServer') as unknown as {
-      register(route: unknown): unknown
-    } | undefined
+    const webserver = routeCtx.get('webServer') as unknown as
+      | {
+          register(route: unknown): unknown
+        }
+      | undefined
     if (webserver === undefined) return
     const existing = mounts.get(ctx)
     // Already mounted on this very service (a second apply on a live fiber, or
@@ -370,7 +370,7 @@ export function registerEnhanceRoute(ctx: Context, readConfig: () => Config): vo
           return serveEnhance(ctx, readConfig, gate, pathname, req, res, pathname === ENHANCE_STREAM_ENDPOINT)
         },
       })
-      const disposed = typeof dispose === 'function' ? dispose as () => void : (): void => {}
+      const disposed = typeof dispose === 'function' ? (dispose as () => void) : (): void => {}
       mounts.set(ctx, { webserver, dispose: disposed })
       return (): void => {
         // Only the owner clears the record: after a service swap a newer mount

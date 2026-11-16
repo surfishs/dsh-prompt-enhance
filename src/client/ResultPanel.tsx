@@ -71,11 +71,7 @@ export const UPSTREAM_ERROR_KEYS: Record<string, PromptEnhanceKey> = {
  * client-side guard shows. The server's `message` (provider raw text, config
  * errors) renders beneath as the diagnostic detail line.
  */
-function localizedErrorMessage(
-  t: ResultPanelProps['t'],
-  code: EnhanceError['code'],
-  params: EnhanceError['params'],
-): string {
+function localizedErrorMessage(t: ResultPanelProps['t'], code: EnhanceError['code'], params: EnhanceError['params']): string {
   if (code === 'rejected' && typeof params?.count === 'number' && typeof params?.max === 'number') {
     return t('error.tooLong', { count: params.count, max: params.max })
   }
@@ -84,15 +80,24 @@ function localizedErrorMessage(
     if (specific !== undefined) return t(specific)
   }
   switch (code) {
-    case 'rejected': return t('error.rejected')
-    case 'rate-limit': return t('error.rateLimit', params)
-    case 'concurrency-limit': return t('error.concurrencyLimit', params)
-    case 'cooldown': return t('error.cooldown', params)
-    case 'timeout': return t('error.timeout', params)
-    case 'unconfigured': return t('error.unconfigured')
-    case 'effort-unsupported': return t('error.effortUnsupported', params)
-    case 'upstream': return t('error.upstream')
-    default: return t('error.internal')
+    case 'rejected':
+      return t('error.rejected')
+    case 'rate-limit':
+      return t('error.rateLimit', params)
+    case 'concurrency-limit':
+      return t('error.concurrencyLimit', params)
+    case 'cooldown':
+      return t('error.cooldown', params)
+    case 'timeout':
+      return t('error.timeout', params)
+    case 'unconfigured':
+      return t('error.unconfigured')
+    case 'effort-unsupported':
+      return t('error.effortUnsupported', params)
+    case 'upstream':
+      return t('error.upstream')
+    default:
+      return t('error.internal')
   }
 }
 
@@ -146,7 +151,10 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
     // navigator.clipboard only exists in secure contexts (https / localhost);
     // guard the dereference and fall back for plain-http LAN access.
     if (navigator.clipboard !== undefined) {
-      navigator.clipboard.writeText(text).then(() => done(true), () => done(fallbackCopy(text)))
+      navigator.clipboard.writeText(text).then(
+        () => done(true),
+        () => done(fallbackCopy(text)),
+      )
       return
     }
     done(fallbackCopy(text))
@@ -160,10 +168,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
    * without explicit cache writes does not print a meaningless 0.
    */
   const tokenDetail = (usage: EnhanceUsage): string => {
-    const parts = [
-      t('panel.tokens.input', { count: formatTokens(usage.inputTokens) }),
-      t('panel.tokens.output', { count: formatTokens(usage.outputTokens) }),
-    ]
+    const parts = [t('panel.tokens.input', { count: formatTokens(usage.inputTokens) }), t('panel.tokens.output', { count: formatTokens(usage.outputTokens) })]
     if ((usage.cacheReadTokens ?? 0) > 0) {
       parts.push(t('panel.tokens.cacheRead', { count: formatTokens(usage.cacheReadTokens ?? 0) }))
     }
@@ -184,28 +189,26 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
           {state.phase === 'result' && state.result !== undefined && (
             <span className="dsh-pe-badge">
               {t('panel.model', { provider: state.result.provider, model: state.result.model })} · {t('panel.elapsed', { ms: formatMs(state.result.elapsedMs) })}
-              {state.result.usage === undefined
-                ? null
-                : (
-                    <>
-                      {' · '}
-                      <span title={tokenDetail(state.result.usage)}>
-                        {t('panel.tokens', { total: formatTokens(totalTokensOf(state.result.usage)) })}
-                      </span>
-                    </>
-                  )}
+              {state.result.usage === undefined ? null : (
+                <>
+                  {' · '}
+                  <span title={tokenDetail(state.result.usage)}>{t('panel.tokens', { total: formatTokens(totalTokensOf(state.result.usage)) })}</span>
+                </>
+              )}
             </span>
           )}
-          {copied === 'ok'
-            ? <span className="dsh-pe-applied">{t('panel.copiedShort')}</span>
-            : regenerated
-              ? <span className="dsh-pe-applied">{t('panel.regeneratedShort')}</span>
-              : applied
-                ? <span className="dsh-pe-applied">{t('panel.appliedShort')}</span>
-                : undone
-                  ? <span className="dsh-pe-applied">{t('panel.undoneShort')}</span>
-                  : null}
-          <button type="button" className="dsh-pe-close" aria-label={t('panel.close')} onClick={onCancel}>✕</button>
+          {copied === 'ok' ? (
+            <span className="dsh-pe-applied">{t('panel.copiedShort')}</span>
+          ) : regenerated ? (
+            <span className="dsh-pe-applied">{t('panel.regeneratedShort')}</span>
+          ) : applied ? (
+            <span className="dsh-pe-applied">{t('panel.appliedShort')}</span>
+          ) : undone ? (
+            <span className="dsh-pe-applied">{t('panel.undoneShort')}</span>
+          ) : null}
+          <button type="button" className="dsh-pe-close" aria-label={t('panel.close')} onClick={onCancel}>
+            ✕
+          </button>
         </div>
       </header>
 
@@ -236,9 +239,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
           ) : (
             <>
               <div>{localizedErrorMessage(t, state.error.code, state.error.params)}</div>
-              {state.error.message !== undefined && state.error.message !== '' && (
-                <div className="dsh-pe-error-detail">{state.error.message}</div>
-              )}
+              {state.error.message !== undefined && state.error.message !== '' && <div className="dsh-pe-error-detail">{state.error.message}</div>}
             </>
           )}
         </div>
@@ -250,13 +251,9 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         </div>
       )}
 
-      {state.phase === 'result' && state.result?.truncated === true && (
-        <div className="dsh-pe-stale">⚠ {t('panel.truncated')}</div>
-      )}
+      {state.phase === 'result' && state.result?.truncated === true && <div className="dsh-pe-stale">⚠ {t('panel.truncated')}</div>}
 
-      {state.phase === 'result' && state.stale && (
-        <div className="dsh-pe-stale">⚠ {t('panel.stale.warn')}</div>
-      )}
+      {state.phase === 'result' && state.stale && <div className="dsh-pe-stale">⚠ {t('panel.stale.warn')}</div>}
 
       <footer className="dsh-pe-foot">
         <span className="dsh-pe-grow" />
@@ -269,12 +266,16 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         {state.phase === 'error' && (
           <>
             {retryable(state.error?.code) && onRetry !== undefined && (
-              <button type="button" className="dsh-pe-btn-action plain" onClick={onRetry}>{t('panel.retry')}</button>
+              <button type="button" className="dsh-pe-btn-action plain" onClick={onRetry}>
+                {t('panel.retry')}
+              </button>
             )}
           </>
         )}
         {state.phase === 'loading' && (
-          <button type="button" className="dsh-pe-btn-action plain" onClick={onCancel}>{t('panel.cancel')}</button>
+          <button type="button" className="dsh-pe-btn-action plain" onClick={onCancel}>
+            {t('panel.cancel')}
+          </button>
         )}
         {state.phase === 'result' && (
           <>
@@ -288,7 +289,10 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
                 {t('undo.undo')}
               </button>
             ) : (
-              <button type="button" className="dsh-pe-btn-action primary" onClick={onApply}><FillIcon />{t('panel.apply')}</button>
+              <button type="button" className="dsh-pe-btn-action primary" onClick={onApply}>
+                <FillIcon />
+                {t('panel.apply')}
+              </button>
             )}
           </>
         )}

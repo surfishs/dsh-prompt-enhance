@@ -113,7 +113,13 @@ function mount(llm: ReturnType<typeof makeLlm>, config = CONFIG): Server {
 }
 
 /** One request against the test server. */
-async function call(server: Server, method: string, body?: string, path = '/dsh-prompt-enhance/enhance', extraHeaders: Record<string, string> = {}): Promise<{ status: number; json: unknown; headers: Headers }> {
+async function call(
+  server: Server,
+  method: string,
+  body?: string,
+  path = '/dsh-prompt-enhance/enhance',
+  extraHeaders: Record<string, string> = {},
+): Promise<{ status: number; json: unknown; headers: Headers }> {
   const { port } = server.address() as AddressInfo
   const response = await fetch(`http://127.0.0.1:${port}${path}`, {
     method,
@@ -271,7 +277,10 @@ describe('POST /dsh-prompt-enhance/enhance failure mapping (real http)', () => {
   })
 
   it('refuses calls while disabled with 403', async () => {
-    const server = mount(makeLlm(() => streamOf([], [{ type: 'finish', reason: { kind: 'stop' } }])), { ...CONFIG, enabled: false })
+    const server = mount(
+      makeLlm(() => streamOf([], [{ type: 'finish', reason: { kind: 'stop' } }])),
+      { ...CONFIG, enabled: false },
+    )
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     try {
       const { status } = await call(server, 'POST', JSON.stringify({ text: '写个脚本' }))
@@ -286,25 +295,28 @@ describe('POST /dsh-prompt-enhance/enhance disconnect handling (real sockets)', 
   it('aborts the model call when the client disconnects mid-flight', async () => {
     const seen: boolean[] = []
     let capturedSignal: AbortSignal | undefined
-    const server = mount({
-      stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
-        capturedSignal = options.signal
-        return {
-          [Symbol.asyncIterator]: () => ({
-            async next(): Promise<IteratorResult<StreamChunk>> {
-              await new Promise((resolve) => setTimeout(resolve, 120))
-              seen.push(capturedSignal?.aborted ?? false)
-              if (capturedSignal?.aborted) {
-                const error = new Error('aborted')
-                error.name = 'AbortError'
-                throw error
-              }
-              return { done: false, value: { type: 'text-delta', index: 0, text: 'x' } }
-            },
-          }),
-        }
-      },
-    } as never, { ...CONFIG })
+    const server = mount(
+      {
+        stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+          capturedSignal = options.signal
+          return {
+            [Symbol.asyncIterator]: () => ({
+              async next(): Promise<IteratorResult<StreamChunk>> {
+                await new Promise((resolve) => setTimeout(resolve, 120))
+                seen.push(capturedSignal?.aborted ?? false)
+                if (capturedSignal?.aborted) {
+                  const error = new Error('aborted')
+                  error.name = 'AbortError'
+                  throw error
+                }
+                return { done: false, value: { type: 'text-delta', index: 0, text: 'x' } }
+              },
+            }),
+          }
+        },
+      } as never,
+      { ...CONFIG },
+    )
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     const { port } = server.address() as AddressInfo
     const net = await import('node:net')
@@ -331,12 +343,15 @@ describe('POST /dsh-prompt-enhance/enhance disconnect handling (real sockets)', 
       [Symbol.asyncIterator]: () => ({ next: (): Promise<never> => new Promise(() => {}) }),
     })
     let calls = 0
-    const server = mount({
-      stream: (): AsyncIterable<StreamChunk> => {
-        calls += 1
-        return calls === 1 ? stall() : streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])
-      },
-    } as never, { ...CONFIG, maxConcurrent: 1 })
+    const server = mount(
+      {
+        stream: (): AsyncIterable<StreamChunk> => {
+          calls += 1
+          return calls === 1 ? stall() : streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])
+        },
+      } as never,
+      { ...CONFIG, maxConcurrent: 1 },
+    )
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     const { port } = server.address() as AddressInfo
     const net = await import('node:net')
@@ -413,7 +428,10 @@ describe('admission gate: Origin / rate / concurrency', () => {
   })
 
   it('answers 429 when the per-minute rate cap is hit', async () => {
-    const server = mount(makeLlm(() => streamOf(['x'], [{ type: 'finish', reason: { kind: 'stop' } }])), { ...CONFIG, rateLimitPerMinute: 1 })
+    const server = mount(
+      makeLlm(() => streamOf(['x'], [{ type: 'finish', reason: { kind: 'stop' } }])),
+      { ...CONFIG, rateLimitPerMinute: 1 },
+    )
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     try {
       const first = await call(server, 'POST', JSON.stringify({ text: '第一个' }))
@@ -436,14 +454,17 @@ describe('admission gate: Origin / rate / concurrency', () => {
     // only slot, or a run of upstream errors would rate-limit the user right
     // when the model recovers.
     let calls = 0
-    const server = mount({
-      stream: (): AsyncIterable<StreamChunk> => {
-        calls += 1
-        return calls === 1
-          ? streamOf([], [{ type: 'finish', reason: { kind: 'error', failure: { message: 'boom', code: 'INTERNAL' } } }])
-          : streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])
-      },
-    } as never, { ...CONFIG, rateLimitPerMinute: 1 })
+    const server = mount(
+      {
+        stream: (): AsyncIterable<StreamChunk> => {
+          calls += 1
+          return calls === 1
+            ? streamOf([], [{ type: 'finish', reason: { kind: 'error', failure: { message: 'boom', code: 'INTERNAL' } } }])
+            : streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])
+        },
+      } as never,
+      { ...CONFIG, rateLimitPerMinute: 1 },
+    )
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     try {
       const first = await call(server, 'POST', JSON.stringify({ text: '失败' }))
@@ -512,14 +533,15 @@ describe('admission gate: Origin / rate / concurrency', () => {
 
   it('answers 429 when the concurrency cap is full', async () => {
     let release!: () => void
-    const gated = new Promise<void>((resolve) => { release = resolve })
-    const gatedStream = (): AsyncIterable<StreamChunk> => (
+    const gated = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const gatedStream = (): AsyncIterable<StreamChunk> =>
       (async function* (): AsyncGenerator<StreamChunk> {
         await gated
         yield { type: 'text-delta', index: 0, text: 'x' }
         yield { type: 'finish', reason: { kind: 'stop' } }
       })()
-    )
     const server = mount({ stream: () => gatedStream() } as never, { ...CONFIG, maxConcurrent: 1 })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     try {
@@ -576,7 +598,9 @@ describe('POST /dsh-prompt-enhance/enhance-stream (real http, SSE)', () => {
         body += decoder.decode(value, { stream: true })
       }
     } finally {
-      void Promise.resolve().then(() => reader.cancel()).catch(() => {})
+      void Promise.resolve()
+        .then(() => reader.cancel())
+        .catch(() => {})
     }
     return { status: response.status, contentType: response.headers.get('content-type') ?? '', body }
   }
@@ -647,13 +671,12 @@ describe('POST /dsh-prompt-enhance/enhance-stream (real http, SSE)', () => {
     // acts on the frame and cancels) but a whole-body reader never survives.
     // If the close goes missing again, reading this body never finishes and
     // the 2 s abort in `callStream` turns the gap into a failure here.
-    const failing = makeLlm(
-      () =>
-        (async function* (): AsyncGenerator<StreamChunk> {
-          yield { type: 'block-start', index: 0, blockType: 'text' }
-          yield { type: 'text-delta', index: 0, text: '半句' }
-          throw new Error('upstream reset')
-        })(),
+    const failing = makeLlm(() =>
+      (async function* (): AsyncGenerator<StreamChunk> {
+        yield { type: 'block-start', index: 0, blockType: 'text' }
+        yield { type: 'text-delta', index: 0, text: '半句' }
+        throw new Error('upstream reset')
+      })(),
     )
     const server = mount(failing)
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
@@ -710,7 +733,12 @@ describe('route registration', () => {
     // plugin alive with no route on the live service: the button renders and
     // every click 404s. The registration follows the service identity instead.
     const captured: CapturedRoute[] = []
-    let active = { register: (route: CapturedRoute): (() => void) => { captured.push(route); return () => {} } }
+    let active = {
+      register: (route: CapturedRoute): (() => void) => {
+        captured.push(route)
+        return () => {}
+      },
+    }
     const ctx: Record<string, unknown> = {
       effect(fn: () => unknown): () => void {
         fn()
@@ -730,7 +758,12 @@ describe('route registration', () => {
     expect(captured).toHaveLength(1)
 
     const stale = active
-    active = { register: (route: CapturedRoute): (() => void) => { captured.push(route); return () => {} } }
+    active = {
+      register: (route: CapturedRoute): (() => void) => {
+        captured.push(route)
+        return () => {}
+      },
+    }
     apply(ctx as never, CONFIG)
     expect(captured).toHaveLength(2)
     expect(active).not.toBe(stale)
