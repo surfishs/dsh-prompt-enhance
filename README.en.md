@@ -14,7 +14,7 @@
 
 ## Features
 
-| | |
+| Feature | What it does |
 |---|---|
 | 🐟 **One-click enhance** | The composer toolbar button (the DeepSeek fish mark whose upper-left corner carries a sparkle); the shortcut is off by default and can be set in the settings |
 | 🖼️ **Docked result card** | The result appears above the composer without covering the conversation, with the model, timing and `token` usage; a truncated result is marked as possibly incomplete |
