@@ -1155,12 +1155,46 @@ function SettingsRows(props: {
       return
     }
     savedValues.current.set(key, text)
+    markSaved()
+  }
+
+  const markSaved = (): void => {
     setSaveState('saved')
     if (savedTimer.current !== undefined) clearTimeout(savedTimer.current)
     savedTimer.current = setTimeout(() => {
       setSaveState('idle')
       savedTimer.current = undefined
     }, 2000)
+  }
+
+  const manualSave = async (): Promise<void> => {
+    if (props.writeField === undefined) {
+      // Hosts without per-field writes keep the original whole-form action.
+      props.save?.()
+      markSaved()
+      return
+    }
+    const changed = ROWS
+      .map((row) => ({ key: row.key, text: viewOf(props.state, row.key).text }))
+      .filter((item) => savedValues.current.get(item.key) !== item.text)
+    if (changed.length === 0) {
+      markSaved()
+      return
+    }
+    const ticket = ++sequence.current
+    setSaveState('saving')
+    let failed = false
+    let invalid = false
+    for (const item of changed) {
+      const result = await props.writeField(item.key, item.text)
+      if (result === 'saved') savedValues.current.set(item.key, item.text)
+      else if (result === 'failed') failed = true
+      else invalid = true
+    }
+    if (ticket !== sequence.current) return
+    if (failed) setSaveState('failed')
+    else if (invalid && changed.every((item) => savedValues.current.get(item.key) !== item.text)) setSaveState('idle')
+    else markSaved()
   }
 
   const scheduleSave = (key: string, text: string, immediate: boolean): void => {
@@ -1240,7 +1274,7 @@ function SettingsRows(props: {
           type="button"
           className="dsh-pe-save-button"
           disabled={props.save === undefined || props.state.writable === false}
-          onClick={props.save}
+          onClick={() => { void manualSave() }}
         >
           {props.copy.labels.save}
         </button>
