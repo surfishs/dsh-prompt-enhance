@@ -18,7 +18,7 @@ name: Publish
 on:
   push:
     tags: ['v*']
-  # Publishes a tag that already exists, e.g. v0.3.0 pushed before the trusted
+  # Publishes a tag that already exists, e.g. one pushed before the trusted
   # publisher was configured, and retries a run that died mid-publish.
   workflow_dispatch:
 

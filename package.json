@@ -80,7 +80,7 @@
     "src",
     "cordis.patch.yml",
     "locale/*.json",
-    "docs",
+    "docs/images/**",
     "README.md",
     "README.en.md"
   ],
