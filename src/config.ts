@@ -8,6 +8,7 @@
 import z from '@deepseek-ai/schemastery'
 import { INVARIANT_CONTRACT } from './prompts'
 import { DEFAULT_VALUES } from './shared/defaults'
+import { FIELD_LIMITS, TEMPERATURE, type NumericRange } from './shared/limits'
 
 /** Settings namespace of the plugin section. */
 export const PROMPT_ENHANCE_NAMESPACE = 'dsh-prompt-enhance'
@@ -133,15 +134,29 @@ export const Config = z.object({
   enabled: z.boolean().default(DEFAULT_CONFIG.enabled).description('总开关：关闭后隐藏输入框增强按钮并停用所有触发方式').volatile(),
   provider: z.string().description('覆盖模型路由的 provider（与「模型」必须成对填写；留空跟随当前会话模型）').volatile(),
   model: z.string().description('覆盖模型路由的 model（与「provider」必须成对填写；留空跟随当前会话模型）').volatile(),
-  temperature: z.number().min(0).max(1).step(0.05).default(DEFAULT_CONFIG.temperature).description('采样温度；低温改写更忠实于原意').volatile(),
+  temperature: z.number().min(TEMPERATURE.min).max(TEMPERATURE.max).step(TEMPERATURE.step).default(DEFAULT_CONFIG.temperature).description('采样温度；低温改写更忠实于原意').volatile(),
   reasoningEffort: z
     .string()
     .default(DEFAULT_CONFIG.reasoningEffort)
     .description('推理档位：填写当前 provider/model 声明的档位 id（如 DeepSeek 的 off/low/high/max）；inherit 表示不传该字段、跟随提供方默认档')
     .volatile(),
-  maxOutputTokens: z.number().step(1).min(256).max(32768).default(DEFAULT_CONFIG.maxOutputTokens).description('单次增强的输出 token 上限').volatile(),
-  maxInputChars: z.number().step(1).min(200).max(200000).default(DEFAULT_CONFIG.maxInputChars).description('输入字数上限；超限拒绝而不截断，避免改变原意').volatile(),
-  timeoutMs: z.number().step(1).min(5000).max(600000).default(DEFAULT_CONFIG.timeoutMs).description('单次增强的超时（毫秒）').volatile(),
+  maxOutputTokens: z
+    .number()
+    .step(1)
+    .min(FIELD_LIMITS.maxOutputTokens.min)
+    .max(FIELD_LIMITS.maxOutputTokens.max)
+    .default(DEFAULT_CONFIG.maxOutputTokens)
+    .description('单次增强的输出 token 上限')
+    .volatile(),
+  maxInputChars: z
+    .number()
+    .step(1)
+    .min(FIELD_LIMITS.maxInputChars.min)
+    .max(FIELD_LIMITS.maxInputChars.max)
+    .default(DEFAULT_CONFIG.maxInputChars)
+    .description('输入字数上限；超限拒绝而不截断，避免改变原意')
+    .volatile(),
+  timeoutMs: z.number().step(1).min(FIELD_LIMITS.timeoutMs.min).max(FIELD_LIMITS.timeoutMs.max).default(DEFAULT_CONFIG.timeoutMs).description('单次增强的超时（毫秒）').volatile(),
   systemPrompt: z.string().role('textarea').default(DEFAULT_CONFIG.systemPrompt).description('系统提示词；留空使用内置增强策略').volatile(),
   strategyMode: z
     .union(['replace-default', 'extend-default'])
@@ -153,16 +168,44 @@ export const Config = z.object({
     .default(DEFAULT_CONFIG.shortcut)
     .description('触发快捷键，默认留空即禁用；如需启用，填如 ctrl+alt+e（须包含 ctrl/alt/meta 中至少一个修饰键，shift 仅可作附加，纯字母/数字或 shift+字母会被忽略）')
     .volatile(),
-  maxConcurrent: z.number().step(1).min(1).max(16).default(DEFAULT_CONFIG.maxConcurrent).description('宿主侧并发上限：同时进行的增强调用数，超出的请求返回 429').volatile(),
-  rateLimitPerMinute: z.number().step(1).min(1).max(600).default(DEFAULT_CONFIG.rateLimitPerMinute).description('每分钟增强次数上限（滑动窗口），超出返回 429').volatile(),
+  maxConcurrent: z
+    .number()
+    .step(1)
+    .min(FIELD_LIMITS.maxConcurrent.min)
+    .max(FIELD_LIMITS.maxConcurrent.max)
+    .default(DEFAULT_CONFIG.maxConcurrent)
+    .description('宿主侧并发上限：同时进行的增强调用数，超出的请求返回 429')
+    .volatile(),
+  rateLimitPerMinute: z
+    .number()
+    .step(1)
+    .min(FIELD_LIMITS.rateLimitPerMinute.min)
+    .max(FIELD_LIMITS.rateLimitPerMinute.max)
+    .default(DEFAULT_CONFIG.rateLimitPerMinute)
+    .description('每分钟增强次数上限（滑动窗口），超出返回 429')
+    .volatile(),
   streaming: z.boolean().default(DEFAULT_CONFIG.streaming).description('增量展示：模型边写边在面板显示（仅影响显示节奏，最终结果不变；宿主或网络不支持时自动回退为一次性返回）').volatile(),
   contextAware: z
     .boolean()
     .default(DEFAULT_CONFIG.contextAware)
     .description('上下文感知：读取当前会话近期对话，用于消解指代、补全省略与术语约束；无历史或历史不足时自动回退为单条增强，不臆造信息')
     .volatile(),
-  contextMaxMessages: z.number().step(1).min(0).max(50).default(DEFAULT_CONFIG.contextMaxMessages).description('上下文窗口（条数）：最多参考最近多少条 user/assistant 轮次；0 表示不参考').volatile(),
-  contextMaxChars: z.number().step(1).min(0).max(100000).default(DEFAULT_CONFIG.contextMaxChars).description('上下文窗口（字数）：历史片段的字符预算，从最新一条向前装配；0 表示不参考').volatile(),
+  contextMaxMessages: z
+    .number()
+    .step(1)
+    .min(FIELD_LIMITS.contextMaxMessages.min)
+    .max(FIELD_LIMITS.contextMaxMessages.max)
+    .default(DEFAULT_CONFIG.contextMaxMessages)
+    .description('上下文窗口（条数）：最多参考最近多少条 user/assistant 轮次；0 表示不参考')
+    .volatile(),
+  contextMaxChars: z
+    .number()
+    .step(1)
+    .min(FIELD_LIMITS.contextMaxChars.min)
+    .max(FIELD_LIMITS.contextMaxChars.max)
+    .default(DEFAULT_CONFIG.contextMaxChars)
+    .description('上下文窗口（字数）：历史片段的字符预算，从最新一条向前装配；0 表示不参考')
+    .volatile(),
 })
 
 /**
@@ -208,8 +251,8 @@ export function resolveConfig(config: Config): Config {
     throw new Error('dsh-prompt-enhance: provider/model 覆盖必须是非空字符串')
   }
   const temperature = config.temperature
-  if (typeof temperature !== 'number' || !Number.isFinite(temperature) || temperature < 0 || temperature > 1) {
-    throw new Error('dsh-prompt-enhance: temperature 必须是 0–1 之间的有限数字')
+  if (typeof temperature !== 'number' || !Number.isFinite(temperature) || temperature < TEMPERATURE.min || temperature > TEMPERATURE.max) {
+    throw new Error(`dsh-prompt-enhance: temperature 必须是 ${TEMPERATURE.min}–${TEMPERATURE.max} 之间的有限数字`)
   }
   // Whitespace-only is "absent", not "set": the explicit pair is definitionally
   // non-empty, so a blank override strips away as `undefined` rather than
@@ -219,9 +262,9 @@ export function resolveConfig(config: Config): Config {
     const trimmed = value.trim()
     return trimmed === '' ? undefined : trimmed
   }
-  const intInRange = (value: unknown, name: string, min: number, max: number): number => {
-    if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
-      throw new Error(`dsh-prompt-enhance: ${name} 必须是 ${min}–${max} 之间的整数`)
+  const intInRange = (value: unknown, name: string, range: NumericRange): number => {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < range.min || value > range.max) {
+      throw new Error(`dsh-prompt-enhance: ${name} 必须是 ${range.min}–${range.max} 之间的整数`)
     }
     return value
   }
@@ -235,21 +278,21 @@ export function resolveConfig(config: Config): Config {
     // does not declare is rejected by the adapter with a clear error rather
     // than silently replaced.
     reasoningEffort: resolveReasoningEffort(config.reasoningEffort),
-    maxOutputTokens: intInRange(config.maxOutputTokens, 'maxOutputTokens', 256, 32768),
-    maxInputChars: intInRange(config.maxInputChars, 'maxInputChars', 200, 200000),
-    timeoutMs: intInRange(config.timeoutMs, 'timeoutMs', 5000, 600000),
+    maxOutputTokens: intInRange(config.maxOutputTokens, 'maxOutputTokens', FIELD_LIMITS.maxOutputTokens),
+    maxInputChars: intInRange(config.maxInputChars, 'maxInputChars', FIELD_LIMITS.maxInputChars),
+    timeoutMs: intInRange(config.timeoutMs, 'timeoutMs', FIELD_LIMITS.timeoutMs),
     systemPrompt: typeof config.systemPrompt === 'string' ? config.systemPrompt : '',
     // Tolerate absent or hand-edited values: anything but the extend literal
     // means replace, so stored sections from earlier versions keep exactly
     // the behavior they were saved under.
     strategyMode: config.strategyMode === 'extend-default' ? 'extend-default' : 'replace-default',
     shortcut: typeof config.shortcut === 'string' ? config.shortcut : '',
-    maxConcurrent: intInRange(config.maxConcurrent, 'maxConcurrent', 1, 16),
-    rateLimitPerMinute: intInRange(config.rateLimitPerMinute, 'rateLimitPerMinute', 1, 600),
+    maxConcurrent: intInRange(config.maxConcurrent, 'maxConcurrent', FIELD_LIMITS.maxConcurrent),
+    rateLimitPerMinute: intInRange(config.rateLimitPerMinute, 'rateLimitPerMinute', FIELD_LIMITS.rateLimitPerMinute),
     streaming: typeof config.streaming === 'boolean' ? config.streaming : DEFAULT_CONFIG.streaming,
     contextAware: typeof config.contextAware === 'boolean' ? config.contextAware : DEFAULT_CONFIG.contextAware,
-    contextMaxMessages: intInRange(config.contextMaxMessages, 'contextMaxMessages', 0, 50),
-    contextMaxChars: intInRange(config.contextMaxChars, 'contextMaxChars', 0, 100000),
+    contextMaxMessages: intInRange(config.contextMaxMessages, 'contextMaxMessages', FIELD_LIMITS.contextMaxMessages),
+    contextMaxChars: intInRange(config.contextMaxChars, 'contextMaxChars', FIELD_LIMITS.contextMaxChars),
   }
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Config, DEFAULT_CONFIG, effectiveSystemPrompt, resolveConfig } from '../src/config'
 import { DEFAULT_SYSTEM_PROMPT, INVARIANT_CONTRACT } from '../src/prompts'
+import { FIELD_LIMITS, TEMPERATURE } from '../src/shared/limits'
 
 describe('Config schema', () => {
   it('marks every field volatile so the settings page exists at all', () => {
@@ -195,5 +196,35 @@ describe('effectiveSystemPrompt', () => {
 
   it('falls back to the built-in strategy when the override is blank in either mode', () => {
     expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, strategyMode: 'extend-default' }, DEFAULT_SYSTEM_PROMPT)).toBe(DEFAULT_SYSTEM_PROMPT)
+  })
+})
+
+describe('field limits', () => {
+  // The schema and the request path share one set of bounds. These assertions
+  // are what keep them shared: schemastery takes the numbers at runtime, so a
+  // regression here would silently widen (or narrow) one layer only — and the
+  // visible symptom would be a value the page accepts but every call rejects.
+  it('projects the shared bounds into the schema, field by field', () => {
+    const fields = Config.dict ?? {}
+    for (const [key, range] of Object.entries(FIELD_LIMITS)) {
+      const meta = (fields[key] as { meta?: { min?: number; max?: number } } | undefined)?.meta
+      expect(meta?.min, `${key}.min`).toBe(range.min)
+      expect(meta?.max, `${key}.max`).toBe(range.max)
+    }
+  })
+
+  it('projects the temperature range and step the same way', () => {
+    const meta = (Config.dict?.temperature as { meta?: { min?: number; max?: number; step?: number } } | undefined)?.meta
+    expect(meta?.min).toBe(TEMPERATURE.min)
+    expect(meta?.max).toBe(TEMPERATURE.max)
+    expect(meta?.step).toBe(TEMPERATURE.step)
+  })
+
+  it('rejects every value just outside the shared bounds', () => {
+    for (const [key, range] of Object.entries(FIELD_LIMITS)) {
+      expect(() => resolveConfig({ ...DEFAULT_CONFIG, [key]: range.max + 1 } as typeof DEFAULT_CONFIG), `${key} above max`).toThrow(new RegExp(key))
+      expect(() => resolveConfig({ ...DEFAULT_CONFIG, [key]: range.min - 1 } as typeof DEFAULT_CONFIG), `${key} below min`).toThrow(new RegExp(key))
+    }
+    expect(() => resolveConfig({ ...DEFAULT_CONFIG, temperature: TEMPERATURE.max + 0.5 })).toThrow(/temperature/)
   })
 })
