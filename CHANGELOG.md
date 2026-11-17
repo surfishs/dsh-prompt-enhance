@@ -3,6 +3,23 @@
 All notable changes to this project are documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [0.0.9] - 2026-11-17
+
+### Added
+
+- Add the plugin icon `icon.svg`, exported as `./icon` and listed in `files`, so the plugin row shows the whale-and-sparkle mark instead of the panel default artwork.
+
+### Changed
+
+- Fill 94% of the icon canvas and centre the mark on its ink mass, so the row icon matches the size of its neighbours without drifting to the lower right.
+- Draw the composer mark with a larger star placed further out of the whale's silhouette, normalised into the 26x20 glyph box so the button keeps its size.
+
+### Removed
+
+- Remove `src/client/SparkleIcon.tsx`, the two-star sparkle nothing has imported since the composer switched to the fish mark.
+
+[0.0.9]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.8...v0.0.9
+
 ## [0.0.8] - 2026-11-16
 
 ### Added
@@ -158,4 +175,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.0.1]: https://github.com/surfishs/dsh-prompt-enhance/commits/v0.0.1
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.7...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.9...HEAD
