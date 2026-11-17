@@ -367,3 +367,32 @@ describe('enhanceText delta backpressure', () => {
     expect(seen).toEqual(['A', 'B'])
   })
 })
+
+describe('host LLM module availability', () => {
+  it('fails the call, not the plugin load, when the host supplies no dsh-llm', async () => {
+    // `@deepseek-ai/dsh-llm` is an OPTIONAL peer: npm never installs it into the
+    // profile, the host supplies it. A top-level value import made a host
+    // without the module unable to LOAD this plugin at all — the opposite of
+    // what an optional peer promises. Loaded lazily, the absence has to surface
+    // as one failed call with a readable detail.
+    vi.resetModules()
+    vi.doMock('@deepseek-ai/dsh-llm', () => {
+      throw new Error('Cannot find package @deepseek-ai/dsh-llm')
+    })
+    try {
+      const fresh = await import('../src/enhancer')
+      const failure = await fresh
+        .enhanceText(
+          stubLlm(() => textStream(['x'], { reason: 'stop' })),
+          baseOptions,
+        )
+        .catch((error: unknown) => error)
+      expect(failure).toBeInstanceOf(fresh.EnhanceFailure)
+      expect((failure as { detail: { code: string } }).detail.code).toBe('internal')
+      expect((failure as { detail: { message?: string } }).detail.message).toContain('harness LLM module unavailable')
+    } finally {
+      vi.doUnmock('@deepseek-ai/dsh-llm')
+      vi.resetModules()
+    }
+  })
+})

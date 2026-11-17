@@ -6,8 +6,7 @@
  * @module dsh-prompt-enhance/enhancer
  */
 
-import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, FinishReason, StreamChunk } from '@deepseek-ai/dsh-llm'
+import type { BlockAssembler, FinishReason, GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { EnhanceError, EnhanceResult } from './shared/protocol'
 import { normalizeOutput } from './shared/normalize'
 import { frameUserPrompt } from './prompts'
@@ -27,6 +26,30 @@ declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
     'dsh-prompt-enhance': { kind: 'dsh-prompt-enhance' }
   }
+}
+
+/** The host's LLM module namespace, imported lazily (see {@link loadLlmRuntime}). */
+type LlmRuntimeModule = typeof import('@deepseek-ai/dsh-llm')
+
+/** Cached lazy import, so the module is resolved once per process. */
+let llmRuntimePromise: Promise<LlmRuntimeModule> | undefined
+
+/**
+ * Load the harness LLM module on first use.
+ *
+ * `@deepseek-ai/dsh-llm` is a HOST-supplied module, declared as an OPTIONAL
+ * peer on purpose: npm must not install it into the profile, because the host
+ * resolves it from its own tree and a profile copy would be a different
+ * instance than the adapter that produces the stream chunks. A top-level value
+ * import broke that contract in the other direction — a host without the module
+ * failed to LOAD this plugin instead of failing one call, which is exactly what
+ * "optional peer" says must not happen. Imported lazily, the absence surfaces
+ * as an ordinary enhancement error and every other surface keeps working.
+ * @returns the module namespace, cached for the process lifetime.
+ */
+function loadLlmRuntime(): Promise<LlmRuntimeModule> {
+  llmRuntimePromise ??= import('@deepseek-ai/dsh-llm')
+  return llmRuntimePromise
 }
 
 /** Structural LLM face so tests stub the stream without a Cordis runtime. */
@@ -137,8 +160,18 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
   }
   try {
     signal.throwIfAborted()
+    let runtime: LlmRuntimeModule
+    try {
+      runtime = await loadLlmRuntime()
+    } catch (error) {
+      // The optional peer is absent on this host: fail THIS call with a
+      // readable detail, instead of having failed to load the plugin at all.
+      return fail({ code: 'internal', message: `harness LLM module unavailable: ${describe(error)}` })
+    }
+    const createMessage = runtime.createUserMessage
+    const BlockAssemblerClass = runtime.BlockAssembler
     const messages = [
-      createUserMessage({
+      createMessage({
         content: [{ type: 'text', text: frameUserPrompt(options.text, options.context) }],
         source: { kind: 'dsh-prompt-enhance' },
       }),
@@ -168,7 +201,7 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
         ...(effort === 'inherit' ? {} : { reasoningEffort: effort as NonNullable<GenerateOptions['reasoningEffort']> }),
         ...(options.sessionId !== undefined ? { sessionId: options.sessionId as GenerateOptions['sessionId'] } : {}),
       }
-      const assembler = new BlockAssembler()
+      const assembler = new BlockAssemblerClass()
       const iterator = llm.stream(generate)[Symbol.asyncIterator]()
       // Race the iteration against the deadline: an adapter that stalls without
       // yielding must still hit the timeout (per-chunk checks alone would hang).
