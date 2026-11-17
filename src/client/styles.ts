@@ -1,9 +1,14 @@
 /**
  * Self-contained stylesheet, injected once as a <style> element: the plugin
  * ships no CSS build step, and class names are prefixed to stay collision
- * free inside the web shell. Colors are declared as panel-scoped variables
- * with a dark default and a light `prefers-color-scheme` override, so the
- * panel follows the OS/shell theme without depending on host theme internals.
+ * free inside the web shell.
+ *
+ * Colors resolve from the shell's own theme tokens (`--dsw-alias-*`) so the
+ * panel follows the application's light/dark switch. The literals after each
+ * comma are fallbacks for a host that exposes no tokens; `prefers-color-scheme`
+ * is deliberately NOT used, because the OS preference and the app's theme can
+ * disagree — that mismatch is exactly what left the panel dark inside a light
+ * shell.
  * @module dsh-prompt-enhance/client/styles
  */
 
@@ -14,16 +19,19 @@ export const CSS = `
 .dsh-pe-dock { width: 100%; }
 .dsh-pe-panel {
   box-sizing: border-box;
-  --pe-bg: #1f2127;
-  --pe-fg: #e6e8ee;
-  --pe-fg-dim: rgba(230, 232, 238, 0.55);
-  --pe-border: rgba(127, 127, 127, 0.35);
-  --pe-separator: rgba(127, 127, 127, 0.25);
+  --pe-bg: var(--dsw-alias-bg-layer-1, #1f2127);
+  --pe-fg: var(--dsw-alias-label-primary, #e6e8ee);
+  --pe-fg-dim: var(--dsw-alias-label-secondary, rgba(230, 232, 238, 0.55));
+  --pe-border: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.35));
+  --pe-separator: var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.25));
+  /* No hover token exists: a neutral grey alpha is already theme-agnostic. */
   --pe-hover: rgba(127, 127, 127, 0.18);
-  --pe-danger: #ffb4a8;
-  --pe-warn-fg: #e8c07d;
-  --pe-warn-border: rgba(230, 158, 60, 0.35);
-  --pe-warn-bg: rgba(230, 158, 60, 0.12);
+  --pe-danger: var(--dsw-alias-state-error-primary, #ffb4a8);
+  --pe-warn-fg: var(--dsw-alias-state-warn-primary, #e8c07d);
+  /* Tints of the themed warning color, so the banner cannot keep an amber cast
+     from the other scheme. */
+  --pe-warn-border: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #e8c07d) 35%, transparent);
+  --pe-warn-bg: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #e8c07d) 12%, transparent);
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -34,20 +42,6 @@ export const CSS = `
   color: var(--pe-fg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 14px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-}
-@media (prefers-color-scheme: light) {
-  .dsh-pe-panel {
-    --pe-bg: #ffffff;
-    --pe-fg: #1c1e24;
-    --pe-fg-dim: rgba(28, 30, 36, 0.55);
-    --pe-border: rgba(0, 0, 0, 0.18);
-    --pe-separator: rgba(0, 0, 0, 0.12);
-    --pe-hover: rgba(0, 0, 0, 0.08);
-    --pe-danger: #a63a2e;
-    --pe-warn-fg: #8a5a00;
-    --pe-warn-border: rgba(176, 122, 0, 0.4);
-    --pe-warn-bg: rgba(230, 158, 60, 0.15);
-  }
 }
 .dsh-pe-head {
   display: flex;
@@ -140,7 +134,7 @@ export const CSS = `
 .dsh-pe-spin.small { width: 11px; height: 11px; border-width: 1px; }
 .dsh-pe-spin {
   width: 22px; height: 22px; border-radius: 50%;
-  border: 2px solid var(--pe-separator); border-top-color: #6ea8ff;
+  border: 2px solid var(--pe-separator); border-top-color: var(--dsw-alias-brand-primary, #6ea8ff);
   animation: dsh-pe-spin 0.9s linear infinite;
 }
 .dsh-pe-foot {
@@ -171,10 +165,10 @@ export const CSS = `
 .dsh-pe-btn-action.primary {
   min-width: 112px;
   border-color: transparent;
-  background: #3f76e1;
+  background: var(--dsw-alias-brand-primary, #3f76e1);
   color: #fff;
 }
-.dsh-pe-btn-action.primary:hover { background: #4d82ec; }
+.dsh-pe-btn-action.primary:hover { background: color-mix(in srgb, var(--dsw-alias-brand-primary, #3f76e1) 86%, #ffffff); }
 .dsh-pe-btn-action.plain { background: transparent; color: inherit; }
 .dsh-pe-btn-action.plain:hover { background: var(--pe-hover); }
 .dsh-pe-btn-action.dsh-pe-copy { min-width: 96px; }
