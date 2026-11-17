@@ -20,7 +20,8 @@
     "./package.json": "./package.json",
     "./locale/en.json": "./locale/en.json",
     "./locale/zh.json": "./locale/zh.json",
-    "./locale/*.json": "./locale/*.json"
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
   },
   "dsh": {
     "engines": {
@@ -85,6 +86,7 @@
     "src",
     "cordis.patch.yml",
     "locale/*.json",
+    "icon.svg",
     "docs/images/**",
     "README.md",
     "README.en.md"
