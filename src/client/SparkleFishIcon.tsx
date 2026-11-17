@@ -1,9 +1,16 @@
 /**
- * The composer mark: the DeepSeek fish with a four-point sparkle tucked into
- * its upper-left corner. The fish is the brand path used by the Harness
- * bundles; the star is the NovelAI-style enhance mark. Both are painted with
- * currentColor so the icon follows the button's label color, and the busy
- * state pulses the whole mark instead of swapping glyphs.
+ * The composer mark: the DeepSeek fish with a four-point sparkle at its
+ * upper-left corner. The fish is the brand path used by the Harness bundles; the
+ * star is the NovelAI-style enhance mark. Both are painted with currentColor so
+ * the icon follows the button's label color, and the busy state pulses the whole
+ * mark instead of swapping glyphs.
+ *
+ * The arrangement is the one approved for the plugin icon: the star is larger and
+ * sits further outside the whale, so the two shapes stop crowding each other.
+ * `icon.svg` draws the same arrangement at 1.2027, bounding-box centred, so its
+ * ink fills 94% of that 36-unit canvas; here the pair is scaled to 0.835 and
+ * shifted so the glyph keeps the 26x20 footprint and margins it had before,
+ * which is what keeps the button the same size. Change one, change the other.
  * @module dsh-prompt-enhance/client/SparkleFishIcon
  */
 
@@ -16,15 +23,23 @@ const FISH_PATH =
 /** A four-point star, used at the fish's upper-left corner. */
 const STAR_PATH = 'M5.715 0 L7.2 4.2 L11.43 5.715 L7.2 7.2 L5.715 11.43 L4.2 7.2 L0 5.715 L4.2 4.2 Z'
 
+/**
+ * Placement of the two paths inside the 26x20 glyph box, derived from the
+ * approved A+C arrangement by a single 0.834684 scale plus the offset that keeps
+ * the ink box at its previous 1.20..24.68 x 0.81..17.74 position.
+ */
+const FISH_TRANSFORM = 'translate(6.4976 4.3528) scale(0.78502)'
+const STAR_TRANSFORM = 'translate(1.1944 0.7969) scale(0.60097)'
+
 /** A fish-plus-sparkle mark sized to its container. */
 export function SparkleFishIcon(props: { size?: number; spinning?: boolean }): ReactElement {
   const size = props.size ?? 15
   return (
     <svg width={size * 1.3} height={size} viewBox="0 0 26 20" fill="none" aria-hidden="true" focusable="false" style={{ display: 'block', flexShrink: 0 }}>
-      <g transform="translate(5,3) scale(0.85)">
+      <g transform={FISH_TRANSFORM}>
         <path d={FISH_PATH} fill="currentColor" />
       </g>
-      <path d={STAR_PATH} transform="translate(1.2,0.8) scale(0.55)" fill="currentColor" />
+      <path d={STAR_PATH} transform={STAR_TRANSFORM} fill="currentColor" />
       {props.spinning === true ? <animate attributeName="opacity" values="1;0.35;1" dur="1.1s" repeatCount="indefinite" /> : null}
     </svg>
   )
