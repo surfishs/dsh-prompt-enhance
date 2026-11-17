@@ -24,24 +24,30 @@ import { useSessionKey, serverSessionId } from './session-key'
 /** Props of the input.right entry: the InputZone owner share + session kit + locale seat. */
 export type EnhanceButtonProps = PropsRuntime<'conversation.input.right'> & PropsLocale<'dsh-prompt-enhance'>
 
+/** Sentinel of {@link occurrenceCountOf} for a host that exposes no chip view. */
+const OCCURRENCES_UNKNOWN = -1
+
 /**
- * Read the length of an optional array-shaped field out of the host's input
- * state.
+ * Read the composer's reference-chip count, or {@link OCCURRENCES_UNKNOWN} when
+ * the host state cannot answer.
  *
- * Attachment ids are part of the conversation input snapshot in the dsh lines
- * this plugin targets, but the field was RENAMED between generations
- * (`imageIds` on the 0.1.x line, `attachmentIds` from 0.2.0 on) and a slot host
- * is not obliged to expose either. Reading `.length` off a missing field throws
- * *during render* — which React answers by unmounting the whole slot entry
- * behind its error boundary, so the composer loses the button and the console
- * fills with a stack trace instead of a usable feature. Reading defensively
- * turns an absent or malformed field into "no such count", which only disables
- * the corresponding advisory guard; the enhancement itself still runs.
+ * Why this is not a plain `Array.isArray(x) ? x.length : 0`: applying a result
+ * happens through `inputActions.setDraft`, which replaces the editor document
+ * with plain text. A command or file-reference chip is not text, so that write
+ * destroys it — irreversibly, and with no undo entry covering the chip. "The
+ * host did not tell us" is therefore not the same answer as "there are none":
+ * the guard below fails CLOSED on it.
+ *
+ * Reading `.length` off a missing field was the original bug class here: it
+ * threw DURING RENDER and React unmounted the whole slot entry behind its error
+ * boundary. This reader keeps the defensive shape (never throws, never assumes
+ * a type) but hands the uncertainty to the guard instead of silently answering
+ * "zero".
  * @param value - the untrusted field.
- * @returns the array length, or 0 when the field is absent/not an array.
+ * @returns the chip count, or {@link OCCURRENCES_UNKNOWN} when unreadable.
  */
-function countOf(value: unknown): number {
-  return Array.isArray(value) ? value.length : 0
+function occurrenceCountOf(value: unknown): number {
+  return Array.isArray(value) ? value.length : OCCURRENCES_UNKNOWN
 }
 
 /**
@@ -65,7 +71,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   const wireId = serverSessionId(sessionId)
   const draft = useInput((state: InputState) => stringOf((state as { draft?: unknown }).draft))
   const phase = useInput((state: InputState) => (state as { phase?: unknown }).phase)
-  const occurrenceCount = useInput((state: InputState) => countOf((state as { occurrences?: unknown }).occurrences))
+  const occurrenceCount = useInput((state: InputState) => occurrenceCountOf((state as { occurrences?: unknown }).occurrences))
   const settings = useSyncExternalStore(subscribeClientSettings, getClientSettings)
   const panel = useSyncExternalStore(ui.subscribe, ui.getPanel)
   const rootRef = useRef<HTMLButtonElement | null>(null)
@@ -98,6 +104,15 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       if (!check.ok) {
         const message = check.code === 'empty' ? t('error.empty') : t('error.tooLong', { count: check.count, max: check.max })
         ui.openError(uiKey, source, { code: 'rejected', localized: message })
+        return
+      }
+      // Fail CLOSED on an unreadable chip view (see occurrenceCountOf): the
+      // fill-back writes plain text over the editor document, so a chip we
+      // cannot see is a chip we would destroy. Refusing is recoverable; the
+      // destroyed reference is not.
+      if (occurrenceCount === OCCURRENCES_UNKNOWN) {
+        const unknown = t('error.chipsUnknown')
+        ui.openError(uiKey, source, { code: 'rejected', localized: unknown })
         return
       }
       if (occurrenceCount > 0) {

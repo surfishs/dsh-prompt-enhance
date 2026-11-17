@@ -187,6 +187,18 @@ describe('EnhanceButton guard chain', () => {
     expect(screen.getByText(zh['error.occurrences'])).toBeTruthy()
   })
 
+  it('fails closed when the host exposes no reference-chip view', () => {
+    // Fill-back writes plain text over the editor document, so a chip the plugin
+    // cannot see is a chip it would destroy — irreversibly. "Unknown" must not
+    // read as "none": the guard refuses and says why, instead of applying.
+    const input = makeFakeInput({ draft: '文本', occurrences: undefined as never })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    fireEvent.click(enhanceButton())
+    expect(screen.getByText(zh['error.chipsUnknown'])).toBeTruthy()
+    expect(requestEnhance).not.toHaveBeenCalled()
+    expect(requestEnhanceStream).not.toHaveBeenCalled()
+  })
+
   // Regression: attachment ids / `occurrences` are part of the input snapshot
   // in the dsh lines this plugin targets, but a slot host need not expose them.
   // Reading `.length` off a missing field throws DURING RENDER, and React
@@ -208,7 +220,8 @@ describe('EnhanceButton guard chain', () => {
         </>,
       )
     }).not.toThrow()
-    // The button is on screen and none of the advisory guards misfired.
+    // The button is on screen and no guard fired during render. A click in this
+    // state refuses (fail-closed) — asserted by the chip-view test above.
     expect(enhanceButton()).toBeTruthy()
     expect(screen.queryByText(zh['error.attachmentsOnly'])).toBeNull()
     expect(screen.queryByText(zh['error.occurrences'])).toBeNull()

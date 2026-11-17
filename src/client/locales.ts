@@ -44,6 +44,7 @@ export const zh = {
   'error.tooLong': '内容共 {count} 个字符，超过 {max} 个字符上限（按 Unicode 字符数统计，不是 token 数）。为避免改变原意不会自动截断，请精简后再试。',
   'error.attachmentsOnly': '输入框只附加了附件（图片或文件），请补充要增强的文本。',
   'error.occurrences': '输入内容包含命令或文件引用，暂不支持增强；请先移除后再试。',
+  'error.chipsUnknown': '无法读取输入框的引用状态（宿主未提供引用信息）。为避免覆盖已添加的命令或文件引用，本次增强已阻止；请清空输入框后输入纯文本草稿，或升级 DSH 后重试。',
   'error.phase': '当前输入正被占用（提交中），请稍后再试。',
   'error.disabled': '提示词增强已在插件设置中关闭。',
   'error.rejected': '增强请求被拒绝。',
@@ -195,6 +196,8 @@ export const en: Record<PromptEnhanceKey, string> = {
   'error.tooLong': 'The draft is {count} characters, above the {max} cap (Unicode characters, not tokens). It is never auto-truncated (that would change your meaning) — please shorten it.',
   'error.attachmentsOnly': 'The composer only has attachments; add the text you want enhanced.',
   'error.occurrences': 'The draft contains commands or file references, which are not supported yet — remove them first.',
+  'error.chipsUnknown':
+    'The composer reference state could not be read on this host, so the enhancement was blocked to avoid overwriting a command or file reference. Clear the input box and type plain text, or update DSH, then retry.',
   'error.phase': 'The input box is busy (submitting) — try again in a moment.',
   'error.disabled': 'Prompt enhance is disabled in the plugin settings.',
   'error.rejected': 'The enhance request was rejected.',
