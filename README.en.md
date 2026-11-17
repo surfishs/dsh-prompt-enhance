@@ -12,6 +12,16 @@
 
 ---
 
+## Why you need it
+
+A prompt is rarely the hard part; shaping it for a model to execute is: the role (who the assistant plays), the deliverable (what it must hand over), the output format (structure, language, length, style), and the acceptance criteria (how to tell the result is right).
+
+This plugin adds a Prompt enhance button to the composer; clicking it calls your harness LLM service to produce a properly structured prompt.
+
+The enhanced result appears above the composer without covering the conversation; it does not replace the original text by itself — fill it back, copy it, regenerate it, or undo it, and the original stays safe.
+
+With context awareness on, it also reads the last few turns to resolve pronouns and works out what you need on its own.
+
 ## Feature overview
 
 | Feature | What it does |
