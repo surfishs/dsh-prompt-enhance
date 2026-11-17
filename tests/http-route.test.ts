@@ -241,6 +241,65 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     expect(status).toBe(413)
   })
 
+  it('answers 413 for an oversized chunked body, where no Content-Length can be checked', async () => {
+    // The streamed cap inside readBoundedJson is the only line of defense when
+    // the body is chunked: the fast reject needs a Content-Length to fire.
+    //
+    // This used to be an *unverified* suspicion — that throwing out of the
+    // `for await` would close the async iterator, destroy the request and take
+    // the response socket with it, so the 413 would never arrive. Measured on
+    // Node v24.21.0 it does arrive: `req.destroy()` ends the request stream and
+    // marks it aborted, but the socket survives long enough for the response.
+    // The test therefore guards the behavior that is actually true, and would
+    // fail the day a reader change really does lose the 413.
+    const net = await import('node:net')
+    const maxInputChars = 200 // the configured floor: cap = 200 * 6 + 4096 bytes
+    const capped = mount(
+      makeLlm(() => streamOf(['x'], [{ type: 'finish', reason: { kind: 'stop' } }])),
+      { ...CONFIG, maxInputChars },
+    )
+    await new Promise<void>((resolve) => capped.listen(0, '127.0.0.1', resolve))
+    const { port } = capped.address() as AddressInfo
+    try {
+      const answer = await new Promise<string>((resolve) => {
+        let received = ''
+        let settled = false
+        const finish = (): void => {
+          if (settled) return
+          settled = true
+          socket.destroy()
+          resolve(received)
+        }
+        const socket = net.connect({ port, host: '127.0.0.1' }, () => {
+          socket.write('POST /dsh-prompt-enhance/enhance HTTP/1.1\r\nhost: 127.0.0.1\r\ncontent-type: application/json\r\ntransfer-encoding: chunked\r\n\r\n')
+          const piece = 'x'.repeat(1024)
+          for (let sent = 0; sent <= maxInputChars * 6 + 8192; sent += piece.length) {
+            socket.write(`${piece.length.toString(16)}\r\n${piece}\r\n`)
+          }
+        })
+        socket.setEncoding('utf8')
+        socket.on('data', (chunk: string) => {
+          received += chunk
+          // The status and the envelope are what matters; the server may keep
+          // the half-consumed request's connection open, so waiting for a close
+          // here would hang on a correct answer.
+          if (received.includes('"code":"rejected"')) finish()
+        })
+        socket.on('error', finish)
+        socket.on('close', finish)
+        setTimeout(finish, 2000)
+      })
+      expect(answer).toContain('HTTP/1.1 413')
+      expect(answer).toContain('"code":"rejected"')
+    } finally {
+      // The half-consumed request leaves the connection open by design (the
+      // session is the caller's, not the route's); close it so this suite does
+      // not wait on a keep-alive socket it never receives a FIN for.
+      capped.closeAllConnections()
+      await new Promise<void>((resolve) => capped.close(() => resolve()))
+    }
+  })
+
   it('answers 404 for unknown subpaths under the prefix', async () => {
     const { status } = await call(server, 'POST', JSON.stringify({ text: '写个脚本' }), '/dsh-prompt-enhance/anything')
     expect(status).toBe(404)
