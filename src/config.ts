@@ -229,10 +229,14 @@ function resolveReasoningEffort(value: unknown): ReasoningEffortChoice {
 /**
  * Validate and detach one resolved config. Unknown keys (leftovers from older
  * versions) are stripped — only the schema-known fields survive. The loader
- * fills schema defaults before apply; this re-checks the invariants the
- * schema cannot express (provider/model pairing, non-empty route strings) so
- * a bad stored section fails loud at the boundary instead of inside a model
- * call.
+ * fills schema defaults before apply; this re-checks the invariants the schema
+ * cannot express (boolean types, numeric ranges) so a bad stored section fails
+ * loud at the boundary instead of inside a model call.
+ *
+ * The provider/model pair is the one deliberate exception: an incomplete
+ * override is not corruption but the state the settings page creates on every
+ * visit (each field saves as it changes), so it resolves to "no override" —
+ * the documented follow-session fallback — rather than throwing.
  * @param config - untrusted resolved section.
  * @returns the validated config, unknown keys removed.
  * @throws Error describing the first violated invariant.
@@ -240,27 +244,29 @@ function resolveReasoningEffort(value: unknown): ReasoningEffortChoice {
 export function resolveConfig(config: Config): Config {
   if (config === null || typeof config !== 'object') throw new Error('dsh-prompt-enhance: configuration is required')
   if (typeof config.enabled !== 'boolean') throw new Error('dsh-prompt-enhance: enabled 必须是布尔值')
-  const hasProvider = config.provider !== undefined && config.provider !== ''
-  const hasModel = config.model !== undefined && config.model !== ''
-  if (hasProvider !== hasModel) {
-    throw new Error('dsh-prompt-enhance: provider 与 model 必须成对填写（要么都填，要么都留空以跟随当前会话模型）')
-  }
-  const provider = hasProvider ? (config.provider ?? '').trim() : config.provider
-  const model = hasModel ? (config.model ?? '').trim() : config.model
-  if ((hasProvider && provider === '') || (hasModel && model === '')) {
-    throw new Error('dsh-prompt-enhance: provider/model 覆盖必须是非空字符串')
-  }
-  const temperature = config.temperature
-  if (typeof temperature !== 'number' || !Number.isFinite(temperature) || temperature < TEMPERATURE.min || temperature > TEMPERATURE.max) {
-    throw new Error(`dsh-prompt-enhance: temperature 必须是 ${TEMPERATURE.min}–${TEMPERATURE.max} 之间的有限数字`)
-  }
   // Whitespace-only is "absent", not "set": the explicit pair is definitionally
   // non-empty, so a blank override strips away as `undefined` rather than
   // surviving as `''` and reading as "an override exists" downstream.
-  const pairOrUndefined = (value: string | undefined): string | undefined => {
-    if (value === undefined) return undefined
+  const pairOrUndefined = (value: unknown): string | undefined => {
+    if (typeof value !== 'string') return undefined
     const trimmed = value.trim()
     return trimmed === '' ? undefined : trimmed
+  }
+  const provider = pairOrUndefined(config.provider)
+  const model = pairOrUndefined(config.model)
+  // An incomplete pair is a NORMAL state, not a corrupt section: the settings
+  // page persists each field the moment it changes, so picking a provider
+  // stores `provider` alone until a model is chosen. Both READMEs and the row's
+  // own hint promise that state falls back to follow-session, so it resolves to
+  // NO override here. Throwing instead answered every enhance request with 500
+  // during that window — a config error for one optional preference.
+  //
+  // Only a COMPLETE pair pins the route; a half pair must never survive to read
+  // as an override downstream (see `resolveRoute`).
+  const override: { provider?: string; model?: string } = provider !== undefined && model !== undefined ? { provider, model } : {}
+  const temperature = config.temperature
+  if (typeof temperature !== 'number' || !Number.isFinite(temperature) || temperature < TEMPERATURE.min || temperature > TEMPERATURE.max) {
+    throw new Error(`dsh-prompt-enhance: temperature 必须是 ${TEMPERATURE.min}–${TEMPERATURE.max} 之间的有限数字`)
   }
   const intInRange = (value: unknown, name: string, range: NumericRange): number => {
     if (typeof value !== 'number' || !Number.isInteger(value) || value < range.min || value > range.max) {
@@ -270,8 +276,8 @@ export function resolveConfig(config: Config): Config {
   }
   return {
     enabled: config.enabled,
-    provider: pairOrUndefined(provider),
-    model: pairOrUndefined(model),
+    provider: override.provider,
+    model: override.model,
     temperature,
     // Ids are adapter-owned, so the stored string is kept as-is; a blank or
     // absent value degrades to the cheapest shipped default. An id the route

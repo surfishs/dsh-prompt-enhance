@@ -166,6 +166,34 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     }
   })
 
+  it('routes to the follow-session fallback when only the provider half is saved', async () => {
+    // The settings page writes `provider` the moment the select changes, and
+    // `model` a moment later, so this half-filled section is a state every user
+    // passes through. It must resolve to NO override — the follow-session
+    // fallback the READMEs promise — instead of failing config resolution and
+    // answering 500 for the whole route.
+    const captured: GenerateOptions[] = []
+    const capturingLlm = {
+      stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+        captured.push(options)
+        return streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])
+      },
+    } as never
+    const halfServer = mount(capturingLlm, { ...CONFIG, provider: 'pinned-without-model' })
+    await new Promise<void>((resolve) => halfServer.listen(0, '127.0.0.1', resolve))
+    try {
+      const { status, json } = await call(halfServer, 'POST', JSON.stringify({ text: '写' }))
+      expect(status).toBe(200)
+      // The lone provider must never reach the adapter: the call rides the
+      // default route the settings stub reports.
+      expect(captured[0]?.provider).toBe('zhipu')
+      expect(captured[0]?.model).toBe('glm-5.3')
+      expect(json).toMatchObject({ ok: true, value: { provider: 'zhipu', model: 'glm-5.3' } })
+    } finally {
+      await new Promise<void>((resolve) => halfServer.close(() => resolve()))
+    }
+  })
+
   it('answers 415 for a non-JSON content type', async () => {
     const { port } = server.address() as AddressInfo
     const response = await fetch(`http://127.0.0.1:${port}/dsh-prompt-enhance/enhance`, {

@@ -53,13 +53,27 @@ describe('resolveConfig', () => {
     expect(() => resolveConfig({ ...DEFAULT_CONFIG })).not.toThrow()
   })
 
-  it('rejects a half-filled pair', () => {
-    expect(() => resolveConfig({ ...DEFAULT_CONFIG, provider: 'zhipu' })).toThrow(/成对/)
-    expect(() => resolveConfig({ ...DEFAULT_CONFIG, model: 'glm-5.3' })).toThrow(/成对/)
+  it('falls back to follow-session for a half-filled pair instead of throwing', () => {
+    // The settings page persists each field the moment it changes, so a provider
+    // picked before a model is stored on its own for a while — the state every
+    // user passes through. Both READMEs and the row's own hint promise that
+    // state follows the session model; throwing here answered every enhance
+    // request with 500 until the second field was chosen.
+    const providerOnly = resolveConfig({ ...DEFAULT_CONFIG, provider: 'zhipu' })
+    expect(providerOnly.provider).toBeUndefined()
+    expect(providerOnly.model).toBeUndefined()
+    const modelOnly = resolveConfig({ ...DEFAULT_CONFIG, model: 'glm-5.3' })
+    expect(modelOnly.provider).toBeUndefined()
+    expect(modelOnly.model).toBeUndefined()
   })
 
-  it('rejects blank strings in the pair', () => {
-    expect(() => resolveConfig({ ...DEFAULT_CONFIG, provider: ' ', model: 'glm' })).toThrow(/非空/)
+  it('treats a blank half of the pair as absent, not as an error', () => {
+    const blankProvider = resolveConfig({ ...DEFAULT_CONFIG, provider: '   ', model: 'glm' })
+    expect(blankProvider.provider).toBeUndefined()
+    expect(blankProvider.model).toBeUndefined()
+    const blankModel = resolveConfig({ ...DEFAULT_CONFIG, provider: 'zhipu', model: '   ' })
+    expect(blankModel.provider).toBeUndefined()
+    expect(blankModel.model).toBeUndefined()
   })
 
   it('runs deep runtime validation', () => {

@@ -39,8 +39,8 @@ export function registerEnhanceCommand(ctx: Context, readConfig: () => Config): 
         return { kind: 'error', text: '用法：/enhance <文本>。要增强输入框里的草稿，请用输入框右侧的「增强」按钮或快捷键。' }
       }
       // Everything below reads config, and `resolveConfig` throws on the
-      // invariants the schema cannot express (provider without model, an
-      // out-of-range value left by hand-editing). Reading it outside the try
+      // invariants the schema cannot express (an out-of-range value or a
+      // non-boolean switch left by hand-editing). Reading it outside the try
       // turned those into an uncaught handler throw — the user got a raw
       // exception instead of the bilingual message the route already shows.
       try {
