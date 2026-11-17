@@ -39,7 +39,15 @@ export const SETTINGS_ROW_CONFIG_SLOT = 'plugins.row.config'
 export const SETTINGS_NAMESPACE = 'dsh-prompt-enhance'
 
 /** The bundle whose patch declares the row, and that row's id. */
-export const SETTINGS_BUNDLE = '@surfishs/dsh-prompt-enhance'
+/**
+ * Package name of this bundle, injected by the client build from
+ * `package.json.name` (see `scripts/build.mjs`), exactly like the version.
+ * It must not be a literal: the plugin manager keys a row's config page as
+ * `<package name>#<row id>`, so a fork that renames the package would silently
+ * lose that page. The fallback is the shipped name, for environments that
+ * execute the source without the build (unit tests).
+ */
+export const SETTINGS_BUNDLE = typeof __PLUGIN_NAME__ === 'string' ? __PLUGIN_NAME__ : '@surfishs/dsh-prompt-enhance'
 export const SETTINGS_ROW_ID = 'dsh-prompt-enhance'
 
 /**

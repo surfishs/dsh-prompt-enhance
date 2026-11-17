@@ -11,3 +11,6 @@
 
 /** Plugin version injected by the client build; `typeof`-guarded at use. */
 declare const __PLUGIN_VERSION__: string
+
+/** Package name injected by the client build; `typeof`-guarded at use. */
+declare const __PLUGIN_NAME__: string
