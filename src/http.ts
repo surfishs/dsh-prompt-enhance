@@ -18,7 +18,32 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
  * request on the connection's behalf: the 413 path has to declare
  * `connection: close` itself, or the socket stays open with no FIN until Node's
  * request timeout reaps it.
- * @throws 'body too large' past the cap, or the JSON.parse error otherwise.
+ * @throws {@link BodyTooLargeError} past the cap, or the JSON.parse error otherwise.
+ */
+
+/**
+ * The request body exceeded the route's cap.
+ *
+ * A class, not a message: callers must be able to tell this apart from a parse
+ * error without matching text, so re-wording the message here cannot silently
+ * turn a 413 into a 422.
+ */
+export class BodyTooLargeError extends Error {
+  /** Stable discriminant for `instanceof`-free checks across realms. */
+  readonly code = 'body-too-large'
+
+  constructor() {
+    super('body too large')
+    this.name = 'BodyTooLargeError'
+  }
+}
+
+/**
+ * Read a JSON request body, refusing anything past `maxBytes`.
+ * @param req - the incoming request.
+ * @param maxBytes - the cap in bytes.
+ * @returns the parsed JSON body.
+ * @throws {@link BodyTooLargeError} past the cap, or the JSON.parse error otherwise.
  */
 export async function readBoundedJson(req: IncomingMessage, maxBytes: number): Promise<unknown> {
   const chunks: Buffer[] = []
@@ -26,7 +51,7 @@ export async function readBoundedJson(req: IncomingMessage, maxBytes: number): P
   for await (const chunk of req) {
     const buffer = chunk as Buffer
     size += buffer.length
-    if (size > maxBytes) throw new Error('body too large')
+    if (size > maxBytes) throw new BodyTooLargeError()
     chunks.push(buffer)
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'))

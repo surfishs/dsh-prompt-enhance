@@ -9,7 +9,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { CommandDefinition, CommandInvocation } from '@deepseek-ai/dsh-commands'
-import type { AdmissionGate, AdmissionOutcome } from './admission'
+import { breakerOutcome, type AdmissionGate, type AdmissionOutcome } from './admission'
 import { checkInputText, formatInputCheckZh } from './shared/validate'
 import { type Config } from './config'
 import { formatEnhanceError, toEnhanceError } from './enhancer'
@@ -73,9 +73,10 @@ export function registerEnhanceCommand(ctx: Context, readConfig: () => Config, g
           outcome = 'success'
           return { kind: 'success', text: value.text }
         } catch (error) {
-          // A cancelled command is not a failing route: only a real failure
-          // feeds the breaker.
-          outcome = invocation.signal.aborted ? 'aborted' : 'failure'
+          // Classified exactly like the composer route, through the same helper:
+          // a cancelled command and a failure the route cannot fix (missing
+          // configuration, refused effort) must not feed the breaker.
+          outcome = breakerOutcome(invocation.signal.aborted, toEnhanceError(error).code)
           throw error
         } finally {
           gate.settle(outcome, Date.now())

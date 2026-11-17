@@ -53,7 +53,7 @@ interface StubContext {
 }
 
 /** Build a stub context exposing the services the plugin half reads. */
-function stubContext(llm: ReturnType<typeof makeLlm>): StubContext {
+function stubContext(llm: ReturnType<typeof makeLlm>, selection: { provider: string; model: string } | null = { provider: 'zhipu', model: 'glm-5.3' }): StubContext {
   const captured: CapturedRoute[] = []
   const cleanups: (() => void)[] = []
   let routeDisposals = 0
@@ -77,7 +77,7 @@ function stubContext(llm: ReturnType<typeof makeLlm>): StubContext {
       if (key === 'webServer') return webserver
       if (key === 'llm') return llm
       if (key === 'sessions') return { get: (): undefined => undefined }
-      if (key === 'settings') return { get: (): unknown => ({ provider: 'zhipu', model: 'glm-5.3' }) }
+      if (key === 'settings') return { get: (): unknown => selection ?? {} }
       return undefined
     },
     // cordis runs the callback in a child fiber once the deps resolve; the
@@ -101,8 +101,8 @@ function stubContext(llm: ReturnType<typeof makeLlm>): StubContext {
 }
 
 /** Mount apply() against a stub context and expose the route over real HTTP. */
-function mount(llm: ReturnType<typeof makeLlm>, config = CONFIG): Server {
-  const { ctx, captured } = stubContext(llm)
+function mount(llm: ReturnType<typeof makeLlm>, config = CONFIG, selection: { provider: string; model: string } | null = { provider: 'zhipu', model: 'glm-5.3' }): Server {
+  const { ctx, captured } = stubContext(llm, selection)
   apply(ctx as never, config)
   const route = captured[0]
   if (route === undefined) throw new Error('route was not registered')
@@ -558,6 +558,22 @@ describe('admission gate: Origin / rate / concurrency', () => {
       expect(first.status).toBe(502)
       const second = await call(server, 'POST', JSON.stringify({ text: '成功' }))
       expect(second.status).toBe(200)
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
+  it('does not count an unconfigured route toward the cool-down', async () => {
+    // B6: a missing model configuration fails locally in milliseconds, and the
+    // useful answer is "configure a model" (409). Counting it would turn the
+    // third attempt into a cooldown that blames the model instead.
+    const server = mount({} as never, { ...CONFIG, rateLimitPerMinute: 100 }, null)
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const { status } = await call(server, 'POST', JSON.stringify({ text: `改写${attempt}` }))
+        expect(status).toBe(409)
+      }
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
     }

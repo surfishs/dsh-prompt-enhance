@@ -8,7 +8,7 @@
  * @module dsh-prompt-enhance/admission
  */
 
-import type { EnhanceError } from './shared/protocol'
+import type { EnhanceError, EnhanceErrorCode } from './shared/protocol'
 
 /**
  * Consecutive failed calls that trip the cool-down, and how long it lasts.
@@ -30,8 +30,39 @@ export interface AdmissionLimits {
   maxConcurrent: number
 }
 
-/** How one admitted call ended, as the gate counts it. */
-export type AdmissionOutcome = 'success' | 'failure' | 'aborted'
+/**
+ * How one admitted call ended, as the gate counts it.
+ *
+ * `neutral` exists for a failure that is NOT the route's fault — no model
+ * configured, an effort the route refuses — because counting it would trip the
+ * breaker and hide the actionable error behind a cool-down that blames the
+ * model. It releases the slot and records nothing, like a cancellation.
+ */
+export type AdmissionOutcome = 'success' | 'failure' | 'aborted' | 'neutral'
+
+/**
+ * Wire codes that mean "this route cannot work", not "the model flaked".
+ *
+ * Both fail locally in milliseconds without any model traffic, so retrying them
+ * costs nothing; the useful answer is the error itself ("configure a model",
+ * "pick another tier"), not a cool-down.
+ */
+const NON_BREAKER_CODES: ReadonlySet<EnhanceErrorCode> = new Set(['unconfigured', 'effort-unsupported'])
+
+/**
+ * Classify one settled call for {@link AdmissionGate.settle}.
+ *
+ * Both entries (the composer route and the /enhance command) call THIS function,
+ * so "which failures count" is decided in one place and cannot drift apart
+ * between them.
+ * @param aborted - whether the caller went away mid-flight.
+ * @param code - the wire error code of the failure.
+ * @returns the outcome to settle with.
+ */
+export function breakerOutcome(aborted: boolean, code: EnhanceErrorCode): AdmissionOutcome {
+  if (aborted) return 'aborted'
+  return NON_BREAKER_CODES.has(code) ? 'neutral' : 'failure'
+}
 
 /** One admission answer. */
 export type AdmissionDecision = { ok: true } | { ok: false; error: EnhanceError; retryAfterSeconds?: number }
@@ -91,7 +122,8 @@ export class AdmissionGate {
 
   /**
    * Release the slot one admitted call held and record how it ended.
-   * @param outcome - success, failure, or a cancellation (counted as neither).
+   * @param outcome - success, failure, or neither (a cancellation, or a neutral
+   *   failure that is not the route's fault).
    * @param now - epoch millis when the call settled.
    */
   settle(outcome: AdmissionOutcome, now: number): void {

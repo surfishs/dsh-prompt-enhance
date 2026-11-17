@@ -8,7 +8,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
-import type { AdmissionGate, AdmissionOutcome } from './admission'
+import { breakerOutcome, type AdmissionGate, type AdmissionOutcome } from './admission'
 import { ENHANCE_ENDPOINT, ENHANCE_PREFIX, ENHANCE_STREAM_ENDPOINT } from './shared/protocol'
 import { createStreamNormalizer } from './shared/stream-text'
 import { createSseWriter } from './sse'
@@ -17,7 +17,7 @@ import { type Config } from './config'
 import { toEnhanceError } from './enhancer'
 import { runEnhance, sessionRouteOf } from './orchestrate'
 import { isTrustedRequest } from './loopback'
-import { readBoundedJson, writeJson, endResponse } from './http'
+import { BodyTooLargeError, readBoundedJson, writeJson, endResponse } from './http'
 import { REASONING_EFFORTS_ENDPOINT } from './shared/reasoning'
 import { serveReasoningEfforts } from './reasoning-route'
 import { LLM_MODELS_ENDPOINT, LLM_PROVIDERS_ENDPOINT, LLM_ROUTE_CHECK_ENDPOINT } from './shared/catalog'
@@ -94,7 +94,7 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
   try {
     body = await readBoundedJson(req, cap)
   } catch (error) {
-    const tooLarge = error instanceof Error && error.message === 'body too large'
+    const tooLarge = error instanceof BodyTooLargeError
     // The overflow case left the body unread, so this connection can never carry
     // another request — and measured on node v24.21.0, Node keeps it open with
     // no FIN unless the response says otherwise. Declare it non-reusable exactly
@@ -113,6 +113,16 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     writeJson(res, 422, { ok: false, error: { code: 'rejected', message: '请求体必须是 { sessionId?, text } JSON。' } })
     return
   }
+  // The session id arrives from the request body and is used as-is for the route
+  // hint, the conversation context and GenerateOptions.sessionId. The route is
+  // bound to this app's origin (loopback.ts pins the port), but a LOCAL process
+  // can still name any EXISTING session and have its recent history sent to the
+  // model. Accepted, not fixed: that process already holds the harness
+  // credentials and can read the same session from disk, so an ownership check
+  // here would only remove an implicit guarantee, not a capability — and an
+  // unknown id already degrades to "no route hint, no context" inside
+  // orchestrate. Revisit if the browser ever gains a per-session handle the host
+  // can verify.
   const sessionId = typeof record.sessionId === 'string' && record.sessionId !== '' ? record.sessionId : undefined
   const check = checkInputText(record.text, config.maxInputChars)
   if (!check.ok) {
@@ -199,10 +209,12 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     // keeps the window honest — a slow success still counts as one call.
     outcome = 'success'
   } catch (error) {
-    // A caller that walked away is not a failing route: aborting mid-flight
-    // must never move the breaker toward its cool-down.
-    outcome = callerAbort.signal.aborted ? 'aborted' : 'failure'
     const wire = toEnhanceError(error)
+    // A caller that walked away is not a failing route, and neither is a failure
+    // the route itself cannot fix (missing model configuration, a refused
+    // effort): `breakerOutcome` decides that once for both entries, so the panel
+    // and the command cannot classify the same error differently.
+    outcome = breakerOutcome(callerAbort.signal.aborted, wire.code)
     if (stream && res.headersSent) {
       // Headers are already out: the failure has to ride the same stream, and
       // the stream has to be closed the same way the success path closes it.

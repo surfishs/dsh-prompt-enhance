@@ -11,8 +11,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
 import type { CommandDefinition, CommandInvocation } from '@deepseek-ai/dsh-commands'
 import { DEFAULT_CONFIG, type Config } from '../src/config'
-import { AdmissionGate } from '../src/admission'
+import { AdmissionGate, FAILURE_STREAK_LIMIT } from '../src/admission'
 import { registerEnhanceCommand } from '../src/enhance-command'
+import { EnhanceFailure } from '../src/enhancer'
 import { runEnhance, sessionRouteOf } from '../src/orchestrate'
 
 vi.mock('../src/orchestrate', () => ({
@@ -114,6 +115,20 @@ describe('/enhance slash command', () => {
     const result = await definition.handler(invocation('hello'))
     expect(result.kind).toBe('error')
     expect((result as { text: string }).text).toContain('增强失败')
+  })
+
+  it('does not count an unconfigured route toward the breaker', async () => {
+    // B6 parity with the composer route: a missing model configuration is not a
+    // failing route, so the command must not feed the shared breaker with it.
+    vi.mocked(runEnhance).mockRejectedValue(new EnhanceFailure({ code: 'unconfigured' }))
+    const definition = captureDefinition(() => ({ ...DEFAULT_CONFIG, rateLimitPerMinute: 100 }), new AdmissionGate())
+    for (let attempt = 0; attempt < FAILURE_STREAK_LIMIT + 1; attempt += 1) {
+      const result = await definition.handler(invocation('hello'))
+      expect(result.kind).toBe('error')
+      // A cool-down here would mean the command counted a configuration error.
+      expect((result as { text: string }).text).not.toContain('请求过于频繁')
+    }
+    expect(runEnhance).toHaveBeenCalledTimes(FAILURE_STREAK_LIMIT + 1)
   })
 
   it('spends the shared admission gate instead of bypassing it', async () => {
