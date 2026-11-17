@@ -11,6 +11,12 @@ npm install
 npm test          # unit + real-http + component suites
 npm run typecheck
 npm run build     # tsc + esbuild → lib/index.js (host ESM) + lib/client.js (browser ModuleLoader bundle)
+npm run check:host-primitives
+                  # optional: assert the INSTALLED dsh shell still exports the UI
+                  # primitives the settings pages import (auto-skips when no shell
+                  # is present). The unit tests use a hand-written double, so this
+                  # is the only local signal that the real shell has not drifted.
+                  # Set DSH_ASAR=/path/to/app.asar when auto-detection misses.
 ```
 
 ## Local debug loop
