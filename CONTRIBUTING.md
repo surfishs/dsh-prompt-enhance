@@ -38,4 +38,4 @@ When you're done, switch back to the npm install for daily use:
 1. Branch from `main`, make your change with tests.
 2. `npm run typecheck && npm run lint && npm run format:check && npm test && npm run build` — all green.
 3. Open a PR describing what changed and why; CI must pass.
-4. Maintainers cut releases (`npm version patch|minor|major` → build → push tags → npm publish); see the Release process in the README.
+4. Maintainers cut releases: bump the version, then `npm run build` — `lib/client.js` inlines the version, so the committed artifacts must be regenerated — commit, and push the tag; CI publishes the npm package. Create the GitHub Release afterwards from your own machine with `gh release create <tag> --verify-tag --notes-file <notes>`, which is what puts a maintainer's name on the page instead of the automation's.
