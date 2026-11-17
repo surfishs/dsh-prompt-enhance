@@ -117,6 +117,12 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     body = await readBoundedJson(req, cap)
   } catch (error) {
     const tooLarge = error instanceof Error && error.message === 'body too large'
+    // The overflow case left the body unread, so this connection can never carry
+    // another request — and measured on node v24.21.0, Node keeps it open with
+    // no FIN unless the response says otherwise. Declare it non-reusable exactly
+    // like the declared-length fast reject above: the 413 still has to travel,
+    // but the socket must not linger after it.
+    if (tooLarge) res.setHeader('connection', 'close')
     writeJson(res, tooLarge ? 413 : 422, {
       ok: false,
       error: { code: 'rejected', message: tooLarge ? '请求体超过大小上限。' : '请求体不是有效的 JSON。' },

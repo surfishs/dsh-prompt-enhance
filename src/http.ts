@@ -8,10 +8,16 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
 /**
- * Read a request body of at most `maxBytes` and parse it as JSON. On overflow
- * the reader stops consuming and throws WITHOUT destroying the request — the
- * route still owes the client a deliverable 413 response. Node discards the
- * unread remainder and closes the connection after the response ends.
+ * Read a request body of at most `maxBytes` and parse it as JSON.
+ *
+ * On overflow the throw leaves the `for await` loop, and closing that loop
+ * closes the async iterator — which a Node Readable does by destroying itself.
+ * The request is therefore destroyed and marked `aborted`, and the unread
+ * remainder is never consumed. The response socket outlives it (measured on node
+ * v24.21.0), so the caller can still be answered, but nothing ends the half-read
+ * request on the connection's behalf: the 413 path has to declare
+ * `connection: close` itself, or the socket stays open with no FIN until Node's
+ * request timeout reaps it.
  * @throws 'body too large' past the cap, or the JSON.parse error otherwise.
  */
 export async function readBoundedJson(req: IncomingMessage, maxBytes: number): Promise<unknown> {
