@@ -43,7 +43,7 @@ export function UndoBar(props: UndoBarProps): ReactNode {
   // row takes over only after the card is closed.
   const panel = ui.getPanel()
   const visible = (panel === undefined || panel.sessionId !== uiKey) && entry !== undefined && entry.applied === draft
-  const rootRef = useDockAlignment(visible)
+  const rootRef = useDockAlignment(visible, uiKey)
   if (!visible) return null
 
   const undo = (): void => {

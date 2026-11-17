@@ -25,7 +25,7 @@ export function ResultDock(props: ResultDockProps): ReactNode {
   // host id for UI keying when present, else a stable per-mount fallback.
   const uiKey = useSessionKey(sessionId, inputActions)
   const panel = useSyncExternalStore(ui.subscribe, ui.getPanel)
-  const rootRef = useDockAlignment(panel !== undefined && panel.sessionId === uiKey)
+  const rootRef = useDockAlignment(panel !== undefined && panel.sessionId === uiKey, uiKey)
   const [undone, setUndone] = useState(false)
   const [regenerated, setRegenerated] = useState(false)
   const [pendingRegenerate, setPendingRegenerate] = useState(false)

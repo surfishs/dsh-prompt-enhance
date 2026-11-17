@@ -181,6 +181,10 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       <button
         ref={rootRef}
         type="button"
+        // Session anchor for the dock entries this plugin renders: the composer
+        // card has to be found per session, and this button lives inside it.
+        // Read by useDockAlignment (same attribute constant).
+        data-dsh-pe-key={uiKey}
         className={`dsh-pe-btn${busy ? ' is-busy' : ''}${otherBusy && !empty ? ' is-blocked' : ''}${empty && !busy ? ' is-empty' : ''}`}
         title={busy ? t('button.busy') : otherBusy ? t('button.otherBusy') : empty ? t('button.emptyTitle') : t('button.title')}
         aria-label={busy ? t('button.busy') : otherBusy ? t('button.otherBusy') : empty ? t('button.emptyTitle') : t('button.title')}

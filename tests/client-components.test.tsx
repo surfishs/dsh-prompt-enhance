@@ -108,6 +108,19 @@ function renderComposer(input: ReturnType<typeof makeFakeInput>, inputActions: P
 
 const enhanceButton = (): HTMLButtonElement => document.querySelector('.dsh-pe-btn') as HTMLButtonElement
 
+describe('dock alignment anchor', () => {
+  afterEach(cleanup)
+
+  it('tags the composer button with the session key the dock entries look up', () => {
+    // useDockAlignment finds this session's composer through this attribute
+    // (falling back to container/document scanning), so it must carry the same
+    // key the dock component keys its state with.
+    const input = makeFakeInput({ draft: '文本' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    expect(enhanceButton().getAttribute('data-dsh-pe-key')).toBe('s1')
+  })
+})
+
 // The one-shot path is the baseline every existing assertion was written
 // against; the incremental path gets its own describe with streaming on.
 beforeEach(() => {
@@ -159,25 +172,26 @@ describe('EnhanceButton guard chain', () => {
     expect(requestEnhance).not.toHaveBeenCalled()
   })
 
-  it('dims for attachment-only drafts (0.2.x `attachmentIds`)', () => {
+  // An empty draft stays empty even when the composer carries attachments: the
+  // plugin only ever sends the text, so attachments neither enable the button
+  // nor produce a dedicated message (there is no attachment guard by design).
+  it('treats an empty draft with attachments as empty (0.2.x `attachmentIds`)', () => {
     const input = makeFakeInput({ draft: '', attachmentIds: ['att1' as never] })
     renderComposer(input, { setDraft: vi.fn() } as never, 's1')
     const button = enhanceButton()
     expect(button.getAttribute('aria-disabled')).toBe('true')
     fireEvent.click(button)
-    expect(screen.queryByText(zh['error.attachmentsOnly'])).toBeNull()
     expect(requestEnhance).not.toHaveBeenCalled()
   })
 
-  // The guard must keep working on hosts from the 0.1.x line, whose input state
-  // still calls the same field `imageIds`.
-  it('dims for attachment-only drafts on the legacy `imageIds` field', () => {
+  // Same behaviour on the 0.1.x field name, which older input states carried.
+  it('treats an empty draft with attachments as empty on the legacy `imageIds` field', () => {
     const input = makeFakeInput({ draft: '', imageIds: ['img1' as never] })
     renderComposer(input, { setDraft: vi.fn() } as never, 's1')
     const button = enhanceButton()
     expect(button.getAttribute('aria-disabled')).toBe('true')
     fireEvent.click(button)
-    expect(screen.queryByText(zh['error.attachmentsOnly'])).toBeNull()
+    expect(requestEnhance).not.toHaveBeenCalled()
   })
 
   it('refuses drafts containing reference chips', () => {
@@ -223,7 +237,6 @@ describe('EnhanceButton guard chain', () => {
     // The button is on screen and no guard fired during render. A click in this
     // state refuses (fail-closed) — asserted by the chip-view test above.
     expect(enhanceButton()).toBeTruthy()
-    expect(screen.queryByText(zh['error.attachmentsOnly'])).toBeNull()
     expect(screen.queryByText(zh['error.occurrences'])).toBeNull()
     expect(input).toBeDefined()
   })
