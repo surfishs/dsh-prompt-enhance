@@ -102,6 +102,23 @@ describe('ResultPanel upstream error copy', () => {
     expect(container.textContent).toContain('增强后的正文')
     expect(container.textContent).toContain('1.2s')
   })
+
+  it('warns when the host reports a token-capped rewrite', () => {
+    // The display half of the truncation contract: the panel's only signal that
+    // the body may be incomplete. The wire-to-panel half lives in
+    // tests/client-enhance-client (a dropped flag is invisible here).
+    const result: EnhanceResult = { text: '写到一半', provider: 'p', model: 'm', elapsedMs: 12, truncated: true }
+    const state: PanelState = { sessionId: 's1', phase: 'result', original: '旧原文', result }
+    const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
+    expect(container.textContent).toContain(zh['panel.truncated'])
+  })
+
+  it('stays quiet for a rewrite that was not capped', () => {
+    const result: EnhanceResult = { text: '完整正文', provider: 'p', model: 'm', elapsedMs: 12 }
+    const state: PanelState = { sessionId: 's1', phase: 'result', original: '旧原文', result }
+    const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
+    expect(container.textContent).not.toContain(zh['panel.truncated'])
+  })
 })
 
 describe('locale parity for the upstream keys', () => {

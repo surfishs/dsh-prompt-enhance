@@ -12,7 +12,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ENHANCE_ENDPOINT, ENHANCE_STREAM_ENDPOINT } from '../src/shared/protocol'
-import { requestEnhanceStream } from '../src/client/enhance-client'
+import { requestEnhance, requestEnhanceStream } from '../src/client/enhance-client'
 
 /** One recorded fetch call, in order. */
 interface Call {
@@ -80,5 +80,36 @@ describe('requestEnhanceStream: refusal handling', () => {
     expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 5, totalTokens: 42, cacheReadTokens: 27 })
     expect(calls).toHaveLength(2)
     expect(calls[1]?.url).toBe(ENHANCE_ENDPOINT)
+  })
+})
+
+describe('result narrowing keeps the truncation flag', () => {
+  /** The one-shot success value the host sends when the model hit its cap. */
+  const TRUNCATED_VALUE = { ...ONESHOT_OK.value, truncated: true }
+
+  /** One JSON envelope response, as the host writes it. */
+  const jsonResponse = (envelope: unknown): Response => new Response(JSON.stringify(envelope), { status: 200, headers: { 'content-type': 'application/json' } })
+
+  it('carries the host flag onto the one-shot result', async () => {
+    // The panel's "output hit the token cap" warning is driven by this field
+    // alone. Narrowing the envelope used to rebuild the result without it, so
+    // the host set the flag, the wire carried it, and the UI never saw it —
+    // a half-written rewrite read as a complete one.
+    stubFetch(() => jsonResponse({ ok: true, value: TRUNCATED_VALUE }))
+    const result = await requestEnhance({ text: '写个爬虫' })
+    expect(result.truncated).toBe(true)
+  })
+
+  it('carries it through the streamed `done` frame too, since that is the default path', async () => {
+    const frame = `event: done\ndata: ${JSON.stringify({ type: 'done', value: TRUNCATED_VALUE })}\n\n`
+    stubFetch(() => new Response(frame, { status: 200, headers: { 'content-type': 'text/event-stream' } }))
+    const result = await requestEnhanceStream({ text: '写个爬虫' }, { onDelta: (): void => {} })
+    expect(result.truncated).toBe(true)
+  })
+
+  it('leaves the flag absent when the host reported no cap', async () => {
+    stubFetch(() => jsonResponse(ONESHOT_OK))
+    const result = await requestEnhance({ text: '写个爬虫' })
+    expect(result.truncated).toBeUndefined()
   })
 })

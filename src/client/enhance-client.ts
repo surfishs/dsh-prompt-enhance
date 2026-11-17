@@ -103,6 +103,12 @@ function parseResult(value: unknown): EnhanceResult {
       model: record.model,
       elapsedMs: record.elapsedMs,
       ...(usage === undefined ? {} : { usage }),
+      // Carried explicitly, not optional-by-accident: the panel's "output hit
+      // the token cap" warning is driven by this flag alone, so rebuilding the
+      // object without it left the host setting it, the wire carrying it, and
+      // the UI never seeing it. Only `true` is ever normalized in, matching the
+      // host, which sets the field solely on a capped finish.
+      ...(record.truncated === true ? { truncated: true } : {}),
     }
   }
   throw new EnhanceClientError({ code: 'internal', params: { reason: 'malformed' } })
