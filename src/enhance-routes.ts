@@ -100,14 +100,16 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
   // reading a single byte. The streamed cap inside readBoundedJson stays as the
   // backstop for chunked bodies, which carry no Content-Length at all. A caller
   // that declares megabytes and dribbles them (or never sends them) must not
-  // hold the connection open, so the socket is destroyed once the 413 lands.
+  // hold the connection open, so the connection is closed once the 413 lands.
   const cap = bodyCapOf(config.maxInputChars)
   const declaredLength = Number(req.headers['content-length'])
   if (Number.isFinite(declaredLength) && declaredLength > cap) {
     // `connection: close` instead of destroying the socket: the 413 still has
     // to reach the caller, and a blunt destroy also kills whatever else rides
-    // this keep-alive connection. Declaring the connection non-reusable lets
-    // Node discard the unread body and close on its own schedule.
+    // this keep-alive connection. Declaring the connection non-reusable is
+    // enough: Node flushes the 413, ends the socket right behind it, and never
+    // accepts the unread remainder — the caller's later body bytes fail with
+    // EPIPE — so nothing here has to be torn down by hand.
     res.setHeader('connection', 'close')
     writeJson(res, 413, { ok: false, error: { code: 'rejected', message: '请求体超过大小上限。' } })
     return
@@ -122,6 +124,7 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     // no FIN unless the response says otherwise. Declare it non-reusable exactly
     // like the declared-length fast reject above: the 413 still has to travel,
     // but the socket must not linger after it.
+    // Only the 413 closes: the 422 path consumed the body, so it stays reusable.
     if (tooLarge) res.setHeader('connection', 'close')
     writeJson(res, tooLarge ? 413 : 422, {
       ok: false,
