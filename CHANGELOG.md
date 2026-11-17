@@ -3,6 +3,43 @@
 All notable changes to this project are documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [0.1.0] - 2026-11-17
+
+### Added
+
+- Cover the `/enhance` command with the shared admission gate, so the per-minute cap, the concurrency cap and the failure breaker reach the command entry as well.
+- Split the reasoning-tier cache into one file per provider/model, each expiring after 30 days and re-probed on expiry.
+
+### Changed
+
+- Inject the package name and the settings entry key at build time, so a rename or a fork keeps the plugin row's config entry.
+- Follow the DSH shell theme instead of the operating system's colour scheme.
+- Scope dock alignment to the entry's own session instead of the first editor in the document.
+- Memoize resolved reasoning tiers in-process, keeping the pre-call path off disk.
+- Add `npm run check:host-primitives` to assert the installed shell still exports the settings UI primitives.
+- Narrow the publish workflow to `contents: read` and stop creating the GitHub Release from it.
+- Refresh both READMEs: screenshots, a "why this exists" section, the single-line `/enhance` truncation note, and no unverified market install source.
+- Record the accepted risk and revisit condition for `sessionId` ownership.
+
+### Fixed
+
+- Keep the truncation flag when a result is narrowed.
+- Follow the session route when only one of provider/model is saved.
+- Fail closed when the composer chip view is unreadable.
+- Await the delta sink so a slow reader slows the stream.
+- Send `connection: close` after the streamed 413.
+- Load the host LLM module lazily so an absent optional peer cannot fail the plugin load.
+- Pair the primary button label with its inverted fill.
+- Unwrap a single fence pair, including a lead-in line, before filling the draft.
+- Stop counting `unconfigured` and `effort-unsupported` toward the breaker; both settle as neutral.
+- Type the body-size error so re-wording the reader cannot turn a 413 into a 422.
+
+### Removed
+
+- Remove the unused `error.attachmentsOnly` copy.
+
+[0.1.0]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.9...v0.1.0
+
 ## [0.0.9] - 2026-11-17
 
 ### Added
