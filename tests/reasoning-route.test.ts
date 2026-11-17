@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
+import { cacheFilePath } from '../src/reasoning-cache'
 import { resolveReasoningCapabilities } from '../src/reasoning-efforts'
 import { serveReasoningEfforts } from '../src/reasoning-route'
 
@@ -94,9 +95,10 @@ describe('resolveReasoningCapabilities', () => {
   it('persists the cache under the Harness home', async () => {
     const resolveModelInfo = async () => ({ reasoning: { efforts: [{ id: 'off', name: 'Off' }] } })
     await resolveReasoningCapabilities(ctxOf({ resolveModelInfo }), 'zhipu', 'glm-4.6')
-    const raw = await readFile(join(home, 'dsh-prompt-enhance', 'reasoning-efforts.json'), 'utf8')
-    const parsed = JSON.parse(raw) as { entries: Record<string, { efforts: Array<{ id: string }> }> }
-    expect(parsed.entries['zhipu/glm-4.6']?.efforts[0]?.id).toBe('off')
+    // One file per pair, named after the pair (see reasoning-cache).
+    const raw = await readFile(cacheFilePath('zhipu', 'glm-4.6'), 'utf8')
+    const parsed = JSON.parse(raw) as { efforts: Array<{ id: string }> }
+    expect(parsed.efforts[0]?.id).toBe('off')
   })
 
   it('answers from the static DeepSeek catalog when following a DeepSeek default', async () => {

@@ -19,6 +19,13 @@ describe('normalizeOutput', () => {
     expect(normalizeOutput(body)).toBe(body)
   })
 
+  it('strips a single fence pair the model prefixed with a lead-in line', () => {
+    // The lenient case: the lead-in used to keep the raw ``` in the draft.
+    expect(normalizeOutput('以下是改写后的提示词：\n```\n角色：翻译\n```')).toBe('以下是改写后的提示词：\n角色：翻译')
+    expect(normalizeOutput('```markdown\n# 标题\n```\n\n  ')).toBe('# 标题')
+    expect(normalizeOutput('说明：```角色：翻译```')).toBe('说明：\n角色：翻译')
+  })
+
   it('strips single-line fences', () => {
     expect(normalizeOutput('```角色：翻译```')).toBe('角色：翻译')
   })

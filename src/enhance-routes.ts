@@ -8,6 +8,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
+import type { AdmissionGate, AdmissionOutcome } from './admission'
 import { ENHANCE_ENDPOINT, ENHANCE_PREFIX, ENHANCE_STREAM_ENDPOINT } from './shared/protocol'
 import { createStreamNormalizer } from './shared/stream-text'
 import { createSseWriter } from './sse'
@@ -26,35 +27,10 @@ import { serveCatalog } from './catalog-route'
 const bodyCapOf = (maxInputChars: number): number => maxInputChars * 6 + 4096
 
 /**
- * Consecutive FAILED calls that trip the cool-down, and how long it lasts.
- *
- * The sliding window below counts successful calls only, so a run of timeouts
- * never burns the user's quota (see the gate note in serveEnhance). That
- * leaves one hole: a deterministic upstream failure — a wrong API key, a
- * mistyped provider, a model the account cannot reach — fails in
- * milliseconds, and a retry loop against such a failure is bounded only by
- * the concurrency cap, i.e. barely at all. Three consecutive failures are
- * enough to tell "the model is flaky" from "this route cannot work", so the
- * route pauses instead of hammering the provider.
- */
-const FAILURE_STREAK_LIMIT = 3
-const FAILURE_COOLDOWN_MS = 30_000
-
-/** Per-mount admission state: sliding-window rate stamps, active-call count, failure breaker. */
-interface AdmissionGate {
-  stamps: number[]
-  active: number
-  /** Consecutive failed calls since the last success. */
-  failures: number
-  /** Epoch millis until which every call is refused with `cooldown`. */
-  cooldownUntil: number
-}
-
-/**
  * Serve one enhance POST against the request envelope.
  * @param ctx - registrant context (llm, optional sessions/settings).
  * @param readConfig - per-request config reader.
- * @param gate - per-mount admission state.
+ * @param gate - the shared admission gate (window, concurrency, breaker).
  * @param pathname - the request path, already parsed by the prefix handler.
  * @param req - the incoming request.
  * @param res - the outgoing response.
@@ -149,60 +125,16 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     })
     return
   }
-  // Admission gate (after validation, so only real calls consume budget):
-  // sliding-window rate cap, then concurrency cap. Rejected calls answer 429
-  // with the configured limits so the user can act.
-  //
-  // The rate window counts SUCCESSFUL calls only — a stamp lands after the
-  // 200 has been written, never on failure. Counting attempts instead would
-  // burn the user's window on a run of timeouts/upstream errors and lock
-  // them out right when the model recovers. The concurrency cap below still
-  // bounds in-flight calls regardless of outcome, so failed calls cannot be
-  // used to hammer the upstream either.
-  const now = Date.now()
-  // Failure breaker first: a host stuck on a broken route must refuse before
-  // it reads a body or spends a window slot, and the wait is advertised so the
-  // panel can say when to try again.
-  if (now < gate.cooldownUntil) {
-    const retryAfterSeconds = Math.max(1, Math.ceil((gate.cooldownUntil - now) / 1000))
-    res.setHeader('Retry-After', String(retryAfterSeconds))
-    writeJson(res, 429, {
-      ok: false,
-      error: { code: 'cooldown', params: { retryAfterSeconds, failures: FAILURE_STREAK_LIMIT } },
-    })
+  // Admission gate (after validation, so only real calls consume budget). The
+  // gate instance is shared with the /enhance command plane — see ./admission.
+  const decision = gate.admit(Date.now(), { rateLimitPerMinute: config.rateLimitPerMinute, maxConcurrent: config.maxConcurrent })
+  if (!decision.ok) {
+    // Advertise the wait only when the gate can predict one (cool-down or rate
+    // window); a busy concurrency slot frees whenever some call settles.
+    if (decision.retryAfterSeconds !== undefined) res.setHeader('Retry-After', String(decision.retryAfterSeconds))
+    writeJson(res, 429, { ok: false, error: decision.error })
     return
   }
-  // Trim the window in one splice instead of a `while (shift)` loop: with the
-  // configured cap at 600 the worst case drops from O(N²) array shifts to a
-  // single O(N) relocation. The cap is bounded, so this stays cheap in
-  // absolute terms; the point is to avoid the quadratic shape on every call.
-  const stamps = gate.stamps
-  const cut = now - 60000
-  let validFrom = 0
-  while (validFrom < stamps.length && (stamps[validFrom] ?? cut) < cut) validFrom++
-  if (validFrom > 0) stamps.splice(0, validFrom)
-  if (stamps.length >= config.rateLimitPerMinute) {
-    // The window is bounded, so the oldest surviving stamp tells exactly when
-    // a slot frees up — advertise it instead of making the user guess.
-    const oldest = stamps[0] ?? now
-    const retryAfterSeconds = Math.max(1, Math.ceil((60000 - (now - oldest)) / 1000))
-    res.setHeader('Retry-After', String(retryAfterSeconds))
-    writeJson(res, 429, {
-      ok: false,
-      error: { code: 'rate-limit', params: { limit: config.rateLimitPerMinute, retryAfterSeconds } },
-    })
-    return
-  }
-  // No Retry-After here: a busy slot frees whenever some in-flight call
-  // settles, which is not a delay this route can predict.
-  if (gate.active >= config.maxConcurrent) {
-    writeJson(res, 429, {
-      ok: false,
-      error: { code: 'concurrency-limit', params: { max: config.maxConcurrent } },
-    })
-    return
-  }
-  gate.active += 1
   // Cancel the model call when the browser goes away mid-flight. `res.close`
   // also fires after a normal response completes, so guard with
   // `writableEnded` — only a premature close aborts the call.
@@ -211,6 +143,8 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     if (!res.writableEnded) callerAbort.abort()
   }
   res.on('close', onConnectionClosed)
+  /** How the admitted call ended; the gate is settled from `finally`. */
+  let outcome: AdmissionOutcome = 'aborted'
   try {
     const runOptions = {
       text: record.text,
@@ -263,18 +197,11 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     // Count only on success: failed calls must not consume the sliding window
     // (see the gate note above). `Date.now()` at completion, not admission,
     // keeps the window honest — a slow success still counts as one call.
-    stamps.push(Date.now())
-    gate.failures = 0
+    outcome = 'success'
   } catch (error) {
     // A caller that walked away is not a failing route: aborting mid-flight
     // must never move the breaker toward its cool-down.
-    if (!callerAbort.signal.aborted) {
-      gate.failures += 1
-      if (gate.failures >= FAILURE_STREAK_LIMIT) {
-        gate.cooldownUntil = Date.now() + FAILURE_COOLDOWN_MS
-        gate.failures = 0
-      }
-    }
+    outcome = callerAbort.signal.aborted ? 'aborted' : 'failure'
     const wire = toEnhanceError(error)
     if (stream && res.headersSent) {
       // Headers are already out: the failure has to ride the same stream, and
@@ -295,15 +222,17 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     }
   } finally {
     res.off('close', onConnectionClosed)
-    gate.active -= 1
+    // Release the slot and record how the call ended: a success lands a window
+    // stamp, a failure feeds the breaker, a cancellation does neither.
+    gate.settle(outcome, Date.now())
   }
 }
 
 /**
- * Contexts that already own the route. The admission gate is created per
- * registration, so mounting twice on one context would silently double the
- * effective limits — exactly the drift a re-applied plugin (reload, re-link)
- * must not introduce.
+ * Contexts that already own the route. A second registration on one context
+ * would answer the same path twice, and it would spend the shared admission
+ * gate twice per request — exactly the drift a re-applied plugin (reload,
+ * re-link) must not introduce.
  *
  * The recorded mount carries the webserver it was registered on: if the host
  * ever rebuilds that service while reusing the same context, a bare "already
@@ -338,8 +267,10 @@ const mounts = new WeakMap<Context, RouteMount>()
  *
  * @param ctx - registrant context.
  * @param readConfig - per-request config reader so settings changes apply immediately.
+ * @param gate - the admission gate shared with the /enhance command plane, so
+ *   both entries are capped by the same window, concurrency cap and breaker.
  */
-export function registerEnhanceRoute(ctx: Context, readConfig: () => Config): void {
+export function registerEnhanceRoute(ctx: Context, readConfig: () => Config, gate: AdmissionGate): void {
   ctx.inject(['webServer'], (routeCtx: Context) => {
     const webserver = routeCtx.get('webServer') as unknown as
       | {
@@ -362,7 +293,6 @@ export function registerEnhanceRoute(ctx: Context, readConfig: () => Config): vo
       }
       mounts.delete(ctx)
     }
-    const gate: AdmissionGate = { stamps: [], active: 0, failures: 0, cooldownUntil: 0 }
     routeCtx.effect(() => {
       const dispose = webserver.register({
         kind: 'prefix',

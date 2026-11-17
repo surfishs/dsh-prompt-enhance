@@ -136,7 +136,7 @@ An empty or attachment-only draft dims the button and starts no request; raise `
 - **No model keys stored**: the plugin does not read or store model API keys; calls use the host's existing LLM configuration.
 - **Context sent only when enabled**: with `contextAware` on, the most recent user/assistant text and the current draft are sent to the configured model provider (default: up to 8 messages and 4,000 characters); system messages, reasoning, tool results and attachments are excluded. With it off, only the draft is sent.
 - **Sensitive conversations**: if the content must not leave the machine, turn off `contextAware` or use a local/private model route you trust.
-- **Local tier cache**: the plugin caches "which reasoning tiers does this route declare" in `$DSH_HOME/dsh-prompt-enhance/reasoning-efforts.json` (`~/.dsh/…` when `DSH_HOME` is unset). The file holds only the provider, the model and the tier metadata — no API key, draft or conversation text. The cache has no expiry; refresh it from the settings page's tier-refresh control, or delete the file.
+- **Local tier cache**: the plugin caches "which reasoning tiers does this route declare" per provider/model under `$DSH_HOME/dsh-prompt-enhance/reasoning-efforts/` (`~/.dsh/…` when `DSH_HOME` is unset), and each entry expires and is re-probed after 30 days. The files hold only the provider, the model and the tier metadata — no API key, draft or conversation text. Refresh them from the settings page's tier-refresh control, or delete the directory.
 
 ## Troubleshooting
 

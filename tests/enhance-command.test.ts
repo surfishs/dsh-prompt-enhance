@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
 import type { CommandDefinition, CommandInvocation } from '@deepseek-ai/dsh-commands'
 import { DEFAULT_CONFIG, type Config } from '../src/config'
+import { AdmissionGate } from '../src/admission'
 import { registerEnhanceCommand } from '../src/enhance-command'
 import { runEnhance, sessionRouteOf } from '../src/orchestrate'
 
@@ -20,7 +21,7 @@ vi.mock('../src/orchestrate', () => ({
 }))
 
 /** One command registration captured from the stub commands service. */
-function captureDefinition(readConfig: () => Config = () => ({ ...DEFAULT_CONFIG })): CommandDefinition {
+function captureDefinition(readConfig: () => Config = () => ({ ...DEFAULT_CONFIG }), gate: AdmissionGate = new AdmissionGate()): CommandDefinition {
   let captured: CommandDefinition | undefined
   const commands = {
     register: (definition: CommandDefinition): (() => void) => {
@@ -32,7 +33,7 @@ function captureDefinition(readConfig: () => Config = () => ({ ...DEFAULT_CONFIG
     get: (key: string) => (key === 'commands' ? commands : undefined),
     effect: (fn: () => unknown) => fn(),
   } as unknown as Context
-  registerEnhanceCommand(ctx, readConfig)
+  registerEnhanceCommand(ctx, readConfig, gate)
   if (captured === undefined) throw new Error('registerEnhanceCommand did not register')
   return captured
 }
@@ -57,7 +58,7 @@ describe('/enhance slash command', () => {
   it('silently skips when the commands service is absent', () => {
     const effect = vi.fn()
     const ctx = { get: () => undefined, effect } as unknown as Context
-    expect(() => registerEnhanceCommand(ctx, () => ({ ...DEFAULT_CONFIG }))).not.toThrow()
+    expect(() => registerEnhanceCommand(ctx, () => ({ ...DEFAULT_CONFIG }), new AdmissionGate())).not.toThrow()
     expect(effect).not.toHaveBeenCalled()
   })
 
@@ -113,5 +114,19 @@ describe('/enhance slash command', () => {
     const result = await definition.handler(invocation('hello'))
     expect(result.kind).toBe('error')
     expect((result as { text: string }).text).toContain('增强失败')
+  })
+
+  it('spends the shared admission gate instead of bypassing it', async () => {
+    // The command used to call runEnhance directly, so the per-minute cap the
+    // settings page advertises only covered the composer route. Two calls
+    // through ONE gate must hit the cap after the first success.
+    vi.mocked(runEnhance).mockResolvedValue({ text: 'enhanced', provider: 'p', model: 'm', elapsedMs: 5 })
+    const definition = captureDefinition(() => ({ ...DEFAULT_CONFIG, rateLimitPerMinute: 1 }))
+    const first = await definition.handler(invocation('hello'))
+    expect(first.kind).toBe('success')
+    const second = await definition.handler(invocation('hello again'))
+    expect(second.kind).toBe('error')
+    expect((second as { text: string }).text).toContain('请求过于频繁')
+    expect(runEnhance).toHaveBeenCalledTimes(1)
   })
 })

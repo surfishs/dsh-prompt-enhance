@@ -10,6 +10,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { Config, DEFAULT_CONFIG, PROMPT_ENHANCE_NAMESPACE, resolveConfig, type Config as PluginConfig } from './config'
+import { AdmissionGate } from './admission'
 import { installSettingsSource } from './settings-source'
 import { PROMPT_ENHANCE_ROW_IDS } from './shared/protocol'
 import { registerEnhanceRoute } from './enhance-routes'
@@ -83,6 +84,9 @@ export function apply(ctx: Context, config: PluginConfig = { ...DEFAULT_CONFIG }
   // normalized form (trimmed provider/model, stripped legacy keys, validated
   // ranges) — the validate hook only refuses bad values, it never transforms.
   const readConfig = (): PluginConfig => resolveConfig(source.read() as PluginConfig)
-  registerEnhanceRoute(ctx, readConfig)
-  registerEnhanceCommand(ctx, readConfig)
+  // One admission gate per plugin instance, shared by both entries that can
+  // spend a model call: the composer route and the /enhance command plane.
+  const gate = new AdmissionGate()
+  registerEnhanceRoute(ctx, readConfig, gate)
+  registerEnhanceCommand(ctx, readConfig, gate)
 }

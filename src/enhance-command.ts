@@ -9,6 +9,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { CommandDefinition, CommandInvocation } from '@deepseek-ai/dsh-commands'
+import type { AdmissionGate, AdmissionOutcome } from './admission'
 import { checkInputText, formatInputCheckZh } from './shared/validate'
 import { type Config } from './config'
 import { formatEnhanceError, toEnhanceError } from './enhancer'
@@ -24,8 +25,10 @@ interface CommandsFace {
  * service is a silent no-op so the plugin still loads in UI-less spines.
  * @param ctx - registrant context.
  * @param readConfig - per-call config reader.
+ * @param gate - the admission gate shared with the composer route, so the
+ *   command plane is capped by the same window, concurrency cap and breaker.
  */
-export function registerEnhanceCommand(ctx: Context, readConfig: () => Config): void {
+export function registerEnhanceCommand(ctx: Context, readConfig: () => Config, gate: AdmissionGate): void {
   const commands = ctx.get('commands') as unknown as CommandsFace | undefined
   if (commands === undefined) return
   const definition: CommandDefinition = {
@@ -52,13 +55,31 @@ export function registerEnhanceCommand(ctx: Context, readConfig: () => Config): 
         if (!check.ok) {
           return { kind: 'error', text: formatInputCheckZh(check) }
         }
-        const value = await runEnhance(ctx, config, {
-          text: raw,
-          sessionRoute: sessionRouteOf(ctx, invocation.agent.session.id),
-          signal: invocation.signal,
-          sessionId: invocation.agent.session.id,
-        })
-        return { kind: 'success', text: value.text }
+        // The command spends the same model budget as the composer button, so it
+        // asks the same gate. Admission follows validation: a rejected draft must
+        // not consume a window slot.
+        const decision = gate.admit(Date.now(), { rateLimitPerMinute: config.rateLimitPerMinute, maxConcurrent: config.maxConcurrent })
+        if (!decision.ok) {
+          return { kind: 'error', text: formatEnhanceError(decision.error) }
+        }
+        let outcome: AdmissionOutcome = 'aborted'
+        try {
+          const value = await runEnhance(ctx, config, {
+            text: raw,
+            sessionRoute: sessionRouteOf(ctx, invocation.agent.session.id),
+            signal: invocation.signal,
+            sessionId: invocation.agent.session.id,
+          })
+          outcome = 'success'
+          return { kind: 'success', text: value.text }
+        } catch (error) {
+          // A cancelled command is not a failing route: only a real failure
+          // feeds the breaker.
+          outcome = invocation.signal.aborted ? 'aborted' : 'failure'
+          throw error
+        } finally {
+          gate.settle(outcome, Date.now())
+        }
       } catch (error) {
         return { kind: 'error', text: formatEnhanceError(toEnhanceError(error)) }
       }
