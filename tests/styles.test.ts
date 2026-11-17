@@ -43,4 +43,18 @@ describe('panel stylesheet', () => {
     // `var(--token, literal)` degrades instead of leaving the panel transparent.
     expect(CSS).toMatch(/--pe-bg:\s*var\(--dsw-alias-bg-layer-1,\s*#[0-9a-f]{6}\)/)
   })
+
+  it('pairs the primary fill with the inverted label token', () => {
+    // `--dsw-alias-brand-primary` flips from near-black (light) to near-white
+    // (dark). A hardcoded foreground therefore turns the dark theme into
+    // white-on-white; the label has to come from the paired token.
+    expect(CSS).toMatch(/\.dsh-pe-btn-action\.primary\s*\{[^}]*color:\s*var\(--dsw-alias-label-primary-inverted/)
+    expect(CSS).not.toMatch(/\.dsh-pe-btn-action\.primary\s*\{[^}]*color:\s*#fff/i)
+  })
+
+  it('blends the primary hover toward the surface rather than toward white', () => {
+    // White is the dark-theme fill itself, so a white-ward blend has no visible
+    // hover state there.
+    expect(CSS).toMatch(/\.dsh-pe-btn-action\.primary:hover\s*\{[^}]*var\(--dsw-alias-bg-layer-1/)
+  })
 })
