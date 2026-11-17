@@ -147,6 +147,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | 结果不完整 | 查看截断提示，并在设置中调高 `maxOutputTokens`。 |
 | 提示「尚未确定增强用的模型」 | 在设置中成对填写 `provider` / `model`；或先在当前会话发一条消息，让插件跟随会话模型。 |
 | 鉴权失败 | 检查对应 provider 在 DSH 中的凭据/API Key 是否有效。 |
+| `/enhance` 的结果只显示第一行、点不开 | 这是 DSH 聊天界面的渲染限制，与本插件无关：截至 `@deepseek-ai/dsh-client-ui-chat` 0.2.2-rc.3，只有含换行的结果才提供展开，单行结果会被省略号截断且没有入口。要看全文，把同样的文本放进输入框、用增强按钮——按钮的结果卡会自动折行并可滚动。 |
 
 ## 开发
 
