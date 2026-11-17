@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { enhanceText, formatEnhanceError, resolveRoute, toEnhanceError, type LlmStreamFace, type RoutePair } from '../src/enhancer'
 
@@ -304,5 +304,66 @@ describe('formatEnhanceError', () => {
 
   it('keeps a rejected error short without a detail', () => {
     expect(formatEnhanceError({ code: 'rejected' })).toBe('增强请求被拒绝。')
+  })
+})
+
+describe('enhanceText delta backpressure', () => {
+  /**
+   * A stream that records when each chunk is PRODUCED. The marker before a
+   * `yield` runs only when the consumer asks for that value, so the array is an
+   * exact record of how far the loop advanced.
+   */
+  function tracedStream(order: string[]): AsyncIterable<StreamChunk> {
+    return (async function* (): AsyncGenerator<StreamChunk> {
+      order.push('pull-1')
+      yield { type: 'block-start', index: 0, blockType: 'text' }
+      order.push('pull-2')
+      yield { type: 'text-delta', index: 0, text: 'A' }
+      order.push('pull-3')
+      yield { type: 'text-delta', index: 0, text: 'B' }
+      order.push('pull-4')
+      yield { type: 'block-end', index: 0, block: { type: 'text', text: 'AB' } }
+      order.push('pull-5')
+      yield { type: 'usage', usage: { inputTokens: 1, outputTokens: 2 } }
+      order.push('pull-6')
+      yield { type: 'finish', reason: { kind: 'stop' } }
+    })()
+  }
+
+  it('parks the model stream while the delta sink is still draining', async () => {
+    // The SSE sink resolves only once the frame has drain room, so the loop has
+    // to wait for it: otherwise a slow reader lets the model keep producing into
+    // the socket buffer with no bound, which is exactly what the "backpressure"
+    // claim in sse.ts promises and what fire-and-forget failed to deliver.
+    const order: string[] = []
+    const llm = stubLlm(() => tracedStream(order))
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const seen: string[] = []
+    const run = enhanceText(llm, {
+      ...baseOptions,
+      onDelta: (delta: string): Promise<void> => {
+        seen.push(delta)
+        // The sink for the first delta is the "slow reader": it stays pending
+        // until this test releases it.
+        return delta === 'A' ? gate : Promise.resolve()
+      },
+    })
+    try {
+      await vi.waitFor(() => {
+        expect(seen).toContain('A')
+      })
+      // The loop must be parked on the pending sink: chunk 3 cannot have been
+      // produced yet.
+      expect(order).not.toContain('pull-3')
+    } finally {
+      release()
+      await run.catch(() => {})
+    }
+    // Once the reader drains, the loop resumes and every delta reaches the sink.
+    expect(order).toContain('pull-3')
+    expect(seen).toEqual(['A', 'B'])
   })
 })

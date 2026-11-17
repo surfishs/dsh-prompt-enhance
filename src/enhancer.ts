@@ -95,8 +95,10 @@ export interface EnhanceCallOptions {
   context?: string
   /**
    * Receives each text delta as the model produces it (display only). May be
-   * async — the streaming route's sink awaits socket backpressure. A throw, or
-   * a rejected promise, is swallowed: a broken display path must never fail
+   * async — the streaming route's sink awaits socket backpressure, and this
+   * call AWAITS the returned promise before pulling the next delta, so a slow
+   * reader slows the model stream instead of letting frames queue up. A throw,
+   * or a rejected promise, is swallowed: a broken display path must never fail
    * the enhancement itself.
    */
   onDelta?: (delta: string) => void | Promise<void>
@@ -193,15 +195,29 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
           // Display-only tap: the stream already arrives incrementally, so the
           // panel can show the rewrite as it is written instead of waiting for
           // the final normalization.
-          if (next.value.type === 'text-delta' && options.onDelta !== undefined) {
-            try {
-              // The sink may be async (the SSE route awaits socket drain), so a
-              // rejected promise is attached here too — an unhandled rejection
-              // from a display-only path must not surface as a process warning.
-              void Promise.resolve(options.onDelta(next.value.text)).catch(() => {})
-            } catch {
-              // Never let a broken display path fail the enhancement.
-            }
+          const onDelta = options.onDelta
+          if (next.value.type === 'text-delta' && onDelta !== undefined) {
+            // Narrowed here, outside the promise callback below: the union
+            // narrowing from this `if` does not survive into a closure.
+            const delta = next.value.text
+            // AWAITED, not fire-and-forget — this is the backpressure link.
+            // The SSE route's sink resolves only once the frame has been handed
+            // to the socket with buffer room left (see createSseWriter), so
+            // awaiting it parks this loop: the model is not asked for the next
+            // delta while the reader is still draining. Dropping the promise
+            // made that guarantee true only on paper; frames simply queued in
+            // the socket buffer instead.
+            //
+            // The race keeps the deadline honest. This await sits outside the
+            // `iterator.next()` race above, so a reader that neither drains nor
+            // closes would otherwise pin the call past `timeoutMs`; `aborted`
+            // rejects on timeout/cancel and ends the attempt with the mapped
+            // error, exactly as it does for a stalled stream.
+            const sink = Promise.resolve()
+              .then(() => onDelta(delta))
+              // A broken display path must never fail the enhancement.
+              .catch(() => {})
+            await Promise.race([sink, aborted])
           }
         }
       } finally {
