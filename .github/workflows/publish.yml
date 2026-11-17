@@ -24,9 +24,9 @@ on:
 
 permissions:
   id-token: write
-  # The last step opens a draft release for the tag, which needs contents: write.
-  # The repository default is read-only; an explicit block here overrides it.
-  contents: write
+  # Checkout needs read access to the repository; nothing in this workflow writes
+  # contents now that the Release is created locally by the maintainer.
+  contents: read
 
 jobs:
   publish:
