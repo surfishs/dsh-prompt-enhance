@@ -46,3 +46,47 @@ export function FillIcon(): ReactElement {
 export function UndoIcon(): ReactElement {
   return icon([<path key="head" d="M9 14 4 9l5-5" />, <path key="curve" d="M4 9h10.5a5.5 5.5 0 0 1 0 11H8" />])
 }
+
+/** Two diagonal strokes: close the card. Sized like the chevron so both header
+ *  controls share one optical weight and their boxes centre the same way. */
+export function XIcon(): ReactElement {
+  return (
+    <svg
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      style={{ display: 'block', flexShrink: 0 }}
+    >
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </svg>
+  )
+}
+
+/** Down chevron: expanded when pointing down, collapsed when rotated to point right. */
+export function ChevronIcon({ open }: { open: boolean }): ReactElement {
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      style={{ display: 'block', flexShrink: 0, transform: open ? 'none' : 'rotate(-90deg)' }}
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  )
+}

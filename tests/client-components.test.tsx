@@ -424,6 +424,44 @@ describe('enhance → apply → undo loop', () => {
     expect(screen.getByRole('button', { name: zh['panel.retry'] })).toBeTruthy()
   }, 10000)
 
+  it('collapses to the header and footer rows and expands again', async () => {
+    // Collapsing hides the body only: the header row (with the toggle) and the
+    // footer row (with the actions) stay usable, which is the whole point.
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.collapse'] }))
+    expect(screen.queryByText('增强文本')).toBeNull()
+    expect(screen.getByRole('button', { name: zh['panel.copy'] })).toBeTruthy()
+    expect(screen.getByRole('button', { name: zh['panel.expand'] })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.expand'] }))
+    expect(await screen.findByText('增强文本')).toBeTruthy()
+  }, 10000)
+
+  it('marks a hidden warning on the collapsed header', async () => {
+    // A stale or truncated result must not fold away silently: the collapsed
+    // header carries the marker the banner used to carry.
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    act(() => {
+      input.set({ draft: '改了草稿' })
+    })
+    expect(await screen.findByText(`⚠ ${zh['panel.stale.warn']}`)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.collapse'] }))
+    expect(screen.queryByText(`⚠ ${zh['panel.stale.warn']}`)).toBeNull()
+    expect(document.querySelector('.dsh-pe-warn-dot')).not.toBeNull()
+  }, 10000)
+
   it('clears the copy-failure label after the notice window', async () => {
     // A failed copy must not pin the button on "copy failed" until the next
     // click: the label is a transient confirmation for both outcomes.

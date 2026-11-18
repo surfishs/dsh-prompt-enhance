@@ -11,7 +11,7 @@ import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { EnhanceError, EnhanceUsage, ClientFailureReason } from '../shared/protocol'
 import type { PromptEnhanceKey } from './locales'
 import type { PanelState } from './ui-state'
-import { CopyIcon, FillIcon, RegenerateIcon, UndoIcon } from './ActionIcons'
+import { ChevronIcon, CopyIcon, FillIcon, RegenerateIcon, UndoIcon, XIcon } from './ActionIcons'
 import { SparkleFishIcon } from './SparkleFishIcon'
 
 /** Props of the result card. */
@@ -32,6 +32,10 @@ export interface ResultPanelProps {
   onRegenerate?: () => void
   /** Show the transient "regenerated" label on that button instead of its normal text. */
   regenerated?: boolean
+  /** Hide the body, keeping the header and the footer rows (and their actions). */
+  collapsed?: boolean
+  /** Toggle {@link collapsed}. */
+  onToggleCollapsed?: () => void
 }
 
 /** Whether one error phase is worth retrying: model/transport failures, but never a call the user cancelled. */
@@ -163,7 +167,7 @@ function totalTokensOf(usage: EnhanceUsage): number {
 
 /** One enhancement result card. */
 export function ResultPanel(props: ResultPanelProps): ReactNode {
-  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, regenerated = false } = props
+  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, regenerated = false, collapsed = false, onToggleCollapsed } = props
   const [copied, setCopied] = useState<'idle' | 'ok' | 'failed'>('idle')
   /** Pending reset of the copy label; one timer only, so a second copy cannot be cut short by the first. */
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -246,54 +250,70 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
               )}
             </span>
           )}
+          {/* Collapsed, the body — and with it the warnings — is hidden, so the
+              header carries a marker instead of silently swallowing one. */}
+          {collapsed && (state.stale === true || state.result?.truncated === true) ? (
+            <span className="dsh-pe-warn-dot" title={state.stale === true ? t('panel.stale.warn') : t('panel.truncated')} aria-hidden="true">
+              ⚠
+            </span>
+          ) : null}
+          <button type="button" className="dsh-pe-collapse" aria-label={collapsed ? t('panel.expand') : t('panel.collapse')} aria-expanded={!collapsed} onClick={onToggleCollapsed}>
+            <ChevronIcon open={!collapsed} />
+          </button>
           <button type="button" className="dsh-pe-close" aria-label={t('panel.close')} onClick={onCancel}>
-            ✕
+            <XIcon />
           </button>
         </div>
       </header>
 
-      {state.phase === 'loading' && (
-        <div className="dsh-pe-loading">
-          {state.streaming === undefined || state.streaming === '' ? (
-            <>
-              <div className="dsh-pe-spin" aria-hidden />
-              <div>{t('panel.loading')}</div>
-              <div className="dsh-pe-hint">{t('panel.loading.hint')}</div>
-            </>
-          ) : (
-            <div className="dsh-pe-stream">
-              <div className="dsh-pe-col-title">
-                <span className="dsh-pe-spin small" aria-hidden />
-                {t('panel.streaming')}
-              </div>
-              <pre className="dsh-pe-result-text">{state.streaming}</pre>
+      {/* The body is the only part that collapses: the header above and the
+          footer below keep their rows and their actions. */}
+      {collapsed ? null : (
+        <>
+          {state.phase === 'loading' && (
+            <div className="dsh-pe-loading">
+              {state.streaming === undefined || state.streaming === '' ? (
+                <>
+                  <div className="dsh-pe-spin" aria-hidden />
+                  <div>{t('panel.loading')}</div>
+                  <div className="dsh-pe-hint">{t('panel.loading.hint')}</div>
+                </>
+              ) : (
+                <div className="dsh-pe-stream">
+                  <div className="dsh-pe-col-title">
+                    <span className="dsh-pe-spin small" aria-hidden />
+                    {t('panel.streaming')}
+                  </div>
+                  <pre className="dsh-pe-result-text">{state.streaming}</pre>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      {state.phase === 'error' && state.error !== undefined && (
-        <div className="dsh-pe-error">
-          {state.error.localized !== undefined ? (
-            <div>{state.error.localized}</div>
-          ) : (
-            <>
-              <div>{localizedErrorMessage(t, state.error.code, state.error.params)}</div>
-              {state.error.message !== undefined && state.error.message !== '' && <div className="dsh-pe-error-detail">{state.error.message}</div>}
-            </>
+          {state.phase === 'error' && state.error !== undefined && (
+            <div className="dsh-pe-error">
+              {state.error.localized !== undefined ? (
+                <div>{state.error.localized}</div>
+              ) : (
+                <>
+                  <div>{localizedErrorMessage(t, state.error.code, state.error.params)}</div>
+                  {state.error.message !== undefined && state.error.message !== '' && <div className="dsh-pe-error-detail">{state.error.message}</div>}
+                </>
+              )}
+            </div>
           )}
-        </div>
+
+          {state.phase === 'result' && state.result !== undefined && (
+            <div className="dsh-pe-result">
+              <pre className="dsh-pe-result-text">{state.result.text}</pre>
+            </div>
+          )}
+
+          {state.phase === 'result' && state.result?.truncated === true && <div className="dsh-pe-stale">⚠ {t('panel.truncated')}</div>}
+
+          {state.phase === 'result' && state.stale && <div className="dsh-pe-stale">⚠ {t('panel.stale.warn')}</div>}
+        </>
       )}
-
-      {state.phase === 'result' && state.result !== undefined && (
-        <div className="dsh-pe-result">
-          <pre className="dsh-pe-result-text">{state.result.text}</pre>
-        </div>
-      )}
-
-      {state.phase === 'result' && state.result?.truncated === true && <div className="dsh-pe-stale">⚠ {t('panel.truncated')}</div>}
-
-      {state.phase === 'result' && state.stale && <div className="dsh-pe-stale">⚠ {t('panel.stale.warn')}</div>}
 
       <footer className="dsh-pe-foot">
         <span className="dsh-pe-grow" />

@@ -19,6 +19,8 @@ export interface PanelState {
   readonly original: string
   readonly result?: EnhanceResult
   readonly error?: EnhanceError
+  /** True while the card body is collapsed: the header and the footer stay, the body hides. */
+  readonly collapsed?: boolean
   /** Cancels the in-flight request; absent once settled. */
   readonly abort?: () => void
   /** The composer draft changed after the request started — the result is based on the old text. */
@@ -204,6 +206,20 @@ export function openError(sessionId: string, original: string, error: EnhanceErr
 export function setStale(sessionId: string, stale: boolean): void {
   if (panelState?.sessionId !== sessionId || panelState.phase !== 'result' || panelState.stale === stale) return
   panelState = { ...panelState, stale }
+  notify()
+}
+
+/**
+ * Collapse or expand the open card. Only the body hides; the header (with the
+ * toggle and close) and the footer (with the actions) stay usable. A new request
+ * or an error drops the flag, because {@link openLoading} and {@link settleError}
+ * build a fresh state without it.
+ * @param sessionId - the session that owns the card.
+ * @param collapsed - whether the body should be hidden.
+ */
+export function setCollapsed(sessionId: string, collapsed: boolean): void {
+  if (panelState?.sessionId !== sessionId || (panelState.collapsed === true) === collapsed) return
+  panelState = { ...panelState, collapsed }
   notify()
 }
 

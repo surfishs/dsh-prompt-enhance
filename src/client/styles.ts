@@ -42,6 +42,11 @@ export const CSS = `
   color: var(--pe-fg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 14px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  /* The card is chrome: titles, badges, banners and button labels are not
+     content to be selected. The two blocks the user may want to copy opt back
+     in below (.dsh-pe-result-text, .dsh-pe-error). */
+  -webkit-user-select: none;
+  user-select: none;
 }
 .dsh-pe-head {
   display: flex;
@@ -69,12 +74,25 @@ export const CSS = `
   font-size: 11px;
   opacity: 0.72;
   white-space: nowrap;
+  cursor: default;
 }
-.dsh-pe-close {
+/* The close and collapse controls share one square hit target: same box, same
+   hover surface, so the two glyphs read as a pair instead of one looking
+   flatter than the other. */
+.dsh-pe-close,
+.dsh-pe-collapse {
+  box-sizing: border-box;
   border: none; background: transparent; color: inherit; opacity: 0.6;
-  font-size: 15px; cursor: pointer; padding: 2px 6px; border-radius: 4px;
+  cursor: pointer; border-radius: 4px; padding: 0;
+  width: 22px; height: 22px; line-height: 0;
+  display: inline-flex; align-items: center; justify-content: center;
 }
-.dsh-pe-close:hover { opacity: 1; background: var(--pe-hover); }
+.dsh-pe-close { font-size: 15px; }
+.dsh-pe-close:hover,
+.dsh-pe-collapse:hover { opacity: 1; background: var(--pe-hover); }
+/* Collapsed, the warning banners live in the hidden body; this marker stands in
+   for them so a stale or truncated result never folds away silently. */
+.dsh-pe-warn-dot { font-size: 15px; line-height: 1; color: var(--pe-warn-fg); }
 .dsh-pe-result { padding: 2px 10px 6px; }
 .dsh-pe-result-text {
   margin: 0;
@@ -86,6 +104,9 @@ export const CSS = `
   font-family: inherit;
   font-size: 12.5px;
   line-height: 1.6;
+  /* The one block in the card the user is expected to copy by hand. */
+  -webkit-user-select: text;
+  user-select: text;
 }
 .dsh-pe-col-title {
   padding: 4px 10px 2px;
@@ -99,6 +120,10 @@ export const CSS = `
   line-height: 1.6;
   color: var(--pe-danger);
   white-space: pre-wrap;
+  /* Selectable with its detail line: the provider message is what users paste
+     into an issue when they report a failure. */
+  -webkit-user-select: text;
+  user-select: text;
 }
 .dsh-pe-error .dsh-pe-error-detail {
   margin-top: 8px;
@@ -233,6 +258,9 @@ export const CSS = `
   background: var(--dsw-alias-bg-layer-1, transparent);
   font-size: 12px;
   color: inherit;
+  /* The undo row is chrome too, like the card header and footer. */
+  -webkit-user-select: none;
+  user-select: none;
 }
 .dsh-pe-undo .dsh-pe-undo-check {
   color: var(--dsw-alias-state-success-primary, #2da44e);

@@ -167,6 +167,8 @@ export function ResultDock(props: ResultDockProps): ReactNode {
         t={t}
         applied={applied}
         regenerated={regeneratedNotice}
+        collapsed={panel.collapsed === true}
+        onToggleCollapsed={() => ui.setCollapsed(uiKey, panel.collapsed !== true)}
         onApply={apply}
         onUndo={undo}
         onRegenerate={regenerate}
