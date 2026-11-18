@@ -27,8 +27,9 @@ With context awareness on, it also reads the last few turns to resolve pronouns 
 | Feature | What it does |
 |---|---|
 | 🐋 **One-click enhance** | The composer toolbar button (the DeepSeek whale mark whose upper-left corner carries a sparkle); the shortcut is off by default and can be set in the settings |
-| 🖼️ **Docked result card** | The result appears above the composer without covering the conversation, with the model, timing and `token` usage; a truncated result is marked as possibly incomplete |
-| ↩️ **Apply, copy and undo** | Undo right after applying; once the card is closed, the undo bar remains above the composer |
+| 🎛️ **Right-click settings** | Right-click or long-press the composer button to open a small card for the reasoning tier (choose one from the list it opens) and context awareness; the model row is read-only and shows the pinned provider/model or "Follow session" |
+| 🖼️ **Docked result card** | The result appears above the composer without covering the conversation, with the model, reasoning tier, timing and `token` usage; the card folds to its title and footer rows, and a truncated result is marked as possibly incomplete |
+| ↩️ **Apply, copy and undo** | Applying folds the card and shows the undo bar above the composer; Undo restores the draft and expands the card; the result can also be copied directly |
 | 🔄 **Regenerate** | Requests another version from the current composer text; after applying, it regenerates the enhanced draft as well |
 | 💬 **`/enhance` command** | Rewrites any text from the slash menu; the result never enters model history |
 | 🧭 **Model routing** | A pinned `provider` + `model` pair wins; otherwise it follows the current session model, then the global default model |
@@ -95,11 +96,13 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 1. **Start**: leave a draft in the composer and click the enhance button in the toolbar (or your configured shortcut).
 2. **Review**: the result appears in a card docked above the composer. You can:
-   - **Apply**: write it back; the card stays open with a Replaced chip;
+   - **Apply**: write it back; the card folds to its title row and the composer shows "Original draft replaced + Undo";
    - **Copy**: copy the result;
    - **Regenerate**: run the current draft again.
-3. **Undo**: after applying, click Undo to restore; after closing the card, the undo bar remains above the composer.
+3. **Undo**: click Undo above the composer to restore the original draft; the result card expands again.
 4. **Close**: sending the draft closes the card automatically; Escape also closes it.
+
+Right-click or long-press the enhance button in the toolbar to open the quick settings card: choose a reasoning tier inside its list, toggle context awareness, and read the pinned provider/model (or "Follow session"). Full settings stay on the settings page.
 
 An empty or attachment-only draft dims the button and makes it unclickable; over-length drafts and drafts containing commands or file references are rejected locally. A result that hits the token cap is marked as possibly incomplete.
 
@@ -112,16 +115,18 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | Field | Default | Notes |
 |---|---|---|
 | `enabled` | `true` | Master switch; off hides the composer button and disables the command and shortcut |
-| `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (none). With only one filled, the save falls back to follow-session |
+| `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (none). With only one filled, the save falls back to follow-session; switching the provider clears the chosen model so a stale pair cannot remain |
 | `temperature` | `0.3` | Sampling temperature `0~1` (step 0.05); lower stays closer to the original |
-| `reasoningEffort` | `off` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`). A route that declares no tiers omits the field (follows the provider default); `inherit` means the field is not sent |
+| `reasoningEffort` | `off` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`). "Not specified" sends no field; switching to a model that does not declare the stored tier rewrites it to "Not specified" |
 | `maxOutputTokens` | `8192` | Output token cap per call |
 | `maxInputChars` | `12000` | Input character cap; over-limit is rejected, never truncated |
 | `timeoutMs` | `60000` | End-to-end timeout per call (ms) |
 | `systemPrompt` | empty | Custom system prompt; empty uses the built-in strategy |
 | `strategyMode` | `replace-default` | `replace-default` replaces the built-in strategy (the minimal output contract still applies); `extend-default` appends the custom strategy after the built-in one |
-| `shortcut` | empty (disabled) | Trigger shortcut; e.g. `ctrl+alt+shift+e`. Needs at least one of ctrl/alt/meta; shift is optional |
+| `shortcut` | empty (disabled) | Trigger shortcut; e.g. `ctrl+alt+shift+e`. Needs at least one of ctrl/alt/meta; shift is optional; the settings page has a Record button that captures the combination |
 | `streaming` | `true` | Show the result as it is written; display only, the final result is unchanged |
+| `foldAnimation` | `true` | Whether the card animates when it folds or expands; never animates when the system asks for reduced motion |
+| `autoFold` | `true` | Fold the card after applying and expand it again after undoing |
 | `contextAware` | `true` | Read recent conversation to resolve references; turn it off for sensitive sessions |
 | `contextMaxMessages` | `8` | Number of recent messages considered; `0` disables |
 | `contextMaxChars` | `4000` | Character budget of the history snippet; `0` disables |
@@ -136,7 +141,7 @@ An empty or attachment-only draft dims the button and starts no request; raise `
 - **No model keys stored**: the plugin does not read or store model API keys; calls use the host's existing LLM configuration.
 - **Context sent only when enabled**: with `contextAware` on, the most recent user/assistant text and the current draft are sent to the configured model provider (default: up to 8 messages and 4,000 characters); system messages, reasoning, tool results and attachments are excluded. With it off, only the draft is sent.
 - **Sensitive conversations**: if the content must not leave the machine, turn off `contextAware` or use a local/private model route you trust.
-- **Local tier cache**: the plugin caches "which reasoning tiers does this route declare" per provider/model under `$DSH_HOME/dsh-prompt-enhance/reasoning-efforts/` (`~/.dsh/…` when `DSH_HOME` is unset), and each entry expires and is re-probed after 30 days. The files hold only the provider, the model and the tier metadata — no API key, draft or conversation text. Refresh them from the settings page's tier-refresh control, or delete the directory.
+- **Local tier cache**: the plugin caches "which reasoning tiers does this route declare" per provider/model under `$DSH_HOME/dsh-prompt-enhance/reasoning-efforts/` (`~/.dsh/…` when `DSH_HOME` is unset), and each entry expires and is re-probed after 30 days. The files hold only the provider, the model and the tier metadata — no API key, draft or conversation text. Refresh them from the settings page's Refresh control, or delete the directory.
 
 ## Troubleshooting
 
@@ -145,7 +150,7 @@ An empty or attachment-only draft dims the button and starts no request; raise `
 | No enhance button in the toolbar | Confirm `enabled` is `true`; restart DSH (desktop app or `dsh web`) after installing; confirm the active profile. |
 | Button is greyed out | The composer is empty or has attachments only; type text to enable it. |
 | Truncated result | Check the truncation warning and raise `maxOutputTokens` in settings. |
-| "No model resolved for enhancement" | Set both `provider` and `model` in settings, or send a message in the current session so the plugin can follow the session route. |
+| "No model is configured for the enhancement" | Set both `provider` and `model` in settings, or send a message in the current session so the plugin can follow the session route. |
 | Authentication failure | Check the provider credentials/API key configured in DSH. |
 | `/enhance` shows only the first line and cannot be expanded | A rendering limit of the DSH chat UI, not this plugin: as of `@deepseek-ai/dsh-client-ui-chat` 0.2.2-rc.3, only results containing a newline get an expand control, so a single-line result is ellipsized with no way to open it. To read the whole result, put the same text in the composer and use the enhance button — the button's card wraps and scrolls. |
 
