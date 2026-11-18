@@ -14,7 +14,8 @@ import type { RowCopy } from './settings-page-copy'
 import {
   HEAD_STYLE,
   HINT_STYLE,
-  INPUT_STYLE,
+  FIELD_INPUT_STYLE,
+  FIELD_SHELL_STYLE,
   INVALID_STYLE,
   LABEL_STYLE,
   NOTICE_STYLE,
@@ -418,33 +419,37 @@ export function TextControl(props: {
   const showInvalid = props.invalid === true && revealedInvalid
   const borderColor = showInvalid ? 'var(--dsw-alias-state-error-primary, #f85149)' : focused ? 'var(--dsw-alias-state-business-primary, #4f8cff)' : undefined
   return (
-    <input
-      id={props.id}
-      type="text"
-      inputMode={props.numeric === true ? 'numeric' : undefined}
-      aria-invalid={showInvalid || undefined}
-      disabled={props.disabled}
-      placeholder={props.placeholder}
-      value={props.value}
-      style={{
-        ...INPUT_STYLE,
-        ...(props.disabled === true ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {}),
-        ...(borderColor === undefined ? {} : { borderColor }),
-      }}
-      onFocus={() => setFocused(true)}
-      onBlur={() => {
-        setFocused(false)
-        if (props.invalid === true) setRevealedInvalid(true)
-        props.onCommit?.()
-      }}
-      onKeyDown={(event) => {
-        if (event.key !== 'Enter') return
-        event.preventDefault()
-        if (props.invalid === true) setRevealedInvalid(true)
-        props.onCommit?.()
-      }}
-      onChange={(event) => props.onChange(event.target.value)}
-    />
+    // Host primitives Input: a flex shell centers a borderless inner input, so
+    // the text sits on the shell's center line instead of relying on a fixed
+    // height plus a line-height to be centered by the browser.
+    <div style={{ ...FIELD_SHELL_STYLE, ...(borderColor === undefined ? {} : { borderColor }) }}>
+      <input
+        id={props.id}
+        type="text"
+        inputMode={props.numeric === true ? 'numeric' : undefined}
+        aria-invalid={showInvalid || undefined}
+        disabled={props.disabled}
+        placeholder={props.placeholder}
+        value={props.value}
+        style={{
+          ...FIELD_INPUT_STYLE,
+          ...(props.disabled === true ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {}),
+        }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          setFocused(false)
+          if (props.invalid === true) setRevealedInvalid(true)
+          props.onCommit?.()
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter') return
+          event.preventDefault()
+          if (props.invalid === true) setRevealedInvalid(true)
+          props.onCommit?.()
+        }}
+        onChange={(event) => props.onChange(event.target.value)}
+      />
+    </div>
   )
 }
 

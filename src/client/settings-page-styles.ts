@@ -73,8 +73,12 @@ export const RESET_STYLE: CSSProperties = CHIP_STYLE
 export const RECORD_STYLE: CSSProperties = CHIP_STYLE
 /** One border for every form control, so focus never changes the outline width. */
 export const FIELD_BORDER = '1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38))'
-/** The form input, mirroring the host's `input` metrics for a native control. */
-export const INPUT_STYLE: CSSProperties = {
+/**
+ * The form control box: the same 34px / 1px border / 12px inline padding the
+ * page always used. It is shared by the text-field shell and the select so the
+ * two controls keep one outer size.
+ */
+export const FIELD_BOX_STYLE: CSSProperties = {
   boxSizing: 'border-box',
   width: '100%',
   height: 34,
@@ -82,11 +86,34 @@ export const INPUT_STYLE: CSSProperties = {
   border: FIELD_BORDER,
   borderRadius: 'var(--dsw-radius-md, 8px)',
   background: 'var(--dsw-alias-bg-layer-3, transparent)',
+}
+/**
+ * The text-field shell: the host primitives Input pattern (a flex box that
+ * centers a borderless inner input), so vertical centering is a layout decision
+ * instead of a fixed-height plus line-height compromise.
+ */
+export const FIELD_SHELL_STYLE: CSSProperties = {
+  ...FIELD_BOX_STYLE,
+  display: 'flex',
+  alignItems: 'center',
+}
+/**
+ * The borderless inner input (host primitives Input .input): it fills the
+ * shell, keeps the page's 13px text, and takes the host's 22px line box so the
+ * glyphs sit on the same rhythm as the shell's other text.
+ */
+export const FIELD_INPUT_STYLE: CSSProperties = {
+  flex: '1 1 auto',
+  minWidth: 0,
+  margin: 0,
+  padding: 0,
+  border: 'none',
+  outline: 'none',
+  background: 'transparent',
   font: 'inherit',
   fontSize: 13,
-  lineHeight: 1.5,
+  lineHeight: '22px',
   color: 'var(--dsw-alias-label-primary, inherit)',
-  outline: 'none',
 }
 /** The error line under an invalid numeric row. */
 export const INVALID_STYLE: CSSProperties = {
@@ -102,9 +129,20 @@ export const WARN_STYLE: CSSProperties = {
   lineHeight: 1.5,
   color: 'var(--dsw-alias-state-error-primary, #f85149)',
 }
-/** The provider/model select, sharing the value input's metrics. */
+/**
+ * The provider/model select: the same box as the text field. Chromium adds
+ * about 3px of its own inline inset to a select's text (measured from the
+ * settings screenshots: 17px vs the input's 14px), so the left padding drops to
+ * 9px to put both text edges on the same line.
+ */
 export const SELECT_STYLE: CSSProperties = {
-  ...INPUT_STYLE,
+  ...FIELD_BOX_STYLE,
+  paddingLeft: 9,
+  font: 'inherit',
+  fontSize: 13,
+  lineHeight: 1.5,
+  color: 'var(--dsw-alias-label-primary, inherit)',
+  outline: 'none',
   cursor: 'pointer',
 }
 export const SEPARATOR_STYLE: CSSProperties = {
