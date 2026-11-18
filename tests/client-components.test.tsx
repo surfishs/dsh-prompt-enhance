@@ -15,7 +15,7 @@ import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { EnhanceButton } from '../src/client/EnhanceButton'
 import { UndoBar } from '../src/client/UndoBar'
 import { ResultDock } from '../src/client/ResultDock'
-import { requestEnhance, requestEnhanceStream } from '../src/client/enhance-client'
+import { EnhanceClientError, requestEnhance, requestEnhanceStream } from '../src/client/enhance-client'
 import { zh } from '../src/client/locales'
 import * as ui from '../src/client/ui-state'
 import { DEFAULT_CLIENT_SETTINGS, setClientSettings } from '../src/client/settings'
@@ -400,6 +400,29 @@ describe('enhance → apply → undo loop', () => {
     fireEvent.click(screen.getByRole('button', { name: zh['panel.copy'] }))
     expect(await screen.findByRole('button', { name: zh['panel.copied'] })).toBeTruthy()
   })
+
+  it('offers no retry for a cancelled call', async () => {
+    // A cancelled call is not a failure worth repeating: the panel says it was
+    // cancelled and must not pair that with a retry button.
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockRejectedValue(new EnhanceClientError({ code: 'internal', message: '', params: { reason: 'cancelled' } } as never))
+
+    fireEvent.click(enhanceButton())
+    expect(await screen.findByText(zh['error.client.cancelled'])).toBeTruthy()
+    expect(screen.queryByRole('button', { name: zh['panel.retry'] })).toBeNull()
+  }, 10000)
+
+  it('keeps the retry button for a transport failure', async () => {
+    // The cancelled carve-out must not swallow the retryable internal reasons.
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockRejectedValue(new EnhanceClientError({ code: 'internal', message: '', params: { reason: 'unreachable' } } as never))
+
+    fireEvent.click(enhanceButton())
+    expect(await screen.findByText(zh['error.client.unreachable'])).toBeTruthy()
+    expect(screen.getByRole('button', { name: zh['panel.retry'] })).toBeTruthy()
+  }, 10000)
 
   it('clears the copy-failure label after the notice window', async () => {
     // A failed copy must not pin the button on "copy failed" until the next

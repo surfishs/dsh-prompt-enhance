@@ -34,8 +34,8 @@ export interface ResultPanelProps {
   regenerated?: boolean
 }
 
-/** Whether one error phase is worth retrying (model/transport failures). */
-const retryable = (code: string | undefined): boolean => code === 'upstream' || code === 'timeout' || code === 'internal'
+/** Whether one error phase is worth retrying: model/transport failures, but never a call the user cancelled. */
+const retryable = (error: EnhanceError | undefined): boolean => error?.code === 'upstream' || error?.code === 'timeout' || (error?.code === 'internal' && error.params?.reason !== 'cancelled')
 
 /**
  * Wire `reason` (`UpstreamReason`, kebab-case as the host sends it) → the
@@ -308,7 +308,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         )}
         {state.phase === 'error' && (
           <>
-            {retryable(state.error?.code) && onRetry !== undefined && (
+            {retryable(state.error) && onRetry !== undefined && (
               <button type="button" className="dsh-pe-btn-action plain dsh-pe-btn-floor" onClick={onRetry}>
                 {t('panel.retry')}
               </button>
