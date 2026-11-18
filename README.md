@@ -49,7 +49,7 @@
 
 装之前请确认包名。npm 上的 `dsh-prompt-enhance`（无 scope）是上游原项目，本插件是它的重写分支，包名是 `@surfishs/dsh-prompt-enhance`。本插件的安装源是本仓库 `surfishs/dsh-prompt-enhance`。**不要**执行 `dsh plugin add dsh-prompt-enhance`。
 
-DSH 桌面版与 Web 版使用同一个插件包，安装方式相同，只是 profile 名不同：桌面版通常是 `desktop`，Web 版通常是 `web`。
+DSH 桌面版与 Web 版使用同一个插件包，安装方式相同，只是 profile 名不同：桌面版通常是 `desktop`，Web 版通常是 `web`。把下方命令里的 `<profile>` 换成你的 profile 名。
 
 ### 让 Agent 帮你安装
 

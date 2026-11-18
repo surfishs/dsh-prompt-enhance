@@ -49,7 +49,7 @@ With context awareness on, it also reads the last few turns to resolve pronouns 
 
 Check the package name first. `dsh-prompt-enhance` on npm (no scope) is the upstream project and this plugin is a rewrite of it; this plugin is `@surfishs/dsh-prompt-enhance`. Install from this repository (`surfishs/dsh-prompt-enhance`). **Do not** run `dsh plugin add dsh-prompt-enhance`.
 
-The DSH desktop app and the web build use the same package and the same install steps; only the profile name differs — usually `desktop` for the app and `web` for the web build.
+The DSH desktop app and the web build use the same package and the same install steps; only the profile name differs — usually `desktop` for the app and `web` for the web build. Replace `<profile>` in the commands below with your profile name.
 
 ### Let an agent install it
 
