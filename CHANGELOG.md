@@ -3,6 +3,24 @@
 All notable changes to this project are documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [0.1.1] - 2026-11-18
+
+### Changed
+
+- Reserve the widest label of every result-card button so switching a label cannot move the footer; this covers regenerate (2 labels), copy (3 labels) and fill/undo (2 labels).
+- Confirm a completed regenerate on the button's own label for 2.5 seconds instead of a separate chip.
+- Rewrite `CONTRIBUTING.md` for outside contributors (fork-first clone, prerequisites, maintainers-only release section) and add `.github/PULL_REQUEST_TEMPLATE.md`.
+
+### Removed
+
+- Remove the result card's header status chip (applied / undone / copied / regenerated); the footer button already carries the state.
+
+### Fixed
+
+- Give the result buttons one shared `min-width` floor, so a label that collapses to empty cannot shrink a button to its icon.
+
+[0.1.1]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.0...v0.1.1
+
 ## [0.1.0] - 2026-11-17
 
 ### Added
