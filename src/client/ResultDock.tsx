@@ -18,6 +18,14 @@ import { useDockAlignment } from './useDockAlignment'
 /** Props of the input.dock entry: the InputZone owner share + session kit + locale seat. */
 export type ResultDockProps = PropsRuntime<'conversation.input.dock'> & PropsLocale<'dsh-prompt-enhance'>
 
+/**
+ * How long the regenerate button keeps the "regenerated" label.
+ *
+ * Matches the copy confirmation's window (`ResultPanel`'s copy handler uses the
+ * same 2500ms) so both transient confirmations feel like one system.
+ */
+const REGENERATED_NOTICE_MS = 2500
+
 /** One session's enhancement card, docked above its composer. */
 export function ResultDock(props: ResultDockProps): ReactNode {
   const { t, sessionId, useInput, inputActions } = props
@@ -26,10 +34,6 @@ export function ResultDock(props: ResultDockProps): ReactNode {
   const uiKey = useSessionKey(sessionId, inputActions)
   const panel = useSyncExternalStore(ui.subscribe, ui.getPanel)
   const rootRef = useDockAlignment(panel !== undefined && panel.sessionId === uiKey, uiKey)
-  const [undone, setUndone] = useState(false)
-  const [regenerated, setRegenerated] = useState(false)
-  const [pendingRegenerate, setPendingRegenerate] = useState(false)
-  const previousResultRef = useRef<unknown>(undefined)
   const draft = useInput((state) => {
     const value = (state as { draft?: unknown }).draft
     return typeof value === 'string' ? value : ''
@@ -63,11 +67,21 @@ export function ResultDock(props: ResultDockProps): ReactNode {
       : // eslint-disable-next-line react-hooks/rules-of-hooks
         Number(useSession((state) => (state as { queue?: unknown[] }).queue?.length ?? 0))
 
-  // The applied chip is derived from the undo stack: it is true exactly while
+  // The applied state is derived from the undo stack: it is true exactly while
   // the composer still holds the applied text, and drops itself when the user
-  // edits (the UndoBar drops the stale entry in the same situation).
+  // edits (the UndoBar drops the stale entry in the same situation). It drives
+  // the footer button (fill vs undo); the header shows no status chip.
   const entry = ui.peekUndo(uiKey)
   const applied = entry !== undefined && entry.applied === draft
+
+  // The regenerate button is HIDDEN while the next round streams, so its
+  // confirmation has to be a completion signal: it turns on only after a result
+  // that differs from the one the click captured arrives, and clears itself
+  // after REGENERATED_NOTICE_MS. A failure or a closed panel only drops the
+  // pending flag — there is no button to relabel in those states.
+  const [regeneratedNotice, setRegeneratedNotice] = useState(false)
+  const pendingRegenerate = useRef(false)
+  const previousResultRef = useRef<unknown>(undefined)
 
   // Sending the draft dismisses the card; the undo row can still take over.
   // The phase is checked where the host provides it; the session transition
@@ -95,45 +109,27 @@ export function ResultDock(props: ResultDockProps): ReactNode {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [panel, uiKey])
 
-  // The "undone" chip is transient: it confirms the undo for a moment, then
-  // clears without needing another state change.
+  // Turn the completion signal into the transient label, and clear it on time.
+  // The two effects are separate on purpose: the first only watches the panel
+  // settling, the second only owns the timer, so a re-render of the panel cannot
+  // restart the countdown.
   useEffect(() => {
-    if (!undone) return
-    const timer = setTimeout(() => setUndone(false), 2500)
-    return () => clearTimeout(timer)
-  }, [undone])
-
-  // "Regenerated" is a completion signal, not a click signal: wait until the
-  // panel settles with a different result object, then show the chip briefly.
-  useEffect(() => {
-    if (!pendingRegenerate) return
-    if (panel === undefined || panel.sessionId !== uiKey) {
-      setPendingRegenerate(false)
-      return
-    }
-    if (panel.phase === 'error') {
-      setPendingRegenerate(false)
+    if (!pendingRegenerate.current) return
+    if (panel === undefined || panel.sessionId !== uiKey || panel.phase === 'error') {
+      pendingRegenerate.current = false
       return
     }
     if (panel.phase === 'result' && panel.result !== previousResultRef.current) {
-      setPendingRegenerate(false)
-      setRegenerated(true)
+      pendingRegenerate.current = false
+      setRegeneratedNotice(true)
     }
-  }, [panel, pendingRegenerate, uiKey])
+  }, [panel, uiKey])
 
   useEffect(() => {
-    if (!regenerated) return
-    const timer = setTimeout(() => setRegenerated(false), 2500)
+    if (!regeneratedNotice) return
+    const timer = setTimeout(() => setRegeneratedNotice(false), REGENERATED_NOTICE_MS)
     return () => clearTimeout(timer)
-  }, [regenerated])
-
-  // A regenerate click on an empty draft is a no-op; do not leave the pending
-  // flag stuck forever in that case.
-  useEffect(() => {
-    if (!pendingRegenerate) return
-    const timer = setTimeout(() => setPendingRegenerate(false), 15000)
-    return () => clearTimeout(timer)
-  }, [pendingRegenerate])
+  }, [regeneratedNotice])
 
   if (panel === undefined || panel.sessionId !== uiKey) return null
 
@@ -145,23 +141,22 @@ export function ResultDock(props: ResultDockProps): ReactNode {
     // closing it falls back to the standalone undo row.
     ui.pushUndo(uiKey, { original: draft, applied: panel.result.text })
     inputActions.setDraft(panel.result.text)
-    setUndone(false)
-    setRegenerated(false)
   }
 
   const undo = (): void => {
     if (entry === undefined) return
     inputActions.setDraft(entry.original)
     ui.popUndo(uiKey)
-    setUndone(true)
-    setRegenerated(false)
   }
 
   const regenerate = (): void => {
     if (panel.phase !== 'result') return
+    // A click during the notice window starts a fresh round: drop the label now
+    // so the button shows its normal text before it disappears, and remember
+    // which result this round has to replace.
+    setRegeneratedNotice(false)
     previousResultRef.current = panel.result
-    setRegenerated(false)
-    setPendingRegenerate(true)
+    pendingRegenerate.current = true
     ui.runSession(uiKey)
   }
 
@@ -171,8 +166,7 @@ export function ResultDock(props: ResultDockProps): ReactNode {
         state={panel}
         t={t}
         applied={applied}
-        undone={undone}
-        regenerated={regenerated}
+        regenerated={regeneratedNotice}
         onApply={apply}
         onUndo={undo}
         onRegenerate={regenerate}

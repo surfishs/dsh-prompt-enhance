@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react'
 import { useSyncExternalStore } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { EnhanceButton } from '../src/client/EnhanceButton'
@@ -149,12 +149,11 @@ describe('dsh 0.1.2-rc.1 dual-compat (host omits sessionId)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
     expect(setDraft).toHaveBeenCalledWith('增强文本')
-    expect(screen.getByText(zh['panel.appliedShort'])).toBeTruthy()
+    expect(screen.getByRole('button', { name: zh['undo.undo'] })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: zh['undo.undo'] }))
     expect(setDraft).toHaveBeenLastCalledWith('旧原文')
-    expect(screen.getByText(zh['panel.undoneShort'])).toBeTruthy()
-    expect(screen.queryByText(zh['panel.appliedShort'])).toBeNull()
+    expect(screen.getByRole('button', { name: zh['panel.apply'] })).toBeTruthy()
   })
 })
 
@@ -276,12 +275,11 @@ describe('enhance → apply → undo loop', () => {
     // The undo bar must survive React batching: the pushed entry stays even
     // though the draft just changed to the applied text (regression lock for
     // the apply → pushUndo → setDraft → UndoBar ordering).
-    expect(screen.getByText(zh['panel.appliedShort'])).toBeTruthy()
+    expect(screen.getByRole('button', { name: zh['undo.undo'] })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: zh['undo.undo'] }))
     expect(setDraft).toHaveBeenLastCalledWith('旧原文')
-    expect(screen.getByText(zh['panel.undoneShort'])).toBeTruthy()
-    expect(screen.queryByText(zh['panel.appliedShort'])).toBeNull()
+    expect(screen.getByRole('button', { name: zh['panel.apply'] })).toBeTruthy()
   })
 
   it('marks the result stale (both ways) when the draft changes after the request started', async () => {
@@ -338,10 +336,52 @@ describe('enhance → apply → undo loop', () => {
     fireEvent.click(screen.getByRole('button', { name: zh['panel.regenerate'] }))
     expect(requestEnhance).toHaveBeenCalledTimes(2)
     expect(vi.mocked(requestEnhance).mock.calls[1][0]).toMatchObject({ text: '增强文本' })
-    expect(await screen.findByText(zh['panel.regeneratedShort'])).toBeTruthy()
+    expect(await screen.findByText('增强文本 2')).toBeTruthy()
+    // The button disappears while the next round streams, so the confirmation
+    // can only appear once that round settles: it relabels the button and then
+    // returns to its normal text on its own.
+    expect(await screen.findByRole('button', { name: zh['panel.regenerated'] })).toBeTruthy()
+    await waitFor(() => expect(screen.getByRole('button', { name: zh['panel.regenerate'] })).toBeTruthy(), { timeout: 3500 })
+  }, 10000)
+
+  it('keeps every state-switched footer label in one swap cell', async () => {
+    // Width stability itself is CSS (all labels in one grid cell, see
+    // styles.ts). This pins the DOM contract that makes it work: every switched
+    // label group renders ALL of its labels and marks exactly one visible, so
+    // the grid always reserves the widest one — in both languages.
+    const input = makeFakeInput({ draft: '旧原文' })
+    const setDraft = vi.fn((text: string) => input.set({ draft: text }))
+    renderComposer(input, { setDraft } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+
+    /** Assert one swap group: several labels, exactly one visible, the rest inert. */
+    const assertSwapped = (group: Element): void => {
+      const labels = Array.from(group.children)
+      expect(labels.length).toBeGreaterThanOrEqual(2)
+      expect(labels.filter((label) => label.classList.contains('on'))).toHaveLength(1)
+      for (const label of labels) {
+        const active = label.classList.contains('on')
+        expect(label.getAttribute('aria-hidden')).toBe(active ? null : 'true')
+      }
+    }
+
+    // Result phase: regenerate (2 labels), copy (3 labels), fill (2 labels).
+    const groups = Array.from(document.querySelectorAll('.dsh-pe-foot .dsh-pe-swap'))
+    expect(groups).toHaveLength(3)
+    for (const group of groups) assertSwapped(group)
+
+    // Applied state swaps the primary button for undo, which must keep the group.
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
+    const undoButton = screen.getByRole('button', { name: zh['undo.undo'] })
+    const undoGroup = undoButton.querySelector('.dsh-pe-swap')
+    expect(undoGroup).not.toBeNull()
+    if (undoGroup !== null) assertSwapped(undoGroup)
   })
 
-  it('shows the copied chip after a successful copy', async () => {
+  it('confirms a successful copy on the copy button', async () => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: vi.fn(() => Promise.resolve()) },
@@ -353,7 +393,7 @@ describe('enhance → apply → undo loop', () => {
     fireEvent.click(enhanceButton())
     await screen.findByText('增强文本')
     fireEvent.click(screen.getByRole('button', { name: zh['panel.copy'] }))
-    expect(await screen.findByText(zh['panel.copiedShort'])).toBeTruthy()
+    expect(await screen.findByRole('button', { name: zh['panel.copied'] })).toBeTruthy()
   })
 
   it('regenerates from edits made after the result arrives', async () => {

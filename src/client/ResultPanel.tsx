@@ -30,9 +30,7 @@ export interface ResultPanelProps {
   onUndo?: () => void
   /** Run the same source prompt through the model again. */
   onRegenerate?: () => void
-  /** Show the transient 'undone' chip after an undo. */
-  undone?: boolean
-  /** Show the transient 'regenerated' chip after a regenerate request settles. */
+  /** Show the transient "regenerated" label on that button instead of its normal text. */
   regenerated?: boolean
 }
 
@@ -165,7 +163,7 @@ function totalTokensOf(usage: EnhanceUsage): number {
 
 /** One enhancement result card. */
 export function ResultPanel(props: ResultPanelProps): ReactNode {
-  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, undone = false, regenerated = false } = props
+  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, regenerated = false } = props
   const [copied, setCopied] = useState<'idle' | 'ok' | 'failed'>('idle')
 
   const copy = useCallback((): void => {
@@ -205,6 +203,24 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
     return parts.join(' · ')
   }
 
+  /**
+   * One label of a swap group.
+   *
+   * Every label of the group sits in the same `.dsh-pe-swap` grid cell, so the
+   * widest label of the active language defines the button width and swapping
+   * the visible one cannot resize the button or shift the footer. Only the
+   * active label is painted; `aria-hidden` keeps the inert ones out of the
+   * accessibility tree even before the stylesheet applies.
+   * @param active - whether this label is the one currently shown.
+   * @param text - the label text.
+   * @returns the label element.
+   */
+  const swapLabel = (active: boolean, text: string): ReactNode => (
+    <span className={active ? 'on' : undefined} aria-hidden={active ? undefined : true}>
+      {text}
+    </span>
+  )
+
   return (
     <section className="dsh-pe-panel" role="region" aria-label={t('panel.title')}>
       <header className="dsh-pe-head">
@@ -224,15 +240,6 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
               )}
             </span>
           )}
-          {copied === 'ok' ? (
-            <span className="dsh-pe-applied">{t('panel.copiedShort')}</span>
-          ) : regenerated ? (
-            <span className="dsh-pe-applied">{t('panel.regeneratedShort')}</span>
-          ) : applied ? (
-            <span className="dsh-pe-applied">{t('panel.appliedShort')}</span>
-          ) : undone ? (
-            <span className="dsh-pe-applied">{t('panel.undoneShort')}</span>
-          ) : null}
           <button type="button" className="dsh-pe-close" aria-label={t('panel.close')} onClick={onCancel}>
             ✕
           </button>
@@ -287,7 +294,10 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         {state.phase === 'result' && (
           <button type="button" className="dsh-pe-btn-action plain" onClick={onRegenerate} disabled={onRegenerate === undefined}>
             <RegenerateIcon />
-            {t('panel.regenerate')}
+            <span className="dsh-pe-swap">
+              {swapLabel(!regenerated, t('panel.regenerate'))}
+              {swapLabel(regenerated, t('panel.regenerated'))}
+            </span>
           </button>
         )}
         {state.phase === 'error' && (
@@ -308,17 +318,29 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
           <>
             <button type="button" className="dsh-pe-btn-action plain dsh-pe-copy" onClick={copy}>
               <CopyIcon />
-              {copied === 'ok' ? t('panel.copied') : copied === 'failed' ? t('panel.copyFailed') : t('panel.copy')}
+              <span className="dsh-pe-swap">
+                {swapLabel(copied === 'idle', t('panel.copy'))}
+                {swapLabel(copied === 'ok', t('panel.copied'))}
+                {swapLabel(copied === 'failed', t('panel.copyFailed'))}
+              </span>
             </button>
             {applied ? (
               <button type="button" className="dsh-pe-btn-action primary" onClick={onUndo} disabled={onUndo === undefined}>
                 <UndoIcon />
-                {t('undo.undo')}
+                {/* The undo label reserves the width of the fill label it replaces,
+                    so switching between the two does not resize the footer. */}
+                <span className="dsh-pe-swap">
+                  {swapLabel(true, t('undo.undo'))}
+                  {swapLabel(false, t('panel.apply'))}
+                </span>
               </button>
             ) : (
               <button type="button" className="dsh-pe-btn-action primary" onClick={onApply}>
                 <FillIcon />
-                {t('panel.apply')}
+                <span className="dsh-pe-swap">
+                  {swapLabel(true, t('panel.apply'))}
+                  {swapLabel(false, t('undo.undo'))}
+                </span>
               </button>
             )}
           </>

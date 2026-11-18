@@ -70,16 +70,6 @@ export const CSS = `
   opacity: 0.72;
   white-space: nowrap;
 }
-.dsh-pe-applied {
-  font-size: 10.5px;
-  font-weight: 500;
-  line-height: 1;
-  padding: 3px 7px;
-  border-radius: 999px;
-  color: var(--dsw-alias-state-success-primary, #2da44e);
-  border: 1px solid currentColor;
-  white-space: nowrap;
-}
 .dsh-pe-close {
   border: none; background: transparent; color: inherit; opacity: 0.6;
   font-size: 15px; cursor: pointer; padding: 2px 6px; border-radius: 4px;
@@ -183,6 +173,14 @@ export const CSS = `
 .dsh-pe-btn-action.plain:hover { background: var(--pe-hover); }
 .dsh-pe-btn-action.dsh-pe-copy { min-width: 96px; }
 .dsh-pe-btn-action:disabled { opacity: 0.45; cursor: default; }
+
+/* Both labels of the regenerate button share one cell, so the button is as wide
+   as the longer label of the active language and a label swap can never move
+   the footer. visibility:hidden keeps the inert label out of the accessibility
+   tree, leaving the visible text as the button's name. */
+.dsh-pe-swap { display: inline-grid; }
+.dsh-pe-swap > * { grid-area: 1 / 1; visibility: hidden; }
+.dsh-pe-swap > .on { visibility: visible; }
 
 .dsh-pe-stale {
   padding: 6px 10px;
