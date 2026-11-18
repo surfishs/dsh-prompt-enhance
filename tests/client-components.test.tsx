@@ -166,7 +166,8 @@ describe('EnhanceButton guard chain', () => {
     renderComposer(input, { setDraft: vi.fn() } as never, 's1')
     const button = enhanceButton()
     expect(button.getAttribute('aria-disabled')).toBe('true')
-    expect(button.title).toContain('当前输入区为空')
+    expect(button.title).toContain('提示词增强')
+    expect(button.title).toContain('请先输入')
     fireEvent.click(button)
     expect(screen.queryByText(zh['error.empty'])).toBeNull()
     expect(requestEnhance).not.toHaveBeenCalled()
@@ -726,6 +727,19 @@ describe('quick settings menu', () => {
     fireEvent.click(screen.getByRole('menuitemradio', { name: zh['menu.effortDefault'] }))
     await waitFor(() => expect(set).toHaveBeenCalledWith('reasoningEffort', 'inherit'))
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+  })
+
+  it('advertises the right-click entry while the draft is empty', () => {
+    setSettingsWriter({ set: vi.fn(async () => true), unset: vi.fn(async () => true) })
+    const input = makeFakeInput({ draft: '   ' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    const button = enhanceButton()
+    // The plain click is inert, but the card is still one right-click away, and
+    // the tooltip says so in the empty state too.
+    expect(button.getAttribute('aria-disabled')).toBe('true')
+    expect(button.title).toContain('提示词增强')
+    expect(button.title).toContain('请先输入')
+    expect(button.title).toContain('右键配置')
   })
 
   it('closes the card before the tier write settles', async () => {

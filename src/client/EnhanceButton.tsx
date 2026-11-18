@@ -405,17 +405,14 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
 
   if (!settings.enabled) return null
 
-  // The tooltip carries the discoverability the entry cannot get from chrome:
-  // only in the idle state, so busy/empty hints keep their single meaning.
-  const storedEffort = settings.reasoningEffort === '' ? 'off' : settings.reasoningEffort
+  // The tooltip carries the discoverability the entry cannot get from chrome. It
+  // rides along in every state: the card is reachable by right-click (and by
+  // long-press / Shift+F10) even while a plain click is inert, so an empty or
+  // busy button must not hide the way in.
   const statusTitle = busy ? t('button.busy') : otherBusy ? t('button.otherBusy') : empty ? t('button.emptyTitle') : t('button.title')
-  const quickHint =
-    writer !== undefined && !busy && !otherBusy && !empty
-      ? t('button.quickHint', {
-          effort: storedEffort === 'inherit' ? t('panel.effortDefault') : storedEffort,
-          context: settings.contextAware ? t('menu.contextOn') : t('menu.contextOff'),
-        })
-      : ''
+  // The hint names the way in while the card is actually reachable on hover; the
+  // busy states are short-lived and keep their own single message.
+  const quickHint = writer === undefined || busy || otherBusy ? '' : t('button.quickHint')
   const buttonLabel = statusTitle + quickHint
 
   return (

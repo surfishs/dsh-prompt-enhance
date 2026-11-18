@@ -478,6 +478,9 @@ html[data-platform='darwin'] .dsh-pe-menu {
 .dsh-pe-btn:hover:not(:disabled) { opacity: 1; background: var(--pe-hover); }
 .dsh-pe-btn.is-busy { cursor: progress; }
 .dsh-pe-btn.is-blocked { cursor: progress; }
+/* Empty draft: dimmed and a forbidden pointer. The plain click really is inert
+   here; the card stays reachable by right-click (long-press / Shift+F10) and the
+   tooltip says so, so the cursor still marks "left click does nothing". */
 .dsh-pe-btn.is-empty { opacity: 0.4; cursor: not-allowed; }
 .dsh-pe-btn.is-empty:hover { opacity: 0.4; background: transparent; }
 .dsh-pe-btn:disabled { opacity: 0.45; cursor: default; }

@@ -6,11 +6,11 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
-  'button.title': '提示词增强',
+  'button.title': '提示词增强 · 优化输入框里的文字',
   'button.busy': '正在增强…',
-  'button.otherBusy': '另一个会话正在增强中；请等它完成或先关闭其结果面板。',
-  'button.emptyTitle': '提示词增强（当前输入区为空，请先输入文字）',
-  'button.quickHint': '（右键配置，当前：推理 {effort} · 上下文 {context}）',
+  'button.otherBusy': '另一个会话正在增强中',
+  'button.emptyTitle': '提示词增强 · 请先输入要优化的文字',
+  'button.quickHint': '（右键配置）',
   'menu.title': '快捷设置',
   'menu.effort': '推理等级',
   'menu.effortDefault': '不指定',
@@ -175,11 +175,11 @@ export type PromptEnhanceKey = keyof typeof zh
 
 /** English dictionary. */
 export const en: Record<PromptEnhanceKey, string> = {
-  'button.title': 'Enhance prompt',
+  'button.title': 'Enhance prompt · rewrite the text in the input box',
   'button.busy': 'Enhancing…',
-  'button.otherBusy': 'Another session is enhancing right now — wait for it, or close its result panel first.',
-  'button.emptyTitle': 'Enhance prompt (the input is empty — type something first)',
-  'button.quickHint': ' (right-click to configure — reasoning {effort}, context {context})',
+  'button.otherBusy': 'Another session is enhancing right now',
+  'button.emptyTitle': 'Enhance prompt · type the text to rewrite first',
+  'button.quickHint': ' (right-click to configure)',
   'menu.title': 'Quick settings',
   'menu.effort': 'Reasoning effort',
   'menu.effortDefault': 'Not specified',
