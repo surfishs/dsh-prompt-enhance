@@ -363,6 +363,9 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
       provider: options.route.provider,
       model: options.route.model,
       elapsedMs: Date.now() - started,
+      // What was actually sent: a rejected tier is retried without the field, so
+      // the retry path reports inherit rather than the tier that never ran.
+      reasoningEffort: retriedWithoutEffort ? 'inherit' : requestedEffort,
       ...(reportedUsage === undefined ? {} : { usage: reportedUsage }),
       ...(outcome.truncated ? { truncated: true } : {}),
     }

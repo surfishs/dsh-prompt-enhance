@@ -36,6 +36,18 @@ export const STATUS_STYLE: CSSProperties = {
   lineHeight: 1.5,
   color: 'var(--dsw-alias-label-secondary, inherit)',
 }
+/**
+ * A short-lived answer to a row action (the recorder's "press a combination"
+ * prompt, the tier refetch result). One step louder than a status line: this is
+ * the row telling the user what to do right now, not background information.
+ */
+export const NOTICE_STYLE: CSSProperties = {
+  margin: 0,
+  fontSize: 12.5,
+  fontWeight: 500,
+  lineHeight: 1.5,
+  color: 'var(--dsw-alias-label-primary, inherit)',
+}
 /** The neutral chip surface shared by the row's quiet actions. */
 export const CHIP_STYLE: CSSProperties = {
   display: 'inline-flex',
@@ -57,6 +69,8 @@ export const CHIP_STYLE: CSSProperties = {
 export const REFRESH_STYLE: CSSProperties = { ...CHIP_STYLE, flex: 'none' }
 /** The reset action: the neutral chip surface, with an underline for affordance. */
 export const RESET_STYLE: CSSProperties = CHIP_STYLE
+/** The shortcut recorder: the same neutral chip, so it reads as a row action. */
+export const RECORD_STYLE: CSSProperties = CHIP_STYLE
 /** One border for every form control, so focus never changes the outline width. */
 export const FIELD_BORDER = '1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38))'
 /** The form input, mirroring the host's `input` metrics for a native control. */

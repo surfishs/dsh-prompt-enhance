@@ -11,7 +11,22 @@ import { fetchReasoningCapabilities } from './reasoning-options'
 import type { LlmRoutingState } from './llm-catalog'
 import type { RowProps } from './settings-page-spec'
 import type { RowCopy } from './settings-page-copy'
-import { HEAD_STYLE, HINT_STYLE, INPUT_STYLE, INVALID_STYLE, LABEL_STYLE, REFRESH_STYLE, RESET_STYLE, ROW_STYLE, SELECT_STYLE, STATUS_STYLE, WARN_STYLE } from './settings-page-styles'
+import {
+  HEAD_STYLE,
+  HINT_STYLE,
+  INPUT_STYLE,
+  INVALID_STYLE,
+  LABEL_STYLE,
+  NOTICE_STYLE,
+  RECORD_STYLE,
+  REFRESH_STYLE,
+  RESET_STYLE,
+  ROW_STYLE,
+  SELECT_STYLE,
+  STATUS_STYLE,
+  WARN_STYLE,
+} from './settings-page-styles'
+import { shortcutSpecOf } from './shortcut'
 
 /**
  * The "overridden" badge and its reset button, as the text rows draw them.
@@ -204,12 +219,12 @@ export function ReasoningRow(props: RowProps & { provider: string; model: string
       {phase === 'ready' && capabilities?.source === 'unavailable' ? <p style={STATUS_STYLE}>{props.copy.choice(noTiers ? 'settings.reasoning.noTiers' : 'settings.reasoning.unavailable')}</p> : null}
       {unsupported ? <p style={STATUS_STYLE}>{props.copy.interpolate('settings.reasoning.unsupported', { effort: props.view.text })}</p> : null}
       {feedback === 'ok' ? (
-        <p style={STATUS_STYLE} aria-live="polite">
+        <p style={NOTICE_STYLE} aria-live="polite">
           {props.copy.choice('settings.reasoning.refreshOk')}
         </p>
       ) : null}
       {feedback === 'failed' ? (
-        <p style={STATUS_STYLE} aria-live="polite">
+        <p style={NOTICE_STYLE} aria-live="polite">
           {props.copy.choice('settings.reasoning.refreshFailed')}
         </p>
       ) : null}
@@ -422,7 +437,7 @@ export function TextControl(props: {
   )
 }
 
-export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string; invalidMessage?: string }): ReactElement {
+export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string; invalidMessage?: string; recordable?: boolean }): ReactElement {
   // Two sources of "invalid": the descriptor refused the staged text (numbers),
   // and the row's own client-side validation (the shortcut format).
   const invalid = props.view.invalid || props.invalidMessage !== undefined
@@ -434,6 +449,39 @@ export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: str
     if (props.invalidMessage === undefined) setRevealed(false)
   }, [props.invalidMessage])
   const showMessage = invalid && (props.view.invalid || revealed)
+  // Recorder: one press fills the field instead of typing the spec by hand.
+  const [recording, setRecording] = useState(false)
+  const [recordRejected, setRecordRejected] = useState(false)
+  const { onEdit, onCommit } = props
+  useEffect(() => {
+    if (!recording) return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.isComposing || event.repeat) return
+      const key = event.key
+      // Modifier-only presses keep waiting for the real key.
+      if (key === 'Control' || key === 'Alt' || key === 'Shift' || key === 'Meta') return
+      if (key === 'Escape' || key === 'Tab') {
+        // Escape cancels; Tab keeps its navigation and just stops recording.
+        setRecording(false)
+        setRecordRejected(false)
+        if (key === 'Escape') event.preventDefault()
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      const spec = shortcutSpecOf(event)
+      if (spec === null) {
+        setRecordRejected(true)
+        return
+      }
+      setRecording(false)
+      setRecordRejected(false)
+      onEdit(spec)
+      onCommit?.()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [recording, onEdit, onCommit])
   return (
     <div style={ROW_STYLE}>
       <div style={HEAD_STYLE}>
@@ -441,6 +489,21 @@ export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: str
           {props.label}
         </label>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
+        {props.recordable === true ? (
+          <button
+            type="button"
+            className="dsh-pe-chip-reset"
+            style={RECORD_STYLE}
+            disabled={props.disabled}
+            aria-pressed={recording}
+            onClick={() => {
+              setRecording((open) => !open)
+              setRecordRejected(false)
+            }}
+          >
+            {recording ? props.copy.labels.recordStop : props.copy.labels.record}
+          </button>
+        ) : null}
       </div>
       <TextControl
         id={props.id}
@@ -459,6 +522,7 @@ export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: str
         }}
       />
       <p style={HINT_STYLE}>{props.hint}</p>
+      {recording ? <p style={NOTICE_STYLE}>{recordRejected ? props.copy.labels.recordNeedsModifier : props.copy.labels.recordPrompt}</p> : null}
       {showMessage ? <p style={INVALID_STYLE}>{props.invalidMessage ?? props.copy.labels.invalidNumber}</p> : null}
     </div>
   )

@@ -113,3 +113,29 @@ describe('result narrowing keeps the truncation flag', () => {
     expect(result.truncated).toBeUndefined()
   })
 })
+
+describe('result narrowing keeps the reported reasoning effort', () => {
+  const EFFORT_VALUE = { ...ONESHOT_OK.value, reasoningEffort: 'low' }
+  const jsonResponse = (envelope: unknown): Response => new Response(JSON.stringify(envelope), { status: 200, headers: { 'content-type': 'application/json' } })
+
+  it('carries the effort onto the one-shot result', async () => {
+    // Same trap as the truncation flag: `parseResult` rebuilds the object field
+    // by field, so anything missing from that list never reaches the UI.
+    stubFetch(() => jsonResponse({ ok: true, value: EFFORT_VALUE }))
+    const result = await requestEnhance({ text: '写个爬虫' })
+    expect(result.reasoningEffort).toBe('low')
+  })
+
+  it('carries it through the streamed done frame too', async () => {
+    const frame = `event: done\ndata: ${JSON.stringify({ type: 'done', value: EFFORT_VALUE })}\n\n`
+    stubFetch(() => new Response(frame, { status: 200, headers: { 'content-type': 'text/event-stream' } }))
+    const result = await requestEnhanceStream({ text: '写个爬虫' }, { onDelta: (): void => {} })
+    expect(result.reasoningEffort).toBe('low')
+  })
+
+  it('leaves the field absent when an older host does not send it', async () => {
+    stubFetch(() => jsonResponse(ONESHOT_OK))
+    const result = await requestEnhance({ text: '写个爬虫' })
+    expect(result.reasoningEffort).toBeUndefined()
+  })
+})

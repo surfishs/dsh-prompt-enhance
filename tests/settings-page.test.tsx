@@ -533,6 +533,30 @@ describe('plugins page entry', () => {
     expect(screen.queryAllByRole('textbox')).toHaveLength(0)
   })
 
+  it('records a shortcut from the keyboard', async () => {
+    // The recorder fills the same text field, so the stored format stays the one
+    // the parser and the runner already understand.
+    renderRowPage()
+    const input = screen.getByLabelText(zhCopy('settings.row.shortcut.label')) as HTMLInputElement
+    fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.record') }))
+    expect(screen.getByText(zhCopy('settings.recordPrompt'))).toBeTruthy()
+
+    fireEvent.keyDown(window, { key: 'e', code: 'KeyE', ctrlKey: true, altKey: true })
+    expect(input.value).toBe('ctrl+alt+e')
+    expect(screen.queryByText(zhCopy('settings.recordPrompt'))).toBeNull()
+  })
+
+  it('keeps recording on a bare key and cancels on Escape', async () => {
+    renderRowPage()
+    fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.record') }))
+    fireEvent.keyDown(window, { key: 'e', code: 'KeyE' })
+    expect(screen.getByText(zhCopy('settings.recordNeedsModifier'))).toBeTruthy()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByText(zhCopy('settings.recordPrompt'))).toBeNull()
+    expect(screen.queryByText(zhCopy('settings.recordNeedsModifier'))).toBeNull()
+  })
+
   it('refuses to write an invalid shortcut and explains why', async () => {
     // The host schema accepts any string, so a malformed shortcut would be
     // stored and then silently never fire; the row refuses the write instead.

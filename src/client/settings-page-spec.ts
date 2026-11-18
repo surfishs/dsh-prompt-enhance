@@ -130,6 +130,8 @@ export interface Row {
    * Absent means "anything the descriptor stages is writable".
    */
   readonly validate?: (text: string) => boolean
+  /** Offer the press-a-combination recorder next to the input (the shortcut row). */
+  readonly recordable?: boolean
 }
 
 /**
@@ -154,6 +156,7 @@ export const BASIC_ROWS: readonly Row[] = [
     placeholder: 'settings.row.shortcut.placeholder',
     // Empty disables the shortcut, so it is valid; anything else must parse.
     validate: (text: string) => text.trim() === '' || parseShortcut(text) !== null,
+    recordable: true,
   },
 ]
 

@@ -116,6 +116,11 @@ export const CSS = `
   opacity: 0.72;
   white-space: nowrap;
   cursor: default;
+  /* Four segments (model, elapsed, tokens, effort) can outgrow a narrow header:
+     shrink with an ellipsis instead of pushing the fold and close controls. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 /* The close and collapse controls share one square hit target: same box, same
    hover surface, so the two glyphs read as a pair instead of one looking

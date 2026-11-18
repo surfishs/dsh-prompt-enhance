@@ -109,6 +109,10 @@ function parseResult(value: unknown): EnhanceResult {
       // the UI never seeing it. Only `true` is ever normalized in, matching the
       // host, which sets the field solely on a capped finish.
       ...(record.truncated === true ? { truncated: true } : {}),
+      // Same trap as 	runcated above: rebuilding the object field by field
+      // drops anything not listed here, so a new result field has to be added
+      // in this exact place or the UI silently never sees it.
+      ...(typeof record.reasoningEffort === 'string' ? { reasoningEffort: record.reasoningEffort } : {}),
     }
   }
   throw new EnhanceClientError({ code: 'internal', params: { reason: 'malformed' } })

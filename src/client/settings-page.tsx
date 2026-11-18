@@ -150,6 +150,7 @@ function SettingsRow(props: {
           numeric={props.row.kind === 'number'}
           placeholder={props.copy.placeholder(props.row)}
           invalidMessage={props.row.validate !== undefined && !props.row.validate(props.view.text) ? props.copy.labels.invalidShortcut : undefined}
+          recordable={props.row.recordable === true}
         />
       )
   }

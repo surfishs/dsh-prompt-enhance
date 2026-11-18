@@ -88,6 +88,8 @@ describe('enhanceText', () => {
     const llm = stubLlm(() => textStream(['角色：Python', ' 工程师…'], { reason: 'stop' }))
     const result = await enhanceText(llm, baseOptions)
     expect(result.text).toBe('角色：Python 工程师…')
+    // Reported so the card can show what actually ran, not what was configured.
+    expect(result.reasoningEffort).toBe('off')
     expect(result.provider).toBe('zhipu')
     // The usage chunk is copied verbatim so the panel can show the call cost.
     expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 5 })
@@ -134,6 +136,9 @@ describe('enhanceText', () => {
     // recorded traffic as the one that carried the effort.
     expect(llm.calls[0]?.reasoningEffort).toBe('off')
     expect(llm.calls[1]).not.toHaveProperty('reasoningEffort')
+    // The retry dropped the field, so the result reports the omission — not the
+    // tier that was refused.
+    expect(result.reasoningEffort).toBe('inherit')
   })
 
   it('surfaces the refusal without retrying when the effort was already inherit', async () => {
@@ -189,6 +194,7 @@ describe('enhanceText', () => {
     expect(result.text).toBe('ok')
     expect(llm.calls).toHaveLength(2)
     expect(llm.calls[1]).not.toHaveProperty('reasoningEffort')
+    expect(result.reasoningEffort).toBe('inherit')
   })
 
   it('strips a wrapping fence from the model output', async () => {

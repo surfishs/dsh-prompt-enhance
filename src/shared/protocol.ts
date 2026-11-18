@@ -78,6 +78,12 @@ export interface EnhanceResult {
   usage?: EnhanceUsage
   /** True when the model stopped at the output token cap (the body may be incomplete). */
   truncated?: boolean
+  /**
+   * The reasoning effort this call actually sent, or inherit when the field was
+   * omitted and the provider default applied. Absent from hosts that predate the
+   * field, so the UI must treat it as optional.
+   */
+  reasoningEffort?: string
 }
 
 /**

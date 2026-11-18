@@ -243,7 +243,15 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         <div className="dsh-pe-head-actions">
           {state.phase === 'result' && state.result !== undefined && (
             <span className="dsh-pe-badge">
-              {t('panel.model', { provider: state.result.provider, model: state.result.model })} · {t('panel.elapsed', { ms: formatMs(state.result.elapsedMs) })}
+              {t('panel.model', { provider: state.result.provider, model: state.result.model })}
+              {state.result.reasoningEffort === undefined ? null : (
+                <>
+                  {' · '}
+                  {t('panel.effort', { effort: state.result.reasoningEffort === 'inherit' ? t('panel.effortDefault') : state.result.reasoningEffort })}
+                </>
+              )}
+              {' · '}
+              {t('panel.elapsed', { ms: formatMs(state.result.elapsedMs) })}
               {state.result.usage === undefined ? null : (
                 <>
                   {' · '}

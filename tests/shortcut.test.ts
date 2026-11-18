@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { matchesShortcut, parseShortcut } from '../src/client/shortcut'
+import { matchesShortcut, parseShortcut, shortcutSpecOf, type ShortcutKeyEvent } from '../src/client/shortcut'
 
 const keydown = (fields: Partial<KeyboardEvent> & { key: string; code?: string }): KeyboardEvent => ({ ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...fields }) as KeyboardEvent
 
@@ -73,5 +73,37 @@ describe('matchesShortcut', () => {
 
   it('never matches a null combo (disabled)', () => {
     expect(matchesShortcut(keydown({ key: 'e', code: 'KeyE', ctrlKey: true, altKey: true }), null)).toBe(false)
+  })
+})
+
+describe('shortcutSpecOf', () => {
+  const press = (fields: Partial<ShortcutKeyEvent> & { key: string; code?: string }): ShortcutKeyEvent => ({
+    ctrlKey: false,
+    altKey: false,
+    shiftKey: false,
+    metaKey: false,
+    code: '',
+    ...fields,
+  })
+
+  it('renders a recorded press in the settings order', () => {
+    expect(shortcutSpecOf(press({ key: 'e', code: 'KeyE', ctrlKey: true, altKey: true }))).toBe('ctrl+alt+e')
+    expect(shortcutSpecOf(press({ key: 'E', code: 'KeyE', ctrlKey: true, shiftKey: true }))).toBe('ctrl+shift+e')
+    // Shifted digits report key='!' — the physical code is what gets recorded.
+    expect(shortcutSpecOf(press({ key: '!', code: 'Digit1', ctrlKey: true, shiftKey: true }))).toBe('ctrl+shift+1')
+    expect(shortcutSpecOf(press({ key: 'F9', code: 'F9', metaKey: true }))).toBe('meta+f9')
+  })
+
+  it('rejects presses that cannot be shortcuts', () => {
+    expect(shortcutSpecOf(press({ key: 'e', code: 'KeyE' }))).toBeNull()
+    expect(shortcutSpecOf(press({ key: 'E', code: 'KeyE', shiftKey: true }))).toBeNull()
+    expect(shortcutSpecOf(press({ key: ' ', code: 'Space', ctrlKey: true }))).toBeNull()
+    expect(shortcutSpecOf(press({ key: 'ArrowUp', code: 'ArrowUp', ctrlKey: true }))).toBeNull()
+  })
+
+  it('round-trips through parseShortcut', () => {
+    const spec = shortcutSpecOf(press({ key: 'k', code: 'KeyK', ctrlKey: true, metaKey: true }))
+    expect(spec).toBe('ctrl+meta+k')
+    expect(parseShortcut(spec ?? '')).not.toBeNull()
   })
 })

@@ -94,3 +94,48 @@ export function matchesShortcut(event: KeyboardEvent, combo: ShortcutCombo | nul
     event.ctrlKey === combo.ctrl && event.altKey === combo.alt && event.shiftKey === combo.shift && event.metaKey === combo.meta && (event.code === combo.code || event.key.toLowerCase() === combo.key)
   )
 }
+
+/** The slice of a keyboard event the recorder reads; structural so tests can pass plain objects. */
+export interface ShortcutKeyEvent {
+  readonly code: string
+  readonly key: string
+  readonly ctrlKey: boolean
+  readonly altKey: boolean
+  readonly shiftKey: boolean
+  readonly metaKey: boolean
+}
+
+/** The settings spec for one recorded press, or null when it cannot be a shortcut. */
+function keyTokenOf(event: ShortcutKeyEvent): string | null {
+  const letter = /^Key([A-Z])$/.exec(event.code)?.[1]
+  if (letter !== undefined) return letter.toLowerCase()
+  const digit = /^Digit([0-9])$/.exec(event.code)?.[1]
+  if (digit !== undefined) return digit
+  const fn = /^F([1-9]|1[0-2])$/.exec(event.code)?.[1]
+  if (fn !== undefined) return `f${fn}`
+  const byKey = event.key.toLowerCase()
+  return isKeyToken(byKey) ? byKey : null
+}
+
+/**
+ * Render one recorded key press as a settings spec (`ctrl+alt+e`).
+ *
+ * Returns null — meaning "this press cannot be a shortcut" — when neither
+ * ctrl / alt / meta is held (a bare key or shift+letter would swallow ordinary
+ * typing), or when the key falls outside the a-z / 0-9 / f1-f12 whitelist the
+ * parser accepts (Space, Tab, arrows …).
+ * @param event - the recorded key press.
+ * @returns the spec string, or null.
+ */
+export function shortcutSpecOf(event: ShortcutKeyEvent): string | null {
+  if (!event.ctrlKey && !event.altKey && !event.metaKey) return null
+  const token = keyTokenOf(event)
+  if (token === null) return null
+  const parts: string[] = []
+  if (event.ctrlKey) parts.push('ctrl')
+  if (event.altKey) parts.push('alt')
+  if (event.shiftKey) parts.push('shift')
+  if (event.metaKey) parts.push('meta')
+  parts.push(token)
+  return parts.join('+')
+}

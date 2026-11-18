@@ -561,6 +561,28 @@ describe('enhance → apply → undo loop', () => {
     expect(document.querySelector('.dsh-pe-panel.is-collapsed')).toBeNull()
   }, 10000)
 
+  it('shows the reasoning effort the call actually used', async () => {
+    // The card reports the effort of that call: `inherit` renders as the
+    // default label instead of the raw word.
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5, reasoningEffort: 'inherit' })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    expect(screen.getByText(new RegExp(`${zh['panel.effortDefault']}`))).toBeTruthy()
+  }, 10000)
+
+  it('leaves the badge alone when the host reports no effort', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    expect(screen.queryByText(new RegExp(`^${zh['panel.effort'].split('{')[0]}`))).toBeNull()
+  }, 10000)
+
   it('clears the copy-failure label after the notice window', async () => {
     // A failed copy must not pin the button on "copy failed" until the next
     // click: the label is a transient confirmation for both outcomes.
