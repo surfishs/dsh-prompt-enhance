@@ -6,7 +6,7 @@
  * @module dsh-prompt-enhance/client/ResultPanel
  */
 
-import { useCallback, useState, type ReactNode } from 'react'
+import { useCallback, useRef, useState, type ReactNode } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { EnhanceError, EnhanceUsage, ClientFailureReason } from '../shared/protocol'
 import type { PromptEnhanceKey } from './locales'
@@ -165,13 +165,19 @@ function totalTokensOf(usage: EnhanceUsage): number {
 export function ResultPanel(props: ResultPanelProps): ReactNode {
   const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, regenerated = false } = props
   const [copied, setCopied] = useState<'idle' | 'ok' | 'failed'>('idle')
+  /** Pending reset of the copy label; one timer only, so a second copy cannot be cut short by the first. */
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const copy = useCallback((): void => {
     if (state.result === undefined) return
     const text = state.result.text
     const done = (ok: boolean): void => {
       setCopied(ok ? 'ok' : 'failed')
-      if (ok) setTimeout(() => setCopied('idle'), 2500)
+      // Both outcomes are transient. A failure used to stay on the button until
+      // the next click, which reads as a stuck control rather than an error; the
+      // label now clears the same way a success does.
+      if (copyTimer.current !== undefined) clearTimeout(copyTimer.current)
+      copyTimer.current = setTimeout(() => setCopied('idle'), 2500)
     }
     // navigator.clipboard only exists in secure contexts (https / localhost);
     // guard the dereference and fall back for plain-http LAN access.

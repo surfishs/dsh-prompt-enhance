@@ -401,6 +401,24 @@ describe('enhance → apply → undo loop', () => {
     expect(await screen.findByRole('button', { name: zh['panel.copied'] })).toBeTruthy()
   })
 
+  it('clears the copy-failure label after the notice window', async () => {
+    // A failed copy must not pin the button on "copy failed" until the next
+    // click: the label is a transient confirmation for both outcomes.
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn(() => Promise.reject(new Error('denied'))) },
+    })
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.copy'] }))
+    expect(await screen.findByRole('button', { name: zh['panel.copyFailed'] })).toBeTruthy()
+    await waitFor(() => expect(screen.getByRole('button', { name: zh['panel.copy'] })).toBeTruthy(), { timeout: 3500 })
+  }, 10000)
+
   it('regenerates from edits made after the result arrives', async () => {
     const input = makeFakeInput({ draft: '旧原文' })
     renderComposer(input, { setDraft: vi.fn() } as never, 's1')
