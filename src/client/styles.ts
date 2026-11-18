@@ -174,9 +174,59 @@ html[data-platform='darwin'] .dsh-pe-menu {
   mask-position: center;
 }
 .dsh-pe-menu-item[aria-checked='true'] .dsh-pe-menu-mark { background-color: currentColor; }
-/* The context switch is not a radio choice: it carries its state word instead of
-   a check, so its marker column is removed outright. */
-.dsh-pe-menu-item[role='menuitemcheckbox'] .dsh-pe-menu-mark { display: none; }
+/* The context switch row, copied from the shell's TeamModeToggle row: the label
+   on the left, the shell's own switch on the right, and the whole row (minus
+   nothing here) as the switch's hit target. */
+.dsh-pe-menu-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 34px;
+  padding: 0 8px;
+  border-radius: var(--dsw-radius-md, 8px);
+  color: var(--dsw-alias-label-primary, inherit);
+  font-size: 13px;
+  line-height: 20px;
+}
+.dsh-pe-menu-switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+/* Extend the native switch hit target over the whole row. */
+.dsh-pe-menu-switch .dsh-pe-menu-switch-input { position: static; }
+.dsh-pe-menu-switch .dsh-pe-menu-switch-input::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--dsw-radius-md, 8px);
+}
+.dsh-pe-menu-switch:has(.dsh-pe-menu-switch-input:focus-visible) {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12));
+}
+/* The shell switch animates its thumb; its track colour is driven straight by
+   aria-checked, so both get the same 120ms transition here, and both stop when
+   the user asks for reduced motion. */
+.dsh-pe-menu-switch .dsh-pe-menu-switch-input {
+  transition: background-color 120ms ease;
+}
+.dsh-pe-menu-switch .dsh-pe-menu-switch-input > * {
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dsh-pe-menu-switch .dsh-pe-menu-switch-input,
+  .dsh-pe-menu-switch .dsh-pe-menu-switch-input > * {
+    transition: none;
+  }
+}
+@media (hover: hover) {
+  .dsh-pe-menu-switch:has(.dsh-pe-menu-switch-input:not(:disabled)):hover {
+    background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12));
+  }
+}
 .dsh-pe-menu-sep { height: 0.5px; margin: 3px 8px; background: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.25)); }
 .dsh-pe-menu-error { padding: 6px 8px; font-size: 12px; color: var(--dsw-alias-state-error-primary, #e5484d); }
 .dsh-pe-panel {

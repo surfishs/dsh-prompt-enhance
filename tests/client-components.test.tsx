@@ -728,12 +728,121 @@ describe('quick settings menu', () => {
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
   })
 
-  it('toggles the context switch from the menu', async () => {
+  it('closes the card before the tier write settles', async () => {
+    const { calls } = deferredWriter()
+    const input = makeFakeInput({ draft: '写个爬虫' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    fireEvent.contextMenu(enhanceButton())
+    await screen.findByRole('menu')
+    fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: zh['menu.effortDefault'] }))
+    // Closing does not wait for the host: the card is gone, the write is in flight.
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.value).toBe('inherit')
+    calls[0]!.resolve(true)
+  })
+
+  it('closes without writing when the picked tier is already stored', async () => {
     const { set, button } = setupMenu()
     fireEvent.contextMenu(button)
-    const toggle = await screen.findByRole('menuitemcheckbox', { name: /上下文/ })
+    await screen.findByRole('menu')
+    fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
+    // The fixture stores `off`, so picking Off changes nothing.
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Off' }))
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it('toggles the context switch without closing the menu', async () => {
+    const { set, button } = setupMenu()
+    fireEvent.contextMenu(button)
+    const toggle = await screen.findByRole('switch', { name: /上下文/ })
     fireEvent.click(toggle)
     await waitFor(() => expect(set).toHaveBeenCalledWith('contextAware', false))
+    // The card stays open and the switch already shows the written state.
+    expect(screen.getByRole('menu')).toBeTruthy()
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+  })
+
+  it('rolls the switch back and reports a refused write in place', async () => {
+    const set = vi.fn(async () => false)
+    setSettingsWriter({ set, unset: vi.fn(async () => true) })
+    const input = makeFakeInput({ draft: '写个爬虫' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    fireEvent.contextMenu(enhanceButton())
+    const toggle = await screen.findByRole('switch', { name: /上下文/ })
+    fireEvent.click(toggle)
+    // Refused: the switch returns to its stored state, the card shows the error.
+    await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('true'))
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.getByRole('menu')).toBeTruthy()
+  })
+
+  it('closes on a pointer press outside the card', async () => {
+    const { button } = setupMenu()
+    fireEvent.contextMenu(button)
+    const menu = await screen.findByRole('menu')
+    // A press inside the card (the switch row) must not dismiss it…
+    fireEvent.mouseDown(menu)
+    expect(screen.queryByRole('menu')).toBeTruthy()
+    // …and the same press on the page does.
+    fireEvent.mouseDown(document.body)
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+  })
+
+  /** Install a writer whose writes stay pending until the test resolves them. */
+  function deferredWriter(): { calls: { value: unknown; resolve: (ok: boolean) => void }[] } {
+    const calls: { value: unknown; resolve: (ok: boolean) => void }[] = []
+    const set = vi.fn(
+      (_field: string, value: unknown) =>
+        new Promise<boolean>((resolve) => {
+          calls.push({ value, resolve })
+        }),
+    )
+    setSettingsWriter({ set, unset: vi.fn(async () => true) })
+    return { calls }
+  }
+
+  /** Open the card on a fresh composer and return its switch. */
+  async function openSwitch(): Promise<HTMLElement> {
+    const input = makeFakeInput({ draft: '写个爬虫' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    fireEvent.contextMenu(enhanceButton())
+    return screen.findByRole('switch', { name: /上下文/ })
+  }
+
+  it('coalesces fast context flips onto the last click', async () => {
+    const { calls } = deferredWriter()
+    const toggle = await openSwitch()
+    fireEvent.click(toggle) // 开 -> 关
+    fireEvent.click(toggle) // 关 -> 开
+    // One write in flight, and it carries the first click only.
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.value).toBe(false)
+    calls[0]!.resolve(true)
+    // The newest click is then written once the first settles.
+    await waitFor(() => expect(calls).toHaveLength(2))
+    expect(calls[1]?.value).toBe(true)
+    calls[1]!.resolve(true)
+    await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('true'))
+  })
+
+  it('flushes the newest intent when the card closes and repairs a late write', async () => {
+    const { calls } = deferredWriter()
+    const toggle = await openSwitch()
+    fireEvent.click(toggle) // 写 false（在飞）
+    fireEvent.click(toggle) // 意图 true，排队
+    fireEvent.keyDown(document, { key: 'Escape' })
+    // Closing starts the pending intent at once instead of queueing behind the write.
+    await waitFor(() => expect(calls).toHaveLength(2))
+    expect(calls[1]?.value).toBe(true)
+    // The older write lands late and overwrites the host: the newest intent is re-asserted.
+    calls[0]!.resolve(true)
+    await waitFor(() => expect(calls).toHaveLength(3))
+    expect(calls[2]?.value).toBe(true)
+    calls[1]!.resolve(true)
+    calls[2]!.resolve(true)
   })
 
   it('closes on Escape', async () => {
@@ -774,7 +883,7 @@ describe('quick settings menu', () => {
 
     fireEvent.click(cell)
     expect(screen.queryByRole('menuitem', { name: /推理等级/ })).toBeNull()
-    expect(screen.queryByRole('menuitemcheckbox')).toBeNull()
+    expect(screen.queryByRole('switch')).toBeNull()
     expect(screen.getAllByRole('menuitemradio').length).toBeGreaterThan(1)
 
     // Escape backs out of the pane, a second Escape closes the menu.

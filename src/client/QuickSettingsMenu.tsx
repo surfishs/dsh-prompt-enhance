@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales'
 import { INHERIT_EFFORT, menuOptionsOf, type QuickSettingsData } from './quick-settings'
@@ -40,13 +41,12 @@ export interface QuickSettingsMenuProps {
   onClose(): void
 }
 
-/** One row: the label on the left, an optional state word, the check at the right. */
-function MenuRow(props: { label: string; state?: string; checked: boolean; role: 'menuitemradio' | 'menuitemcheckbox'; onSelect(): void }): ReactElement {
-  const { label, state, checked, role, onSelect } = props
+/** One radio row: the label on the left, the check at the right. */
+function MenuRow(props: { label: string; checked: boolean; role: 'menuitemradio'; onSelect(): void }): ReactElement {
+  const { label, checked, role, onSelect } = props
   return (
     <button type="button" role={role} aria-checked={checked} className="dsh-pe-menu-item" onClick={onSelect}>
       <span className="dsh-pe-menu-label">{label}</span>
-      {state === undefined ? null : <span className="dsh-pe-menu-state">{state}</span>}
       <span className="dsh-pe-menu-mark" aria-hidden>
         {checked ? '✓' : ''}
       </span>
@@ -119,13 +119,10 @@ export function QuickSettingsMenu(props: QuickSettingsMenuProps): ReactElement {
             <span className="dsh-pe-menu-chevron" aria-hidden />
           </button>
           <div className="dsh-pe-menu-sep" role="separator" />
-          <MenuRow
-            role="menuitemcheckbox"
-            label={t('menu.context')}
-            state={data.contextAware ? t('menu.contextOn') : t('menu.contextOff')}
-            checked={data.contextAware}
-            onSelect={() => onToggleContext(!data.contextAware)}
-          />
+          <div className="dsh-pe-menu-switch">
+            <span className="dsh-pe-menu-switch-label">{t('menu.context')}</span>
+            <Switch className="dsh-pe-menu-switch-input" checked={data.contextAware} label={t('menu.context')} onChange={(next: boolean) => onToggleContext(next)} />
+          </div>
         </>
       ) : (
         <div ref={paneRef} className="dsh-pe-menu-group" role="group" aria-label={t('menu.effort')}>

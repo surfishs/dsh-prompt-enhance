@@ -114,41 +114,150 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   const longPressOrigin = useRef<{ x: number; y: number } | null>(null)
   const longPressFired = useRef(false)
 
+  // Context writes are coalesced: one write is in flight at a time and only the
+  // newest requested state is written once it settles, so a fast double flip
+  // lands on the last click. The intent is kept in refs so the close path can
+  // start it at once instead of waiting behind the write already running.
+  const contextWrites = useRef<{
+    /** The state the user last asked for; null when nothing is waiting. */
+    desired: boolean | null
+    /** The last state the host accepted, and the baseline a failed write rolls back to. */
+    accepted: boolean | null
+    /** The state of the write currently in flight, if any. */
+    inFlight: boolean | null
+    running: boolean
+    /** Bumped per write so a superseded resolve can tell it lost the race. */
+    seq: number
+    closing: boolean
+  }>({ desired: null, accepted: null, inFlight: null, running: false, seq: 0, closing: false })
+  const flushContextRef = useRef<() => void>(() => {})
+
+  const applyContext = (value: boolean): void => {
+    setMenu((current) => (current === null ? current : { ...current, data: { ...current.data, contextAware: value } }))
+  }
+
+  /**
+   * Start the newest requested state once no write is in flight. "force" re-asserts
+   * the intent even when it matches the last accepted value, which is what a stale
+   * write that landed late requires.
+   */
+  const kickContextWrite = (force = false): void => {
+    const state = contextWrites.current
+    if (writer === undefined || state.running) return
+    const target = state.desired
+    if (target === null) return
+    const accepted = state.accepted ?? settings.contextAware
+    state.accepted = accepted
+    if (!force && target === accepted) {
+      state.desired = null
+      return
+    }
+    state.running = true
+    state.inFlight = target
+    const ticket = ++state.seq
+    void writeQuickContext(writer, target).then((ok) => {
+      state.running = false
+      state.inFlight = null
+      if (ticket !== state.seq) {
+        // The close flush already started a newer write; if this older one still
+        // reached the host, the host now holds it, so re-assert the newest intent.
+        if (ok && state.accepted !== null) {
+          state.desired = state.accepted
+          kickContextWrite(true)
+        }
+        return
+      }
+      if (!ok) {
+        state.desired = null
+        applyContext(state.accepted ?? settings.contextAware)
+        setMenuError(t('menu.writeFailed'))
+        return
+      }
+      state.accepted = target
+      if (state.desired === target) state.desired = null
+      kickContextWrite()
+    })
+  }
+
+  /**
+   * The card is leaving: start the pending intent now rather than queueing behind
+   * the write in flight. A refusal has no surface left to report on, so it is
+   * logged instead of shown.
+   */
+  const flushContextWrite = (): void => {
+    const state = contextWrites.current
+    if (writer === undefined || state.closing) return
+    const target = state.desired
+    if (target === null || target === state.inFlight) return
+    const accepted = state.accepted ?? settings.contextAware
+    // The in-flight write will overwrite the host, so an intent that merely equals
+    // the last accepted value still has to be written when something is in flight.
+    const supersededValue = state.inFlight !== null
+    state.accepted = accepted
+    state.desired = null
+    if (!supersededValue && target === accepted) return
+    state.closing = true
+    const ticket = ++state.seq
+    void writeQuickContext(writer, target).then((ok) => {
+      state.closing = false
+      if (!ok) {
+        console.warn('[dsh-prompt-enhance] the contextAware write was refused while closing the quick settings card')
+        return
+      }
+      if (ticket === state.seq) state.accepted = target
+    })
+  }
+  flushContextRef.current = flushContextWrite
+
+  /** Close the card, flushing a pending context flip first. */
+  const dismissMenu = useCallback((): void => {
+    flushContextRef.current()
+    setMenu(null)
+  }, [])
+
+  const toggleContext = (next: boolean): void => {
+    if (writer === undefined) return
+    const state = contextWrites.current
+    setMenuError(undefined)
+    applyContext(next)
+    state.desired = next
+    if (state.accepted === null) state.accepted = settings.contextAware
+    kickContextWrite()
+  }
+
+  // The stored settings feed the accepted baseline until the first write.
+  useEffect(() => {
+    const state = contextWrites.current
+    if (state.seq === 0 && state.desired === null) state.accepted = settings.contextAware
+  }, [settings.contextAware])
+
+  // Unmounting must not park a pending flip: start it and let it settle.
+  useEffect(() => () => flushContextRef.current(), [])
+
   const openMenu = useCallback(
     async (rect: DOMRect): Promise<void> => {
       const anchor = { right: rect.right, top: rect.top }
       setMenuError(undefined)
       const data = await resolveQuickSettings({ ctx: props.__ctx, sessionId, settings })
-      setMenu({ anchor, data })
+      // A flip that the mirror has not reflected yet still wins on reopen.
+      const local = contextWrites.current.desired ?? contextWrites.current.accepted
+      setMenu({ anchor, data: local === null ? data : { ...data, contextAware: local } })
     },
     [props.__ctx, sessionId, settings],
   )
 
-  const closeMenu = useCallback((): void => {
-    setMenu(null)
-  }, [])
-
-  const pickEffort = useCallback(
-    (id: string): void => {
-      if (writer === undefined) return
-      void writeQuickEffort(writer, id).then((ok) => {
-        if (ok) setMenu(null)
-        else setMenuError(t('menu.writeFailed'))
-      })
-    },
-    [writer, t],
-  )
-
-  const toggleContext = useCallback(
-    (next: boolean): void => {
-      if (writer === undefined) return
-      void writeQuickContext(writer, next).then((ok) => {
-        if (ok) setMenu(null)
-        else setMenuError(t('menu.writeFailed'))
-      })
-    },
-    [writer, t],
-  )
+  const pickEffort = (id: string): void => {
+    if (writer === undefined) return
+    // The choice applies on the click itself: close the card first and let the
+    // write land in the background, so the host round trip never reads as lag.
+    // With the card gone there is no surface left to report a refusal on.
+    const unchanged = menu !== null && menu.data.effort === id
+    dismissMenu()
+    if (unchanged) return
+    void writeQuickEffort(writer, id).then((ok) => {
+      if (!ok) console.warn('[dsh-prompt-enhance] the reasoningEffort write was refused')
+    })
+  }
 
   /** Guard chain + fetch + panel transition for this session. */
   const start = useCallback(
@@ -346,7 +455,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
           <SparkleFishIcon size={15} spinning={busy} />
         </span>
       </button>
-      {menu === null ? null : <QuickSettingsMenu t={t} data={menu.data} anchor={menu.anchor} error={menuError} onPick={pickEffort} onToggleContext={toggleContext} onClose={closeMenu} />}
+      {menu === null ? null : <QuickSettingsMenu t={t} data={menu.data} anchor={menu.anchor} error={menuError} onPick={pickEffort} onToggleContext={toggleContext} onClose={dismissMenu} />}
     </>
   )
 }
