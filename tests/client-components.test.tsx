@@ -374,13 +374,13 @@ describe('enhance → apply → undo loop', () => {
     for (const group of groups) assertSwapped(group)
     // Every button that owns a swap group carries the shared width floor, so a
     // collapse to empty labels cannot shrink it to the icon.
-    for (const group of groups) expect(group.closest('.dsh-pe-btn-swap')).not.toBeNull()
+    for (const group of groups) expect(group.closest('.dsh-pe-btn-floor')).not.toBeNull()
 
     // Applied state swaps the primary button for undo, which must keep both the
     // group and the floor class.
     fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
     const undoButton = screen.getByRole('button', { name: zh['undo.undo'] })
-    expect(undoButton.classList.contains('dsh-pe-btn-swap')).toBe(true)
+    expect(undoButton.classList.contains('dsh-pe-btn-floor')).toBe(true)
     const undoGroup = undoButton.querySelector('.dsh-pe-swap')
     expect(undoGroup).not.toBeNull()
     if (undoGroup !== null) assertSwapped(undoGroup)

@@ -298,7 +298,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
       <footer className="dsh-pe-foot">
         <span className="dsh-pe-grow" />
         {state.phase === 'result' && (
-          <button type="button" className="dsh-pe-btn-action plain dsh-pe-btn-swap" onClick={onRegenerate} disabled={onRegenerate === undefined}>
+          <button type="button" className="dsh-pe-btn-action plain dsh-pe-btn-floor" onClick={onRegenerate} disabled={onRegenerate === undefined}>
             <RegenerateIcon />
             <span className="dsh-pe-swap">
               {swapLabel(!regenerated, t('panel.regenerate'))}
@@ -309,20 +309,20 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         {state.phase === 'error' && (
           <>
             {retryable(state.error?.code) && onRetry !== undefined && (
-              <button type="button" className="dsh-pe-btn-action plain" onClick={onRetry}>
+              <button type="button" className="dsh-pe-btn-action plain dsh-pe-btn-floor" onClick={onRetry}>
                 {t('panel.retry')}
               </button>
             )}
           </>
         )}
         {state.phase === 'loading' && (
-          <button type="button" className="dsh-pe-btn-action plain" onClick={onCancel}>
+          <button type="button" className="dsh-pe-btn-action plain dsh-pe-btn-floor" onClick={onCancel}>
             {t('panel.cancel')}
           </button>
         )}
         {state.phase === 'result' && (
           <>
-            <button type="button" className="dsh-pe-btn-action plain dsh-pe-btn-swap" onClick={copy}>
+            <button type="button" className="dsh-pe-btn-action plain dsh-pe-btn-floor" onClick={copy}>
               <CopyIcon />
               <span className="dsh-pe-swap">
                 {swapLabel(copied === 'idle', t('panel.copy'))}
@@ -331,7 +331,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
               </span>
             </button>
             {applied ? (
-              <button type="button" className="dsh-pe-btn-action primary dsh-pe-btn-swap" onClick={onUndo} disabled={onUndo === undefined}>
+              <button type="button" className="dsh-pe-btn-action primary dsh-pe-btn-floor" onClick={onUndo} disabled={onUndo === undefined}>
                 <UndoIcon />
                 {/* The undo label reserves the width of the fill label it replaces,
                     so switching between the two does not resize the footer. */}
@@ -341,7 +341,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
                 </span>
               </button>
             ) : (
-              <button type="button" className="dsh-pe-btn-action primary dsh-pe-btn-swap" onClick={onApply}>
+              <button type="button" className="dsh-pe-btn-action primary dsh-pe-btn-floor" onClick={onApply}>
                 <FillIcon />
                 <span className="dsh-pe-swap">
                   {swapLabel(true, t('panel.apply'))}

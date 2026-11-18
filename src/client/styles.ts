@@ -170,14 +170,13 @@ export const CSS = `
 }
 .dsh-pe-btn-action.plain { background: transparent; color: inherit; }
 .dsh-pe-btn-action.plain:hover { background: var(--pe-hover); }
-/* A floor for the buttons whose label swaps (see .dsh-pe-swap), not a sizing
-   mechanism: the swap group already makes the button as wide as its longest
-   label, so the longest label wins in every shipped language and this only
-   matters if all labels ever collapse to nothing — the button keeps a visible,
-   clickable width instead of shrinking to the icon. 96px is below every real
-   content width here (the shortest swap group already reserves about 102px in
-   Chinese and about 114px in English). */
-.dsh-pe-btn-swap { min-width: 96px; }
+/* A floor for every footer action button, so a button keeps a visible, clickable
+   width even if its label ever collapses to nothing. The label-swap groups
+   (.dsh-pe-swap) already make a button as wide as its longest label, and 96px is
+   below every real content width here, so this never widens a labelled button in
+   practice — it only bounds the empty case and keeps the single-label buttons
+   (retry, cancel) the same size as the rest. */
+.dsh-pe-btn-floor { min-width: 96px; }
 .dsh-pe-btn-action:disabled { opacity: 0.45; cursor: default; }
 
 /* Both labels of the regenerate button share one cell, so the button is as wide
