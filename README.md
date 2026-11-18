@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/v/@surfishs/dsh-prompt-enhance.svg)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 
-**DeepSeek Harness Web GUI 的「提示词增强」插件** —— 一键把输入框草稿改写为结构化提示词（角色与目标、可执行步骤、输出格式、验收标准、边界条件）。原文保留，失败不改草稿。
+**DeepSeek Harness 的「提示词增强」插件** —— 一键把输入框草稿改写为结构化提示词：角色与目标、上下文与约束、可执行步骤、输出格式、验收标准、边界条件。以原文为准，不改变原意、不凭空编造需求；信息不足时留占位，草稿不会被改动。
 
 简体中文 | [English](./README.en.md)
 
@@ -49,6 +49,8 @@
 
 装之前请确认包名。npm 上的 `dsh-prompt-enhance`（无 scope）是上游原项目，本插件是它的重写分支，包名是 `@surfishs/dsh-prompt-enhance`。本插件的安装源是本仓库 `surfishs/dsh-prompt-enhance`。**不要**执行 `dsh plugin add dsh-prompt-enhance`。
 
+DSH 桌面版与 Web 版使用同一个插件包，安装方式相同，只是 profile 名不同：桌面版通常是 `desktop`，Web 版通常是 `web`。
+
 ### 让 Agent 帮你安装
 
 不用自己敲命令。把下面整段发给能操作本机终端的 Agent（DSH 桌面版、Web 版都可以）：
@@ -69,8 +71,6 @@
 dsh plugin --profile <profile> add @surfishs/dsh-prompt-enhance
 # 重启 dsh
 ```
-
-> `<profile>` 换成你的 profile 名：桌面版通常是 `desktop`，Web 版通常是 `web`。
 
 从 GitHub 安装（`lib/` 已随仓库提交，无需本地构建）：
 

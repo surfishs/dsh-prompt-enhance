@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/v/@surfishs/dsh-prompt-enhance.svg)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 
-**Prompt enhancement for the DeepSeek Harness web GUI** — turn a composer draft into a structured prompt (role and goal, executable steps, output format, acceptance criteria, edge cases) in one click. The original draft is preserved, and a failure never touches it.
+**Prompt enhancement for DeepSeek Harness** — turn a composer draft into a structured prompt in one click: role and goal, context and constraints, executable steps, output format, acceptance criteria, edge cases. It keeps your intent unchanged, invents no requirements, and writes a placeholder instead of guessing; the composer draft is never modified.
 
 [简体中文](./README.md) | English
 
@@ -49,6 +49,8 @@ With context awareness on, it also reads the last few turns to resolve pronouns 
 
 Check the package name first. `dsh-prompt-enhance` on npm (no scope) is the upstream project and this plugin is a rewrite of it; this plugin is `@surfishs/dsh-prompt-enhance`. Install from this repository (`surfishs/dsh-prompt-enhance`). **Do not** run `dsh plugin add dsh-prompt-enhance`.
 
+The DSH desktop app and the web build use the same package and the same install steps; only the profile name differs — usually `desktop` for the app and `web` for the web build.
+
 ### Let an agent install it
 
 No command line needed. Send the block below to an agent that can run commands on your machine (DSH desktop or web):
@@ -69,8 +71,6 @@ From npm:
 dsh plugin --profile <profile> add @surfishs/dsh-prompt-enhance
 # restart dsh
 ```
-
-> Replace `<profile>` with your profile name: usually `desktop` for the desktop app and `web` for the web build.
 
 From GitHub (the built `lib/` is committed, so no local build happens):
 
