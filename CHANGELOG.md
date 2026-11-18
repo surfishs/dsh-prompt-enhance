@@ -3,6 +3,32 @@
 All notable changes to this project are documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [0.1.2] - 2026-11-18
+
+### Added
+
+- Quick settings card on the composer button: right-click, a 600 ms press or `Shift+F10` opens a shell-styled menu with the reasoning tier (drilled pane) and the context switch; context writes coalesce and flush when the card closes.
+- Shortcut recorder on the settings page: the row records a key combination instead of requiring typed text.
+- `foldAnimation` and `autoFold` settings; the result card folds to its header and footer rows.
+- Provider/model routing rows on the settings page, with catalog display names, custom model ids, per-field writes and paired reset.
+- Result badge shows the reasoning tier the call used as a bare, capitalised name.
+
+### Changed
+
+- Keep the tier list tied to the model in use: the open card follows the session model directory, a pinned route owns its list, and a stored tier the model does not declare is written back as "not specified".
+- Show the pinned route in the quick settings card through the host catalog names, resolved by a short-lived provider/model memo whose reload bypasses it.
+- Tokenise the settings-page colors, align its inputs and segmented rows with the shell metrics, and disable that row's indicator transition when the option list is rebuilt.
+- Remember the last tier answer per route for the session, so a remount or a model visited before renders the list without a loading pass.
+- Use "not specified" for the empty tier across the menu, tooltip, result badge and settings control.
+
+### Fixed
+
+- Keep the undo row on the result card's palette.
+- Refuse an invalid shortcut instead of storing it.
+- Centre text-field text the way the shell input does.
+- Name the next step in the result-card error copy, stop offering a retry after a cancelled enhancement, clear the copy-failure label like the success label, and give every footer button the same width floor.
+
+[0.1.2]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.1...v0.1.2
 ## [0.1.1] - 2026-11-18
 
 ### Changed
@@ -230,4 +256,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.0.1]: https://github.com/surfishs/dsh-prompt-enhance/commits/v0.0.1
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.0.9...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.2...HEAD
