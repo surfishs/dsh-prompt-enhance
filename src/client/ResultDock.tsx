@@ -14,6 +14,7 @@ import { ResultPanel } from './ResultPanel'
 import * as ui from './ui-state'
 import { useSessionKey } from './session-key'
 import { useDockAlignment } from './useDockAlignment'
+import { getClientSettings, subscribeClientSettings } from './settings'
 
 /** Props of the input.dock entry: the InputZone owner share + session kit + locale seat. */
 export type ResultDockProps = PropsRuntime<'conversation.input.dock'> & PropsLocale<'dsh-prompt-enhance'>
@@ -33,6 +34,7 @@ export function ResultDock(props: ResultDockProps): ReactNode {
   // host id for UI keying when present, else a stable per-mount fallback.
   const uiKey = useSessionKey(sessionId, inputActions)
   const panel = useSyncExternalStore(ui.subscribe, ui.getPanel)
+  const settings = useSyncExternalStore(subscribeClientSettings, getClientSettings)
   const rootRef = useDockAlignment(panel !== undefined && panel.sessionId === uiKey, uiKey)
   const draft = useInput((state) => {
     const value = (state as { draft?: unknown }).draft
@@ -141,12 +143,21 @@ export function ResultDock(props: ResultDockProps): ReactNode {
     // closing it falls back to the standalone undo row.
     ui.pushUndo(uiKey, { original: draft, applied: panel.result.text })
     inputActions.setDraft(panel.result.text)
+    // Fill first, fold second: the applied text is already in the composer, so
+    // the card can fold out of the way without hiding anything the user needs.
+    // Both steps honour the auto-fold setting (on by default) and setCollapsed
+    // is a no-op when the card is already in the requested state.
+    if (settings.autoFold) ui.setCollapsed(uiKey, true)
   }
 
   const undo = (): void => {
     if (entry === undefined) return
     inputActions.setDraft(entry.original)
     ui.popUndo(uiKey)
+    // Undo is the mirror of apply: the draft goes back to the user's text, so
+    // the card re-opens to show the result it belongs to. Expanding an already
+    // open card is a no-op, and the auto-fold setting governs this too.
+    if (settings.autoFold) ui.setCollapsed(uiKey, false)
   }
 
   const regenerate = (): void => {
@@ -169,6 +180,7 @@ export function ResultDock(props: ResultDockProps): ReactNode {
         regenerated={regeneratedNotice}
         collapsed={panel.collapsed === true}
         onToggleCollapsed={() => ui.setCollapsed(uiKey, panel.collapsed !== true)}
+        foldAnimation={settings.foldAnimation}
         onApply={apply}
         onUndo={undo}
         onRegenerate={regenerate}

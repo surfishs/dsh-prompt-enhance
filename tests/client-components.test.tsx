@@ -435,11 +435,16 @@ describe('enhance → apply → undo loop', () => {
     await screen.findByText('增强文本')
 
     fireEvent.click(screen.getByRole('button', { name: zh['panel.collapse'] }))
-    expect(screen.queryByText('增强文本')).toBeNull()
+    // The body stays mounted so the fold can animate; the collapsed state is
+    // expressed by the panel class and by the body leaving the a11y tree.
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).not.toBeNull()
+    expect(document.querySelector('.dsh-pe-body')?.getAttribute('aria-hidden')).toBe('true')
     expect(screen.getByRole('button', { name: zh['panel.copy'] })).toBeTruthy()
     expect(screen.getByRole('button', { name: zh['panel.expand'] })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: zh['panel.expand'] }))
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).toBeNull()
+    expect(document.querySelector('.dsh-pe-body')?.getAttribute('aria-hidden')).toBeNull()
     expect(await screen.findByText('增强文本')).toBeTruthy()
   }, 10000)
 
@@ -458,8 +463,102 @@ describe('enhance → apply → undo loop', () => {
     expect(await screen.findByText(`⚠ ${zh['panel.stale.warn']}`)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: zh['panel.collapse'] }))
-    expect(screen.queryByText(`⚠ ${zh['panel.stale.warn']}`)).toBeNull()
+    // The banner is still mounted (the body is only collapsed), so the marker —
+    // not the banner — is what tells the user a warning is folded away.
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).not.toBeNull()
     expect(document.querySelector('.dsh-pe-warn-dot')).not.toBeNull()
+  }, 10000)
+
+  it('folds the card after applying the result', async () => {
+    // Apply is the moment the card stops being needed: the text is in the
+    // composer, so the card folds and stops covering the conversation.
+    const input = makeFakeInput({ draft: '旧原文' })
+    const setDraft = vi.fn((text: string) => input.set({ draft: text }))
+    renderComposer(input, { setDraft } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
+    expect(setDraft).toHaveBeenCalledWith('增强文本')
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).not.toBeNull()
+    // The footer stays usable, so undo is still one click away.
+    expect(screen.getByRole('button', { name: zh['undo.undo'] })).toBeTruthy()
+  }, 10000)
+
+  it('leaves an already folded card folded when apply runs', async () => {
+    // Clicking apply on a folded card must not restart the fold animation:
+    // setCollapsed is a no-op when the card is already collapsed.
+    const input = makeFakeInput({ draft: '旧原文' })
+    const setDraft = vi.fn((text: string) => input.set({ draft: text }))
+    renderComposer(input, { setDraft } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.collapse'] }))
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).not.toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
+    expect(setDraft).toHaveBeenCalledWith('增强文本')
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).not.toBeNull()
+  }, 10000)
+
+  it('re-expands the card when undo runs', async () => {
+    // Undo mirrors apply: the draft goes back, so the card re-opens to show the
+    // result it came from (and expanding an open card stays a no-op).
+    const input = makeFakeInput({ draft: '旧原文' })
+    const setDraft = vi.fn((text: string) => input.set({ draft: text }))
+    renderComposer(input, { setDraft } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).not.toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: zh['undo.undo'] }))
+    expect(setDraft).toHaveBeenLastCalledWith('旧原文')
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).toBeNull()
+  }, 10000)
+
+  it('skips the fold transition when the animation setting is off', async () => {
+    // foldAnimation: false marks the panel static; the CSS drops the transition
+    // (and prefers-reduced-motion still wins inside that rule).
+    setClientSettings({ ...DEFAULT_CLIENT_SETTINGS, streaming: false, foldAnimation: false })
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    expect(document.querySelector('.dsh-pe-panel.is-static')).not.toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.collapse'] }))
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).not.toBeNull()
+  }, 10000)
+
+  it('leaves the card as it is when auto-fold is off', async () => {
+    // autoFold: false keeps the user in control: apply no longer folds the card
+    // and undo no longer re-opens it, while both still move the draft.
+    setClientSettings({ ...DEFAULT_CLIENT_SETTINGS, streaming: false, autoFold: false })
+    const input = makeFakeInput({ draft: '旧原文' })
+    const setDraft = vi.fn((text: string) => input.set({ draft: text }))
+    renderComposer(input, { setDraft } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
+    expect(setDraft).toHaveBeenCalledWith('增强文本')
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: zh['undo.undo'] }))
+    expect(setDraft).toHaveBeenLastCalledWith('旧原文')
+    expect(document.querySelector('.dsh-pe-panel.is-collapsed')).toBeNull()
   }, 10000)
 
   it('clears the copy-failure label after the notice window', async () => {

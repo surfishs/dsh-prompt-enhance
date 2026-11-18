@@ -143,6 +143,8 @@ export const BASIC_ROWS: readonly Row[] = [
 
 /** Tuning and deployment limits, hidden behind the Advanced disclosure by default. */
 export const ADVANCED_ROWS: readonly Row[] = [
+  { key: 'foldAnimation', kind: 'boolean', label: 'settings.row.foldAnimation.label', hint: 'settings.row.foldAnimation.hint' },
+  { key: 'autoFold', kind: 'boolean', label: 'settings.row.autoFold.label', hint: 'settings.row.autoFold.hint' },
   { key: 'strategyMode', kind: 'strategy', label: 'settings.row.strategyMode.label', hint: 'settings.row.strategyMode.hint' },
   { key: 'maxInputChars', kind: 'number', label: 'settings.row.maxInputChars.label', hint: 'settings.row.maxInputChars.hint' },
   { key: 'maxOutputTokens', kind: 'number', label: 'settings.row.maxOutputTokens.label', hint: 'settings.row.maxOutputTokens.hint' },

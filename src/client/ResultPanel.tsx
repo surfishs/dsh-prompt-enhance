@@ -36,6 +36,8 @@ export interface ResultPanelProps {
   collapsed?: boolean
   /** Toggle {@link collapsed}. */
   onToggleCollapsed?: () => void
+  /** Play the fold transition; false switches instantly (a setting). */
+  foldAnimation?: boolean
 }
 
 /** Whether one error phase is worth retrying: model/transport failures, but never a call the user cancelled. */
@@ -167,7 +169,7 @@ function totalTokensOf(usage: EnhanceUsage): number {
 
 /** One enhancement result card. */
 export function ResultPanel(props: ResultPanelProps): ReactNode {
-  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, regenerated = false, collapsed = false, onToggleCollapsed } = props
+  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, regenerated = false, collapsed = false, onToggleCollapsed, foldAnimation = true } = props
   const [copied, setCopied] = useState<'idle' | 'ok' | 'failed'>('idle')
   /** Pending reset of the copy label; one timer only, so a second copy cannot be cut short by the first. */
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -232,7 +234,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
   )
 
   return (
-    <section className="dsh-pe-panel" role="region" aria-label={t('panel.title')}>
+    <section className={`dsh-pe-panel${collapsed ? ' is-collapsed' : ''}${foldAnimation ? '' : ' is-static'}`} role="region" aria-label={t('panel.title')}>
       <header className="dsh-pe-head">
         <span className="dsh-pe-title">
           <SparkleFishIcon size={15} />
@@ -266,10 +268,12 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         </div>
       </header>
 
-      {/* The body is the only part that collapses: the header above and the
-          footer below keep their rows and their actions. */}
-      {collapsed ? null : (
-        <>
+      {/* The body keeps the header above and the footer below; only it folds.
+          It stays mounted so the fold can animate (grid track 1fr ↔ 0fr) and the
+          result's scroll position survives a fold. Collapsed, the CSS hides it
+          from painting, selection and assistive tech. */}
+      <div className="dsh-pe-body" aria-hidden={collapsed || undefined}>
+        <div className="dsh-pe-body-inner">
           {state.phase === 'loading' && (
             <div className="dsh-pe-loading">
               {state.streaming === undefined || state.streaming === '' ? (
@@ -312,8 +316,8 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
           {state.phase === 'result' && state.result?.truncated === true && <div className="dsh-pe-stale">⚠ {t('panel.truncated')}</div>}
 
           {state.phase === 'result' && state.stale && <div className="dsh-pe-stale">⚠ {t('panel.stale.warn')}</div>}
-        </>
-      )}
+        </div>
+      </div>
 
       <footer className="dsh-pe-foot">
         <span className="dsh-pe-grow" />

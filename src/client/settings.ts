@@ -20,6 +20,10 @@ export interface ClientSettings {
   shortcut: string
   /** Show the model's output as it streams (host may still fall back). */
   streaming: boolean
+  /** Play the result card's expand/collapse transition. */
+  foldAnimation: boolean
+  /** Fold the card after Apply and re-open it after Undo. */
+  autoFold: boolean
 }
 
 // Compile-time guarantee: the mirror only tracks keys that exist in the host
@@ -34,6 +38,8 @@ export const DEFAULT_CLIENT_SETTINGS: ClientSettings = {
   maxInputChars: DEFAULT_VALUES.maxInputChars,
   shortcut: DEFAULT_VALUES.shortcut,
   streaming: DEFAULT_VALUES.streaming,
+  foldAnimation: DEFAULT_VALUES.foldAnimation,
+  autoFold: DEFAULT_VALUES.autoFold,
 }
 
 const listeners = new Set<() => void>()
@@ -80,5 +86,7 @@ export function decodeClientSettings(section: unknown): ClientSettings {
       typeof record.maxInputChars === 'number' && Number.isFinite(record.maxInputChars) && record.maxInputChars > 0 ? Math.floor(record.maxInputChars) : DEFAULT_CLIENT_SETTINGS.maxInputChars,
     shortcut: typeof record.shortcut === 'string' ? record.shortcut : DEFAULT_CLIENT_SETTINGS.shortcut,
     streaming: typeof record.streaming === 'boolean' ? record.streaming : DEFAULT_CLIENT_SETTINGS.streaming,
+    foldAnimation: typeof record.foldAnimation === 'boolean' ? record.foldAnimation : DEFAULT_CLIENT_SETTINGS.foldAnimation,
+    autoFold: typeof record.autoFold === 'boolean' ? record.autoFold : DEFAULT_CLIENT_SETTINGS.autoFold,
   }
 }

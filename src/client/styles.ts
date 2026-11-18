@@ -48,6 +48,40 @@ export const CSS = `
   -webkit-user-select: none;
   user-select: none;
 }
+/* The body folds along a single grid track (1fr <-> 0fr): the height animates to
+   the content's own size, so nothing is measured in JS and the fold can never
+   overshoot a long result. The inner clips, and once the track has closed it
+   also leaves the paint, selection and accessibility trees. */
+.dsh-pe-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 160ms ease;
+}
+.dsh-pe-body > .dsh-pe-body-inner {
+  min-height: 0;
+  overflow: hidden;
+  visibility: visible;
+  transition: visibility 0s;
+}
+.dsh-pe-panel.is-collapsed .dsh-pe-body { grid-template-rows: 0fr; }
+.dsh-pe-panel.is-collapsed .dsh-pe-body > .dsh-pe-body-inner {
+  visibility: hidden;
+  /* Hidden only after the track has finished closing, so the fold is visible
+     the whole way down; expanding drops the delay and shows it at once. */
+  transition: visibility 0s linear 160ms;
+}
+/* The chevron turns with the fold, so the button and the body read as one gesture. */
+.dsh-pe-collapse svg { transition: transform 160ms ease; }
+@media (prefers-reduced-motion: reduce) {
+  .dsh-pe-body,
+  .dsh-pe-body > .dsh-pe-body-inner,
+  .dsh-pe-collapse svg { transition: none; }
+}
+/* The fold animation is a setting; switching it off makes the fold instant.
+   The OS preference above still wins for users who ask for less motion. */
+.dsh-pe-panel.is-static .dsh-pe-body,
+.dsh-pe-panel.is-static .dsh-pe-body > .dsh-pe-body-inner,
+.dsh-pe-panel.is-static .dsh-pe-collapse svg { transition: none; }
 .dsh-pe-head {
   display: flex;
   align-items: center;

@@ -31,4 +31,8 @@ export const DEFAULT_VALUES = {
   contextAware: true,
   contextMaxMessages: 8,
   contextMaxChars: 4000,
+  /** Play the card's expand/collapse transition. */
+  foldAnimation: true,
+  /** Fold the card after Apply, and re-open it after Undo. */
+  autoFold: true,
 } as const

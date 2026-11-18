@@ -103,6 +103,10 @@ export interface Config {
   contextMaxMessages: number
   /** Context window depth: character budget of the assembled history snippet; 0 admits none. */
   contextMaxChars: number
+  /** Play the result card's expand/collapse transition. */
+  foldAnimation: boolean
+  /** Fold the card when a result is applied, and re-open it when that apply is undone. */
+  autoFold: boolean
 }
 
 /** Field defaults, the source of truth for schema defaults and client mirrors. */
@@ -185,6 +189,8 @@ export const Config = z.object({
     .description('每分钟增强次数上限（滑动窗口），超出返回 429')
     .volatile(),
   streaming: z.boolean().default(DEFAULT_CONFIG.streaming).description('增量展示：模型边写边在面板显示（仅影响显示节奏，最终结果不变；宿主或网络不支持时自动回退为一次性返回）').volatile(),
+  foldAnimation: z.boolean().default(DEFAULT_CONFIG.foldAnimation).description('卡片折叠动画：展开/收起时播放过渡；关闭后立即切换（系统「减少动态效果」偏好始终优先）').volatile(),
+  autoFold: z.boolean().default(DEFAULT_CONFIG.autoFold).description('自动收纳卡片：回填到输入框后自动收起卡片，撤销后自动展开；关闭后卡片保持当前展开状态').volatile(),
   contextAware: z
     .boolean()
     .default(DEFAULT_CONFIG.contextAware)
@@ -296,6 +302,8 @@ export function resolveConfig(config: Config): Config {
     maxConcurrent: intInRange(config.maxConcurrent, 'maxConcurrent', FIELD_LIMITS.maxConcurrent),
     rateLimitPerMinute: intInRange(config.rateLimitPerMinute, 'rateLimitPerMinute', FIELD_LIMITS.rateLimitPerMinute),
     streaming: typeof config.streaming === 'boolean' ? config.streaming : DEFAULT_CONFIG.streaming,
+    foldAnimation: typeof config.foldAnimation === 'boolean' ? config.foldAnimation : DEFAULT_CONFIG.foldAnimation,
+    autoFold: typeof config.autoFold === 'boolean' ? config.autoFold : DEFAULT_CONFIG.autoFold,
     contextAware: typeof config.contextAware === 'boolean' ? config.contextAware : DEFAULT_CONFIG.contextAware,
     contextMaxMessages: intInRange(config.contextMaxMessages, 'contextMaxMessages', FIELD_LIMITS.contextMaxMessages),
     contextMaxChars: intInRange(config.contextMaxChars, 'contextMaxChars', FIELD_LIMITS.contextMaxChars),

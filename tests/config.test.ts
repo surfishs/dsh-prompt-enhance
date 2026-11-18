@@ -115,10 +115,12 @@ describe('resolveConfig', () => {
     expect(resolved).not.toHaveProperty('legacySetting')
     expect(resolved.enabled).toBe(DEFAULT_CONFIG.enabled)
     expect(Object.keys(resolved).sort()).toEqual([
+      'autoFold',
       'contextAware',
       'contextMaxChars',
       'contextMaxMessages',
       'enabled',
+      'foldAnimation',
       'maxConcurrent',
       'maxInputChars',
       'maxOutputTokens',

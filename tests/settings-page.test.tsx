@@ -49,6 +49,8 @@ const ROW_KEYS: readonly string[] = [
   'enabled',
   'contextAware',
   'streaming',
+  'foldAnimation',
+  'autoFold',
   'provider',
   'model',
   'temperature',
@@ -82,6 +84,8 @@ const VALUES: Readonly<Record<string, unknown>> = {
   rateLimitPerMinute: 10,
   streaming: true,
   contextAware: true,
+  foldAnimation: true,
+  autoFold: true,
   contextMaxMessages: 8,
   contextMaxChars: 4000,
 }
@@ -248,8 +252,8 @@ describe('settings dialog page', () => {
     for (const key of ROW_KEYS) {
       expect(screen.getByText(sectionTitle(key))).toBeTruthy()
     }
-    // Three switches and two segmented choices; the rest are text inputs.
-    expect(screen.getAllByRole('switch')).toHaveLength(3)
+    // Five switches and two segmented choices; the rest are text inputs.
+    expect(screen.getAllByRole('switch')).toHaveLength(5)
     expect(screen.getAllByRole('tablist')).toHaveLength(2)
     expect(switchOf(sectionTitle('enabled')).getAttribute('aria-checked')).toBe('true')
     expect(switchOf(sectionTitle('contextAware')).getAttribute('aria-checked')).toBe('true')
@@ -515,7 +519,7 @@ describe('plugins page entry', () => {
     for (const key of ROW_KEYS) {
       expect(screen.getByText(zhCopy(`settings.row.${key}.label`))).toBeTruthy()
     }
-    expect(screen.getAllByRole('switch')).toHaveLength(3)
+    expect(screen.getAllByRole('switch')).toHaveLength(5)
     expect(screen.getAllByRole('tablist')).toHaveLength(2)
     // No raw keys and no parenthesized name: this surface speaks the active locale.
     expect(screen.queryByText(sectionTitle('enabled'))).toBeNull()

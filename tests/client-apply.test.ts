@@ -32,6 +32,8 @@ beforeEach(() => {
     maxInputChars: 12000,
     shortcut: 'ctrl+alt+e',
     streaming: true,
+    foldAnimation: true,
+    autoFold: true,
   })
 })
 
@@ -88,7 +90,7 @@ describe('browser half boot', () => {
   it('falls back to the bundled settings mirror instead of an unset one', () => {
     // The mirror must be populated by `apply` itself, not only by a scope
     // callback: with no settings surface there is no callback at all.
-    setClientSettings({ enabled: false, maxInputChars: 1, shortcut: '', streaming: false })
+    setClientSettings({ enabled: false, maxInputChars: 1, shortcut: '', streaming: false, foldAnimation: true, autoFold: true })
     const { ctx } = bareContext()
     apply(ctx)
     const settings = getClientSettings()

@@ -12,6 +12,8 @@ describe('decodeClientSettings', () => {
       maxInputChars: DEFAULT_CONFIG.maxInputChars,
       shortcut: DEFAULT_CONFIG.shortcut,
       streaming: DEFAULT_CONFIG.streaming,
+      foldAnimation: DEFAULT_CONFIG.foldAnimation,
+      autoFold: DEFAULT_CONFIG.autoFold,
     })
   })
 
@@ -27,6 +29,8 @@ describe('decodeClientSettings', () => {
       maxInputChars: 8000,
       shortcut: 'ctrl+shift+e',
       streaming: false,
+      foldAnimation: true,
+      autoFold: true,
     })
   })
 
