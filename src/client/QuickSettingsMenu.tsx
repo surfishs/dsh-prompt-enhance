@@ -107,12 +107,28 @@ export function QuickSettingsMenu(props: QuickSettingsMenuProps): ReactElement {
   // The stored value is an id (off); the cell shows the tier's display name
   // (Off) the same way the shell's trigger prints the model's effort name.
   const currentEffort = options.find((option) => option.id === data.effort)
+  // A route that declares no tiers gets no radio rows at all: the appended
+  // stored-value row is only for naming the folded cell, not for offering a
+  // tier the model never declared.
+  const radioOptions = data.efforts.length === 0 ? [] : options
   const effortValue = data.effort === INHERIT_EFFORT ? t('menu.effortDefault') : (currentEffort?.name ?? data.effort)
+  // Read-only mirror of the routing override: the card must never imply that
+  // the plugin's provider/model can be changed here (that lives on its page).
+  // Names come from the host catalogs; an id the registry stopped advertising
+  // still shows as its id.
+  const providerPart = data.providerLabel === '' ? data.provider : data.providerLabel
+  const modelPart = data.modelLabel === '' ? data.model : data.modelLabel
+  const pinnedRoute = [providerPart, modelPart].filter((part) => part !== '').join(' / ')
+  const modelValue = pinnedRoute === '' ? t('menu.modelFollow') : pinnedRoute
 
   return (
     <div ref={ref} className="dsh-pe-menu" role="menu" aria-label={t('menu.title')} style={{ position: 'fixed', right, bottom }}>
       {pane === 'root' ? (
         <>
+          <div className="dsh-pe-menu-info" title={t('menu.modelHint')}>
+            <span className="dsh-pe-menu-label">{t('menu.model')}</span>
+            <span className="dsh-pe-menu-state">{modelValue}</span>
+          </div>
           <button type="button" role="menuitem" className="dsh-pe-menu-item dsh-pe-menu-cell" onClick={() => setPane('effort')}>
             <span className="dsh-pe-menu-label">{t('menu.effort')}</span>
             <span className="dsh-pe-menu-state">{effortValue}</span>
@@ -127,9 +143,14 @@ export function QuickSettingsMenu(props: QuickSettingsMenuProps): ReactElement {
       ) : (
         <div ref={paneRef} className="dsh-pe-menu-group" role="group" aria-label={t('menu.effort')}>
           <MenuRow role="menuitemradio" label={t('menu.effortDefault')} checked={data.effort === INHERIT_EFFORT} onSelect={() => onPick(INHERIT_EFFORT)} />
-          {options.map((option) => (
+          {radioOptions.map((option) => (
             <MenuRow key={option.id} role="menuitemradio" label={option.name} checked={data.effort === option.id} onSelect={() => onPick(option.id)} />
           ))}
+          {radioOptions.length > 0 ? null : (
+            <div className="dsh-pe-menu-note" role="status">
+              {data.effortReason === 'no-efforts' ? t('menu.effortsNone') : t('menu.effortsFailed')}
+            </div>
+          )}
         </div>
       )}
       {error === undefined ? null : (

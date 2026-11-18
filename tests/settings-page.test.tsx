@@ -23,6 +23,8 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useSyncExternalStore } from 'react'
+import { clearCatalogCache } from '../src/client/llm-catalog'
+import { forgetReasoningCapabilities } from '../src/client/settings-page-controls'
 import { SettingsPage, SettingsSection, createSettingsForm } from '../src/client/settings-page'
 import { en, zh } from '../src/client/locales'
 
@@ -244,6 +246,9 @@ function stubCatalogFetch(
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  // The catalog memo outlives one test, and each case stubs its own registry.
+  clearCatalogCache()
+  forgetReasoningCapabilities()
 })
 
 describe('settings dialog page', () => {
@@ -421,7 +426,11 @@ describe('settings dialog page', () => {
     // Only the follow-default choice is offered in this row; no synthetic
     // current value (the page also has the strategy tablist, so scope it).
     const row = screen.getByRole('tablist', { name: sectionTitle('reasoningEffort') })
-    expect(within(row).getAllByRole('tab')).toHaveLength(1)
+    const tabs = within(row).getAllByRole('tab')
+    expect(tabs).toHaveLength(1)
+    // The stored `off` is not offered here, so the control is handed a value it
+    // can select — otherwise the host indicator would sit outside the track.
+    expect(tabs[0]?.getAttribute('aria-selected')).toBe('true')
     expect(within(row).queryByRole('tab', { name: zhCopy('settings.reasoning.current', { value: 'off' }) })).toBeNull()
   })
 
@@ -443,7 +452,28 @@ describe('settings dialog page', () => {
     const synthetic = zhCopy('settings.reasoning.current', { value: 'high' })
     // The read failed rather than declaring "no tiers", so the stored value
     // stays visible; otherwise the segmented indicator would have no option.
-    expect(await screen.findByRole('tab', { name: synthetic })).toBeTruthy()
+    const tab = await screen.findByRole('tab', { name: synthetic })
+    expect(tab.getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('renders the last known tiers immediately when the row mounts again', async () => {
+    const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json({ ok: true, value: { efforts: [{ id: 'off', name: 'Off' }], source: 'resolved' } })),
+    )
+    renderSection({ values: { reasoningEffort: 'off' }, user: { provider: 'zhipu', model: 'glm-4.6' } })
+    expect(await screen.findByRole('tab', { name: 'Off' })).toBeTruthy()
+    cleanup()
+
+    // The next read hangs: whatever shows up now comes from the session cache.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>(() => {})),
+    )
+    renderSection({ values: { reasoningEffort: 'off' }, user: { provider: 'zhipu', model: 'glm-4.6' } })
+    expect(screen.getByRole('tab', { name: 'Off' })).toBeTruthy()
+    expect(screen.queryByText(zhCopy('settings.reasoning.loading'))).toBeNull()
   })
 
   it('pins the refresh action to the right and reports its outcome', async () => {

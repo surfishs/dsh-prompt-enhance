@@ -100,10 +100,35 @@ export function ChoiceRow(props: RowProps & { options: readonly { value: string;
  * @param props - the row, its copy, state, actions, and the pinned pair.
  * @returns the row element.
  */
+/**
+ * Last capability answer per provider/model pair, for this browser session.
+ *
+ * The host already keeps a durable disk cache; this one exists so a remount or a
+ * model switch the user has already inspected renders the tier list in the same
+ * frame instead of flashing "正在读取该模型的档位…" and re-listing the control.
+ * Transport failures are not remembered.
+ */
+const capabilityCache = new Map<string, ReasoningCapabilities>()
+
+/** Key of one pair (`''` when the plugin follows the session model). */
+function capabilityKey(provider: string, model: string): string {
+  return `${provider}\u0000${model}`
+}
+
+/**
+ * Drop the session-level capability cache. Tests swap the host answer between
+ * cases; a deployment may call it after an adapter change.
+ */
+export function forgetReasoningCapabilities(): void {
+  capabilityCache.clear()
+}
+
 export function ReasoningRow(props: RowProps & { provider: string; model: string }): ReactElement {
   const pair = props.provider !== '' && props.model !== '' ? `${props.provider}/${props.model}` : ''
-  const [phase, setPhase] = useState<'loading' | 'ready'>('loading')
-  const [capabilities, setCapabilities] = useState<ReasoningCapabilities | undefined>(undefined)
+  const cacheKey = capabilityKey(props.provider, props.model)
+  const cached = capabilityCache.get(cacheKey)
+  const [phase, setPhase] = useState<'loading' | 'ready'>(cached === undefined ? 'loading' : 'ready')
+  const [capabilities, setCapabilities] = useState<ReasoningCapabilities | undefined>(cached)
   const [refreshToken, setRefreshToken] = useState(0)
   const [feedback, setFeedback] = useState<'idle' | 'refreshing' | 'ok' | 'failed'>('idle')
   const forceRef = useRef(false)
@@ -113,8 +138,11 @@ export function ReasoningRow(props: RowProps & { provider: string; model: string
     const controller = new AbortController()
     const force = forceRef.current
     forceRef.current = false
-    setPhase('loading')
-    setCapabilities(undefined)
+    // Keep the last answer on screen while the fresh read is in flight: the list
+    // then swaps once, instead of collapsing to the sentinel and rebuilding.
+    const known = capabilityCache.get(cacheKey)
+    setPhase(known === undefined ? 'loading' : 'ready')
+    setCapabilities(known)
     setFeedback(force ? 'refreshing' : 'idle')
     if (feedbackTimer.current !== undefined) {
       clearTimeout(feedbackTimer.current)
@@ -134,6 +162,9 @@ export function ReasoningRow(props: RowProps & { provider: string; model: string
         if (controller.signal.aborted) return
         setCapabilities(answer)
         setPhase('ready')
+        // Remember every answer the host actually gave; a transport failure is
+        // not an answer and must be retried next time.
+        if (answer.source !== 'unavailable' || answer.reason === 'no-efforts') capabilityCache.set(cacheKey, answer)
         settle(answer.source === 'unavailable' ? 'failed' : 'ok')
       })
       .catch(() => {
@@ -151,7 +182,7 @@ export function ReasoningRow(props: RowProps & { provider: string; model: string
     }
     // `pair` covers both ids; the default path reuses the empty string.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pair, refreshToken])
+  }, [cacheKey, pair, refreshToken])
 
   // Every provider — DeepSeek included — shows the adapter's own tier names;
   // only the "not specified" sentinel is plugin copy. It leads the control: the
@@ -187,6 +218,11 @@ export function ReasoningRow(props: RowProps & { provider: string; model: string
       })
     }
   }
+  // The host control derives the indicator from `findIndex(value)`: a value the
+  // option list does not carry makes that -1, which parks the pill outside the
+  // track. Whatever the host projects (including an empty text), the control is
+  // only ever handed a value it can select.
+  const selected = options.some((option) => option.value === current) ? current : 'inherit'
   const unsupported = !noTiers && phase === 'ready' && capabilities?.source !== 'unavailable' && current !== '' && current !== 'inherit' && !realTierKnown
   const refreshing = feedback === 'refreshing'
   const refresh = (): void => {
@@ -210,7 +246,7 @@ export function ReasoningRow(props: RowProps & { provider: string; model: string
         // A route that declares no tiers is presented as "follow provider
         // default"; the stored tier stays in the config and the host omits it
         // on the call, so the displayed state matches what actually happens.
-        value={noTiers ? 'inherit' : props.view.text}
+        value={selected}
         options={options}
         // "Follow provider default" stays selectable while the tier list is
         // still loading; the tier choices themselves only appear once known.

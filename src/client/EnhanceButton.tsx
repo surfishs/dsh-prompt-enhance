@@ -21,7 +21,7 @@ import * as ui from './ui-state'
 import { getClientSettings, subscribeClientSettings } from './settings'
 import { getSettingsWriter, subscribeSettingsWriter } from './settings-writer'
 import { QuickSettingsMenu, type QuickMenuAnchor } from './QuickSettingsMenu'
-import { resolveQuickSettings, writeQuickContext, writeQuickEffort, type QuickContext, type QuickSettingsData } from './quick-settings'
+import { directoryFaceOf, INHERIT_EFFORT, modelDirectoryOf, resolveQuickSettings, writeQuickContext, writeQuickEffort, type QuickContext, type QuickSettingsData } from './quick-settings'
 import { useSessionKey, serverSessionId } from './session-key'
 
 /** Props of the input.right entry: the InputZone owner share + session kit + locale seat. */
@@ -226,6 +226,22 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   }
 
   // The stored settings feed the accepted baseline until the first write.
+  const reconcileEffort = useCallback(
+    async (data: QuickSettingsData): Promise<QuickSettingsData> => {
+      if (writer === undefined) return data
+      if (data.effort === '' || data.effort === INHERIT_EFFORT) return data
+      if (data.efforts.some((effort) => effort.id === data.effort)) return data
+      const cleared = await writeQuickEffort(writer, INHERIT_EFFORT)
+      if (!cleared) {
+        console.warn('[dsh-prompt-enhance] could not clear the stored reasoning effort for the current model')
+        return data
+      }
+      return { ...data, effort: INHERIT_EFFORT }
+    },
+    [writer],
+  )
+
+  // The stored settings feed the accepted baseline until the first write.
   useEffect(() => {
     const state = contextWrites.current
     if (state.seq === 0 && state.desired === null) state.accepted = settings.contextAware
@@ -234,16 +250,56 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   // Unmounting must not park a pending flip: start it and let it settle.
   useEffect(() => () => flushContextRef.current(), [])
 
+  // While the card is open, follow the session's model directory (and a pinned
+  // route change): the tier list belongs to the model actually in use, so a
+  // switch made outside the card must swap the list instead of showing the
+  // previous model's tiers until the next open.
+  const menuOpen = menu !== null
+  useEffect(() => {
+    if (!menuOpen) return
+    const directory = directoryFaceOf(modelDirectoryOf(props.__ctx, sessionId))
+    const store = directory?.store
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const refresh = (): void => {
+      if (cancelled) return
+      if (timer !== undefined) clearTimeout(timer)
+      timer = setTimeout(() => {
+        timer = undefined
+        void resolveQuickSettings({ ctx: props.__ctx, sessionId, settings }).then(async (resolved) => {
+          const data = await reconcileEffort(resolved)
+          if (cancelled) return
+          const local = contextWrites.current.desired ?? contextWrites.current.accepted
+          setMenu((current) => (current === null ? current : { ...current, data: local === null ? data : { ...data, contextAware: local } }))
+        })
+      }, 80)
+    }
+    const stop = store?.subscribe?.(refresh)
+    // Nudge the host directory so a model switched after the last load answers
+    // with the current catalog rather than the previous snapshot.
+    try {
+      void Promise.resolve(directory?.load?.()).catch(() => {})
+    } catch {
+      // A directory that refuses to load simply keeps the current snapshot.
+    }
+    return () => {
+      cancelled = true
+      if (timer !== undefined) clearTimeout(timer)
+      stop?.()
+    }
+  }, [menuOpen, props.__ctx, sessionId, settings, reconcileEffort])
+
   const openMenu = useCallback(
     async (rect: DOMRect): Promise<void> => {
       const anchor = { right: rect.right, top: rect.top }
       setMenuError(undefined)
-      const data = await resolveQuickSettings({ ctx: props.__ctx, sessionId, settings })
+      const resolved = await resolveQuickSettings({ ctx: props.__ctx, sessionId, settings })
+      const data = await reconcileEffort(resolved)
       // A flip that the mirror has not reflected yet still wins on reopen.
       const local = contextWrites.current.desired ?? contextWrites.current.accepted
       setMenu({ anchor, data: local === null ? data : { ...data, contextAware: local } })
     },
-    [props.__ctx, sessionId, settings],
+    [props.__ctx, sessionId, settings, reconcileEffort],
   )
 
   const pickEffort = (id: string): void => {

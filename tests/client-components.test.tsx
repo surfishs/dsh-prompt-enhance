@@ -19,6 +19,7 @@ import { EnhanceClientError, requestEnhance, requestEnhanceStream } from '../src
 import { zh } from '../src/client/locales'
 import * as ui from '../src/client/ui-state'
 import { DEFAULT_CLIENT_SETTINGS, setClientSettings } from '../src/client/settings'
+import { clearCatalogCache } from '../src/client/llm-catalog'
 import { setSettingsWriter } from '../src/client/settings-writer'
 
 /**
@@ -96,8 +97,8 @@ function makeFakeInput(initial: Partial<InputState> & { draft: string }) {
   }
 }
 
-function renderComposer(input: ReturnType<typeof makeFakeInput>, inputActions: Parameters<typeof EnhanceButton>[0]['inputActions'], sessionId: string | undefined): void {
-  const props = { t, sessionId, useInput: input.useInput, inputActions } as never
+function renderComposer(input: ReturnType<typeof makeFakeInput>, inputActions: Parameters<typeof EnhanceButton>[0]['inputActions'], sessionId: string | undefined, ctx?: unknown): void {
+  const props = { t, sessionId, useInput: input.useInput, inputActions, ...(ctx === undefined ? {} : { __ctx: ctx }) } as never
   render(
     <>
       <EnhanceButton {...props} />
@@ -718,6 +719,7 @@ describe('quick settings menu', () => {
   afterEach(() => {
     cleanup()
     setSettingsWriter(undefined)
+    clearCatalogCache()
   })
 
   /** Install a writer double and render one composer. */
@@ -739,6 +741,154 @@ describe('quick settings menu', () => {
     fireEvent.click(screen.getByRole('menuitemradio', { name: zh['menu.effortDefault'] }))
     await waitFor(() => expect(set).toHaveBeenCalledWith('reasoningEffort', 'inherit'))
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+  })
+
+  it('shows the pinned provider/model as a read-only route row', async () => {
+    setClientSettings({ ...DEFAULT_CLIENT_SETTINGS, provider: 'zhipu', model: 'glm-4.6' })
+    const { button } = setupMenu()
+    fireEvent.contextMenu(button)
+    const row = await screen.findByText(zh['menu.model'])
+    // The value is the route it would call, and the row is not a control.
+    expect(row.parentElement?.textContent).toContain('zhipu / glm-4.6')
+    expect(row.closest('button')).toBeNull()
+  })
+
+  it('shows the catalog names for a pinned route when the host advertises them', async () => {
+    const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const href = String(input)
+        if (href.includes('llm-providers')) return json({ ok: true, value: { providers: [{ id: 'zhipu', name: 'Zhipu', registered: true }] } })
+        if (href.includes('llm-models')) return json({ ok: true, value: { models: [{ id: 'glm-4.6', name: 'GLM-4.6' }] } })
+        if (href.includes('llm-route-check')) return json({ ok: true, value: { available: true } })
+        return json({ ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } })
+      }),
+    )
+    try {
+      setClientSettings({ ...DEFAULT_CLIENT_SETTINGS, provider: 'zhipu', model: 'glm-4.6' })
+      const { button } = setupMenu()
+      fireEvent.contextMenu(button)
+      const row = await screen.findByText(zh['menu.model'])
+      await waitFor(() => expect(row.parentElement?.textContent).toContain('Zhipu / GLM-4.6'))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('explains an empty tier list for a pinned model instead of showing DeepSeek tiers', async () => {
+    const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const href = String(input)
+        if (href.includes('llm-providers')) return json({ ok: true, value: { providers: [{ id: 'zhipu', name: 'Zhipu', registered: true }] } })
+        if (href.includes('llm-models')) return json({ ok: true, value: { models: [{ id: 'glm-4.6', name: 'GLM-4.6' }] } })
+        // The pinned route declares no reasoning tiers.
+        return json({ ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } })
+      }),
+    )
+    try {
+      setClientSettings({ ...DEFAULT_CLIENT_SETTINGS, provider: 'zhipu', model: 'glm-4.6' })
+      const { button } = setupMenu()
+      fireEvent.contextMenu(button)
+      await screen.findByRole('menu')
+      fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
+      // Only the "not specified" row, plus a line that says why it is alone.
+      expect(screen.queryByRole('menuitemradio', { name: 'Off' })).toBeNull()
+      expect(await screen.findByText(zh['menu.effortsNone'])).toBeTruthy()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('follows a model switched outside the card while it is open', async () => {
+    // One session directory double: the snapshot swaps when the host reports a
+    // model change, exactly like ctx.modelDirectories in the running shell.
+    let snapshot: unknown = {
+      current: { provider: 'deepseek-official', model: 'deepseek-flash' },
+      groups: [
+        {
+          id: 'deepseek-official',
+          models: [
+            {
+              id: 'deepseek-flash',
+              reasoning: {
+                efforts: [
+                  { id: 'off', name: 'Off' },
+                  { id: 'low', name: 'Low' },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    }
+    const listeners = new Set<() => void>()
+    const directory = {
+      store: {
+        getSnapshot: () => snapshot,
+        subscribe: (listener: () => void) => {
+          listeners.add(listener)
+          return () => listeners.delete(listener)
+        },
+      },
+      load: async () => undefined,
+    }
+    const ctx = { modelDirectories: { directoryFor: () => directory } }
+    const set = vi.fn(async () => true)
+    setSettingsWriter({ set, unset: vi.fn(async () => true) })
+
+    const input = makeFakeInput({ draft: '写个爬虫' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1', ctx)
+    fireEvent.contextMenu(enhanceButton())
+    await screen.findByRole('menu')
+    fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
+    expect(await screen.findByRole('menuitemradio', { name: 'Off' })).toBeTruthy()
+
+    // The session switches to another model that declares its own tier.
+    snapshot = {
+      current: { provider: 'qwen', model: 'qwen3.8-flash' },
+      groups: [{ id: 'qwen', models: [{ id: 'qwen3.8-flash', reasoning: { efforts: [{ id: 'fast', name: 'Fast' }] } }] }],
+    }
+    for (const listener of listeners) listener()
+
+    // The open card swaps the list instead of keeping the old model's tiers, and
+    // the stored tier is cleared because the new model never declares it.
+    expect(await screen.findByRole('menuitemradio', { name: 'Fast' })).toBeTruthy()
+    await waitFor(() => expect(set).toHaveBeenCalledWith('reasoningEffort', 'inherit'))
+    await waitFor(() => expect(screen.queryByRole('menuitemradio', { name: 'Low' })).toBeNull())
+    expect(screen.queryByRole('menuitemradio', { name: 'Off' })).toBeNull()
+  })
+
+  it('keeps the stored tier when the current model declares it', async () => {
+    const snapshot: unknown = {
+      current: { provider: 'deepseek-official', model: 'deepseek-flash' },
+      groups: [{ id: 'deepseek-official', models: [{ id: 'deepseek-flash', reasoning: { efforts: [{ id: 'off', name: 'Off' }] } }] }],
+    }
+    const directory = {
+      store: { getSnapshot: () => snapshot, subscribe: () => () => {} },
+      load: async () => undefined,
+    }
+    const ctx = { modelDirectories: { directoryFor: () => directory } }
+    const set = vi.fn(async () => true)
+    setSettingsWriter({ set, unset: vi.fn(async () => true) })
+
+    const input = makeFakeInput({ draft: '写个爬虫' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1', ctx)
+    fireEvent.contextMenu(enhanceButton())
+    await screen.findByRole('menu')
+    fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
+    expect(await screen.findByRole('menuitemradio', { name: 'Off' })).toBeTruthy()
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  it('shows the follow-session label when no provider is pinned', async () => {
+    const { button } = setupMenu()
+    fireEvent.contextMenu(button)
+    await screen.findByRole('menu')
+    const row = screen.getByText(zh['menu.model'])
+    expect(row.parentElement?.textContent).toContain(zh['menu.modelFollow'])
   })
 
   it('advertises the right-click entry while the draft is empty', () => {

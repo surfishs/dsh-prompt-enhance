@@ -35,6 +35,31 @@ async function getJson<T>(url: URL, signal?: AbortSignal): Promise<T | undefined
   }
 }
 
+/**
+ * How long one catalog answer stays usable. Provider/model names change only
+ * when the host registry does, so a short window is enough to make repeated
+ * card opens and page mounts free without showing stale names for long.
+ */
+export const CATALOG_TTL_MS = 60_000
+
+/** One memoized answer. */
+interface Memo<T> {
+  value: T
+  at: number
+}
+
+let providersMemo: Memo<ProviderCatalogEntry[]> | undefined
+const modelsMemo = new Map<string, Memo<ModelCatalog>>()
+
+/**
+ * Drop every memoized catalog answer. The settings reload controls bypass the
+ * cache per call; tests and deployments that swap the registry call this.
+ */
+export function clearCatalogCache(): void {
+  providersMemo = undefined
+  modelsMemo.clear()
+}
+
 /** Resolve one endpoint against the current page origin. */
 function endpoint(path: string, params: Record<string, string> = {}): URL {
   const url = new URL(path, globalThis.location?.origin ?? 'http://127.0.0.1')
@@ -42,18 +67,38 @@ function endpoint(path: string, params: Record<string, string> = {}): URL {
   return url
 }
 
-/** Registered + dormant providers, or undefined when the read failed. */
-export async function fetchProviders(signal?: AbortSignal): Promise<ProviderCatalogEntry[] | undefined> {
+/**
+ * Registered + dormant providers, or undefined when the read failed.
+ * @param signal - cancels the request.
+ * @param options - `refresh` bypasses the short-lived memo.
+ * @returns the provider entries, or undefined on failure (failures are not cached).
+ */
+export async function fetchProviders(signal?: AbortSignal, options: { refresh?: boolean } = {}): Promise<ProviderCatalogEntry[] | undefined> {
+  const cached = providersMemo
+  if (options.refresh !== true && cached !== undefined && Date.now() - cached.at <= CATALOG_TTL_MS) return cached.value
   const value = await getJson<ProviderCatalog>(endpoint(LLM_PROVIDERS_ENDPOINT), signal)
   if (value === undefined || !Array.isArray(value.providers)) return undefined
-  return value.providers.filter(
+  const providers = value.providers.filter(
     (entry): entry is ProviderCatalogEntry =>
       entry !== null && typeof entry === 'object' && typeof entry.id === 'string' && entry.id !== '' && typeof entry.name === 'string' && entry.name !== '' && typeof entry.registered === 'boolean',
   )
+  providersMemo = { value: providers, at: Date.now() }
+  return providers
 }
 
-/** Models of one provider, or undefined when the read failed. */
-export async function fetchModels(provider: string, signal?: AbortSignal): Promise<ModelCatalog | undefined> {
+/**
+ * Models of one provider, or undefined when the read failed.
+ *
+ * An empty list is not memoized: it is what a transient adapter failure looks
+ * like, and caching it would keep the select empty for the whole window.
+ * @param provider - provider id.
+ * @param signal - cancels the request.
+ * @param options - `refresh` bypasses the short-lived memo.
+ * @returns the catalog, or undefined on failure.
+ */
+export async function fetchModels(provider: string, signal?: AbortSignal, options: { refresh?: boolean } = {}): Promise<ModelCatalog | undefined> {
+  const cached = modelsMemo.get(provider)
+  if (options.refresh !== true && cached !== undefined && Date.now() - cached.at <= CATALOG_TTL_MS) return cached.value
   const value = await getJson<ModelCatalog>(endpoint(LLM_MODELS_ENDPOINT, { provider }), signal)
   if (value === undefined || !Array.isArray(value.models)) return undefined
   const models = value.models
@@ -65,7 +110,9 @@ export async function fetchModels(provider: string, signal?: AbortSignal): Promi
       name: entry.name,
       ...(typeof entry.description === 'string' && entry.description !== '' ? { description: entry.description } : {}),
     }))
-  return { models, ...(typeof value.reason === 'string' ? { reason: value.reason as ModelCatalog['reason'] } : {}) }
+  const answer: ModelCatalog = { models, ...(typeof value.reason === 'string' ? { reason: value.reason as ModelCatalog['reason'] } : {}) }
+  if (models.length > 0) modelsMemo.set(provider, { value: answer, at: Date.now() })
+  return answer
 }
 
 /** Whether one exact route resolves; undefined when the check itself failed. */
@@ -110,7 +157,7 @@ export function useLlmRouting(provider: string, model: string): LlmRoutingState 
     const controller = new AbortController()
     setProvidersLoading(true)
     setProvidersFailed(false)
-    void fetchProviders(controller.signal).then((entries) => {
+    void fetchProviders(controller.signal, { refresh: providersToken > 0 }).then((entries) => {
       if (controller.signal.aborted) return
       setProvidersLoading(false)
       if (entries === undefined) {
@@ -134,7 +181,7 @@ export function useLlmRouting(provider: string, model: string): LlmRoutingState 
     setModels([])
     setModelsLoading(true)
     setModelsFailed(false)
-    void fetchModels(provider, controller.signal).then((answer) => {
+    void fetchModels(provider, controller.signal, { refresh: modelsToken > 0 }).then((answer) => {
       if (controller.signal.aborted) return
       setModelsLoading(false)
       if (answer === undefined) {

@@ -119,6 +119,30 @@ html[data-platform='darwin'] .dsh-pe-menu {
   min-height: 34px;
   padding: 0 8px;
 }
+/* Read-only route row: the cell metrics without a pointer or hover, because the
+   value is changed on the plugin settings page, not here. */
+.dsh-pe-menu-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 8px;
+  border-radius: var(--dsw-radius-md, 8px);
+  color: var(--dsw-alias-label-primary, inherit);
+  font-size: 13px;
+  line-height: 20px;
+  cursor: default;
+}
+.dsh-pe-menu-info .dsh-pe-menu-label { flex: 0 0 auto; }
+.dsh-pe-menu-info .dsh-pe-menu-state {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .dsh-pe-menu-cell .dsh-pe-menu-label { flex: 0 0 auto; }
 .dsh-pe-menu-cell .dsh-pe-menu-state {
   flex: 1 1 auto;
@@ -229,6 +253,13 @@ html[data-platform='darwin'] .dsh-pe-menu {
 }
 .dsh-pe-menu-sep { height: 0.5px; margin: 3px 8px; background: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.25)); }
 .dsh-pe-menu-error { padding: 6px 8px; font-size: 12px; color: var(--dsw-alias-state-error-primary, #e5484d); }
+/* Why the tier list is empty: an explanation, not an error. */
+.dsh-pe-menu-note {
+  padding: 4px 8px 6px;
+  color: var(--dsw-alias-label-tertiary, inherit);
+  font-size: 12px;
+  line-height: 16px;
+}
 .dsh-pe-panel {
   box-sizing: border-box;
   display: flex;
@@ -539,6 +570,14 @@ html[data-platform='darwin'] .dsh-pe-menu {
   font-size: 12px;
 }
 .dsh-pe-undo-x:hover { opacity: 1; background: var(--pe-hover); }
+/* The host's segmented control slides its indicator with a 160ms transform
+   transition. This row re-lists its options whenever a capability answer lands
+   (loading -> ready, model switch, a cleared tier), so the pill would appear to
+   fly in from outside the track while the option count changes under it. The
+   selection change is the information here, not the motion. */
+.dsh-pe-segmented-labels > span[aria-hidden='true'] {
+  transition: none !important;
+}
 .dsh-pe-segmented-labels [role="tab"] {
   min-width: 0;
   overflow: hidden;
