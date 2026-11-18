@@ -12,7 +12,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import * as ui from './ui-state'
 import { useSessionKey } from './session-key'
-import { UndoIcon } from './ActionIcons'
+import { CheckIcon, UndoIcon } from './ActionIcons'
 import { useDockAlignment } from './useDockAlignment'
 
 /** Props of the input.dock entry: the InputZone owner share + session kit + locale seat. */
@@ -58,7 +58,7 @@ export function UndoBar(props: UndoBarProps): ReactNode {
     <div ref={rootRef} className="dsh-pe-dock">
       <div className="dsh-pe-undo">
         <span className="dsh-pe-undo-check" aria-hidden>
-          ✓
+          <CheckIcon />
         </span>
         <span>{t('undo.applied')}</span>
         <button type="button" className="dsh-pe-undo-link" onClick={undo}>

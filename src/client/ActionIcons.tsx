@@ -47,6 +47,11 @@ export function UndoIcon(): ReactElement {
   return icon([<path key="head" d="M9 14 4 9l5-5" />, <path key="curve" d="M4 9h10.5a5.5 5.5 0 0 1 0 11H8" />])
 }
 
+/** A check mark: the applied/undo row's confirmation glyph. */
+export function CheckIcon(): ReactElement {
+  return icon([<path key="check" d="m20 6-11 11-5-5" />])
+}
+
 /** Two diagonal strokes: close the card. Sized like the chevron so both header
  *  controls share one optical weight and their boxes centre the same way. */
 export function XIcon(): ReactElement {

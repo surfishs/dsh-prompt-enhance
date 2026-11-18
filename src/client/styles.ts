@@ -16,9 +16,12 @@ const STYLE_ID = 'dsh-prompt-enhance-styles'
 
 /** The plugin's stylesheet. */
 export const CSS = `
-.dsh-pe-dock { width: 100%; }
-.dsh-pe-panel {
-  box-sizing: border-box;
+/* One palette for everything the plugin paints into the dock: the result card
+   and the standalone undo row are siblings, so the tokens live on their shared
+   parent instead of on the card alone (a child could not reach its sibling's
+   variables, which is why the undo row used to re-derive its own colors). */
+.dsh-pe-dock {
+  width: 100%;
   --pe-bg: var(--dsw-alias-bg-layer-1, #1f2127);
   --pe-fg: var(--dsw-alias-label-primary, #e6e8ee);
   --pe-fg-dim: var(--dsw-alias-label-secondary, rgba(230, 232, 238, 0.55));
@@ -27,11 +30,15 @@ export const CSS = `
   /* No hover token exists: a neutral grey alpha is already theme-agnostic. */
   --pe-hover: rgba(127, 127, 127, 0.18);
   --pe-danger: var(--dsw-alias-state-error-primary, #ffb4a8);
+  --pe-success: var(--dsw-alias-state-success-primary, #2da44e);
   --pe-warn-fg: var(--dsw-alias-state-warn-primary, #e8c07d);
   /* Tints of the themed warning color, so the banner cannot keep an amber cast
      from the other scheme. */
   --pe-warn-border: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #e8c07d) 35%, transparent);
   --pe-warn-bg: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #e8c07d) 12%, transparent);
+}
+.dsh-pe-panel {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -287,18 +294,19 @@ export const CSS = `
   width: fit-content;
   margin-left: auto;
   padding: 3px 6px 3px 10px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.32));
+  border: 1px solid var(--pe-border);
   border-radius: 12px;
-  background: var(--dsw-alias-bg-layer-1, transparent);
+  background: var(--pe-bg);
   font-size: 12px;
-  color: inherit;
+  color: var(--pe-fg);
   /* The undo row is chrome too, like the card header and footer. */
   -webkit-user-select: none;
   user-select: none;
 }
 .dsh-pe-undo .dsh-pe-undo-check {
-  color: var(--dsw-alias-state-success-primary, #2da44e);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  color: var(--pe-success);
 }
 .dsh-pe-undo-link {
   display: inline-flex;
@@ -307,16 +315,14 @@ export const CSS = `
   gap: 6px;
   height: 28px;
   padding: 0 10px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.32));
+  border: 1px solid var(--pe-border);
   border-radius: 6px;
   background: transparent;
   color: inherit;
   font-size: 12px;
   cursor: pointer;
-  transition: background-color 120ms ease;
 }
-.dsh-pe-undo-link:hover { background: rgba(127, 127, 127, 0.16); }
-.dsh-pe-undo-link:active { background: rgba(127, 127, 127, 0.22); }
+.dsh-pe-undo-link:hover { background: var(--pe-hover); }
 .dsh-pe-undo-x {
   display: inline-flex;
   align-items: center;
@@ -327,12 +333,12 @@ export const CSS = `
   border-radius: 6px;
   background: transparent;
   color: inherit;
-  opacity: 0.55;
+  opacity: 0.6;
   cursor: pointer;
   padding: 0;
   font-size: 12px;
 }
-.dsh-pe-undo-x:hover { opacity: 1; background: var(--dsw-alias-bg-layer-2, rgba(128, 128, 128, 0.12)); }
+.dsh-pe-undo-x:hover { opacity: 1; background: var(--pe-hover); }
 .dsh-pe-segmented-labels [role="tab"] {
   min-width: 0;
   overflow: hidden;
