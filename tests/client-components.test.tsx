@@ -575,6 +575,18 @@ describe('enhance → apply → undo loop', () => {
     expect(screen.getByText(new RegExp(`${zh['panel.effortDefault']}`))).toBeTruthy()
   }, 10000)
 
+  it('shows the bare effort name with a capitalized first letter', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5, reasoningEffort: 'high' })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    // The badge shows the tier name only ("High"), not "推理 high".
+    expect(screen.getByText(/· High ·/)).toBeTruthy()
+    expect(screen.queryByText(/推理/)).toBeNull()
+  }, 10000)
+
   it('leaves the badge alone when the host reports no effort', async () => {
     const input = makeFakeInput({ draft: '旧原文' })
     renderComposer(input, { setDraft: vi.fn() } as never, 's1')
@@ -582,7 +594,7 @@ describe('enhance → apply → undo loop', () => {
 
     fireEvent.click(enhanceButton())
     await screen.findByText('增强文本')
-    expect(screen.queryByText(new RegExp(`^${zh['panel.effort'].split('{')[0]}`))).toBeNull()
+    expect(screen.queryByText(/^推理/)).toBeNull()
   }, 10000)
 
   it('clears the copy-failure label after the notice window', async () => {

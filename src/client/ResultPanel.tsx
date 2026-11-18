@@ -159,6 +159,16 @@ function formatTokens(tokens: number): string {
 }
 
 /**
+ * Title-case an adapter-owned effort id for the badge ("off" → "Off"). Ids are
+ * opaque strings, so only a leading ASCII letter is changed.
+ * @param value - the effort id the host reported.
+ * @returns the label shown in the badge.
+ */
+function capitalizeEffort(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+/**
  * The call's billed total: the provider's own number when it reported one,
  * otherwise the disjoint counters added up (uncached input + output + cache
  * reads/writes).
@@ -247,7 +257,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
               {state.result.reasoningEffort === undefined ? null : (
                 <>
                   {' · '}
-                  {t('panel.effort', { effort: state.result.reasoningEffort === 'inherit' ? t('panel.effortDefault') : state.result.reasoningEffort })}
+                  {state.result.reasoningEffort === 'inherit' ? t('panel.effortDefault') : capitalizeEffort(state.result.reasoningEffort)}
                 </>
               )}
               {' · '}
