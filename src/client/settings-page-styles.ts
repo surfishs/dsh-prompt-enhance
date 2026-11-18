@@ -58,7 +58,7 @@ export const REFRESH_STYLE: CSSProperties = { ...CHIP_STYLE, flex: 'none' }
 /** The reset action: the neutral chip surface, with an underline for affordance. */
 export const RESET_STYLE: CSSProperties = CHIP_STYLE
 /** One border for every form control, so focus never changes the outline width. */
-export const FIELD_BORDER = '1px solid rgba(128, 128, 128, 0.38)'
+export const FIELD_BORDER = '1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38))'
 /** The form input, mirroring the host's `input` metrics for a native control. */
 export const INPUT_STYLE: CSSProperties = {
   boxSizing: 'border-box',

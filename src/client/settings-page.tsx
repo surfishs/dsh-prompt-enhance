@@ -144,7 +144,14 @@ function SettingsRow(props: {
     case 'model':
       return <ModelRow {...shared} routing={props.routing} providerValue={props.providerValue} />
     default:
-      return <ValueRow {...shared} numeric={props.row.kind === 'number'} placeholder={props.copy.placeholder(props.row)} />
+      return (
+        <ValueRow
+          {...shared}
+          numeric={props.row.kind === 'number'}
+          placeholder={props.copy.placeholder(props.row)}
+          invalidMessage={props.row.validate !== undefined && !props.row.validate(props.view.text) ? props.copy.labels.invalidShortcut : undefined}
+        />
+      )
   }
 }
 
@@ -181,8 +188,21 @@ function SettingsRows(props: {
     }
   }, [props.state])
 
+  const isStagedInvalid = (key: string, text: string): boolean => {
+    const row = ROWS.find((item) => item.key === key)
+    return row?.validate !== undefined && !row.validate(text)
+  }
+
+  const hasStagedInvalid = (): boolean => ROWS.some((row) => row.validate !== undefined && !row.validate(viewOf(props.state, row.key).text))
+
   const runSave = async (key: string, text: string): Promise<void> => {
     if (props.writeField === undefined) return
+    // A row whose staged text fails its own validation is never written: the row
+    // explains why, and the value already in the config keeps working.
+    if (isStagedInvalid(key, text)) {
+      setSaveState('idle')
+      return
+    }
     // A focus/blur with no edit, or an edit reverted to the stored value, is
     // not a write: skip it without touching the footer status.
     if (savedValues.current.get(key) === text) return
@@ -238,13 +258,25 @@ function SettingsRows(props: {
 
   const manualSave = async (): Promise<void> => {
     if (props.writeField === undefined) {
-      // Hosts without per-field writes keep the original whole-form action.
+      // Hosts without per-field writes keep the original whole-form action — but
+      // an invalid row must not ride along, so the save is refused until it is
+      // fixed or cleared.
+      if (hasStagedInvalid()) {
+        setSaveState('idle')
+        return
+      }
       props.save?.()
       markSaved()
       return
     }
-    const changed = ROWS.map((row) => ({ key: row.key, text: viewOf(props.state, row.key).text })).filter((item) => savedValues.current.get(item.key) !== item.text)
+    const changed = ROWS.map((row) => ({ key: row.key, text: viewOf(props.state, row.key).text })).filter(
+      (item) => savedValues.current.get(item.key) !== item.text && !isStagedInvalid(item.key, item.text),
+    )
     if (changed.length === 0) {
+      if (hasStagedInvalid()) {
+        setSaveState('idle')
+        return
+      }
       markSaved()
       return
     }

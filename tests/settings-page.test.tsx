@@ -533,6 +533,33 @@ describe('plugins page entry', () => {
     expect(screen.queryAllByRole('textbox')).toHaveLength(0)
   })
 
+  it('refuses to write an invalid shortcut and explains why', async () => {
+    // The host schema accepts any string, so a malformed shortcut would be
+    // stored and then silently never fire; the row refuses the write instead.
+    const { mutate } = renderRowPage()
+    const input = screen.getByLabelText(zhCopy('settings.row.shortcut.label'))
+    fireEvent.change(input, { target: { value: 'hello' } })
+    // Nothing while typing: the warning waits for the commit, like the numbers.
+    expect(screen.queryByText(zhCopy('settings.invalidShortcut'))).toBeNull()
+    fireEvent.blur(input)
+    expect(await screen.findByText(zhCopy('settings.invalidShortcut'))).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.save') }))
+    await waitFor(() => expect(mutate).not.toHaveBeenCalled())
+  })
+
+  it('writes a valid shortcut and stops warning', async () => {
+    const { mutate } = renderRowPage()
+    const input = screen.getByLabelText(zhCopy('settings.row.shortcut.label'))
+    // A value different from the stored one, so the save actually has work.
+    fireEvent.change(input, { target: { value: 'ctrl+shift+e' } })
+    fireEvent.blur(input)
+    expect(screen.queryByText(zhCopy('settings.invalidShortcut'))).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.save') }))
+    await waitFor(() => expect(mutate).toHaveBeenCalled())
+  })
+
   it('stages through the same form, so a save writes the same ops', async () => {
     const { mutate } = renderRowPage()
     fireEvent.click(switchOf(zhCopy('settings.row.contextAware.label')))

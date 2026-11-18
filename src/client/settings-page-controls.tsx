@@ -422,8 +422,18 @@ export function TextControl(props: {
   )
 }
 
-export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string }): ReactElement {
-  const invalid = props.view.invalid
+export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string; invalidMessage?: string }): ReactElement {
+  // Two sources of "invalid": the descriptor refused the staged text (numbers),
+  // and the row's own client-side validation (the shortcut format).
+  const invalid = props.view.invalid || props.invalidMessage !== undefined
+  // The client-side message waits for blur / Enter, like the number rows' border,
+  // so typing "ctrl+alt+" does not flash a warning mid-combination. A value that
+  // was already invalid when the page opened shows it immediately.
+  const [revealed, setRevealed] = useState(props.invalidMessage !== undefined)
+  useEffect(() => {
+    if (props.invalidMessage === undefined) setRevealed(false)
+  }, [props.invalidMessage])
+  const showMessage = invalid && (props.view.invalid || revealed)
   return (
     <div style={ROW_STYLE}>
       <div style={HEAD_STYLE}>
@@ -439,11 +449,17 @@ export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: str
         numeric={props.numeric}
         invalid={invalid}
         disabled={props.disabled}
-        onChange={props.onEdit}
-        onCommit={props.onCommit}
+        onChange={(text: string) => {
+          setRevealed(false)
+          props.onEdit(text)
+        }}
+        onCommit={() => {
+          setRevealed(true)
+          props.onCommit?.()
+        }}
       />
       <p style={HINT_STYLE}>{props.hint}</p>
-      {invalid ? <p style={INVALID_STYLE}>{props.copy.labels.invalidNumber}</p> : null}
+      {showMessage ? <p style={INVALID_STYLE}>{props.invalidMessage ?? props.copy.labels.invalidNumber}</p> : null}
     </div>
   )
 }

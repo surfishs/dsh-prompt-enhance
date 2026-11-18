@@ -378,7 +378,7 @@ export const CSS = `
 .dsh-pe-advanced[open] > summary::before { transform: rotate(90deg); }
 .dsh-pe-advanced > summary:hover {
   color: var(--dsw-alias-label-primary, inherit);
-  background: rgba(127, 127, 127, 0.08);
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.08));
   border-radius: 6px;
 }
 .dsh-pe-advanced > summary:focus-visible {
@@ -436,7 +436,7 @@ export const CSS = `
   font-size: 12px;
   cursor: pointer;
 }
-.dsh-pe-save-button:hover:not(:disabled) { background: rgba(127, 127, 127, 0.12); }
+.dsh-pe-save-button:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12)); }
 .dsh-pe-save-button:disabled { opacity: 0.5; cursor: default; }
 `
 

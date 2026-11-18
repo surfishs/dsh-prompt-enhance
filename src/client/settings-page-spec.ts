@@ -12,6 +12,7 @@
 import { SettingsFormModel, settingsNumberField, settingsTextField } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsFieldDescriptor } from '@deepseek-ai/dsh-client-ui-primitives'
 import { DEFAULT_VALUES } from '../shared/defaults'
+import { parseShortcut } from './shortcut'
 import type { PromptEnhanceKey } from './locales'
 import type { RowCopy, Translate } from './settings-page-copy'
 
@@ -122,6 +123,13 @@ export interface Row {
    * It teaches the expected format without writing any value into the config.
    */
   readonly placeholder?: PromptEnhanceKey
+  /**
+   * Whether a staged value may be written. The schema accepts the field as a
+   * plain string, so a field whose format only the client understands (the
+   * shortcut) has to refuse the write here instead of storing a dead value.
+   * Absent means "anything the descriptor stages is writable".
+   */
+  readonly validate?: (text: string) => boolean
 }
 
 /**
@@ -138,7 +146,15 @@ export const BASIC_ROWS: readonly Row[] = [
   { key: 'contextAware', kind: 'boolean', label: 'settings.row.contextAware.label', hint: 'settings.row.contextAware.hint' },
   { key: 'streaming', kind: 'boolean', label: 'settings.row.streaming.label', hint: 'settings.row.streaming.hint' },
   { key: 'systemPrompt', kind: 'text', label: 'settings.row.systemPrompt.label', hint: 'settings.row.systemPrompt.hint', placeholder: 'settings.row.systemPrompt.placeholder' },
-  { key: 'shortcut', kind: 'text', label: 'settings.row.shortcut.label', hint: 'settings.row.shortcut.hint', placeholder: 'settings.row.shortcut.placeholder' },
+  {
+    key: 'shortcut',
+    kind: 'text',
+    label: 'settings.row.shortcut.label',
+    hint: 'settings.row.shortcut.hint',
+    placeholder: 'settings.row.shortcut.placeholder',
+    // Empty disables the shortcut, so it is valid; anything else must parse.
+    validate: (text: string) => text.trim() === '' || parseShortcut(text) !== null,
+  },
 ]
 
 /** Tuning and deployment limits, hidden behind the Advanced disclosure by default. */
