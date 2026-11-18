@@ -153,11 +153,19 @@ export function ReasoningRow(props: RowProps & { provider: string; model: string
   }, [pair, refreshToken])
 
   // Every provider — DeepSeek included — shows the adapter's own tier names;
-  // only the "follow provider default" sentinel is plugin copy.
+  // only the "not specified" sentinel is plugin copy. It leads the control: the
+  // stored value can point at it, and it must not trail the concrete tiers.
   const current = props.view.text
   const realTierKnown = phase === 'ready' && capabilities !== undefined && capabilities.source !== 'unavailable' && capabilities.efforts.some((effort) => effort.id === current)
   const noTiers = phase === 'ready' && capabilities !== undefined && capabilities.source === 'unavailable' && capabilities.reason === 'no-efforts'
   const options: { value: string; label: string; title?: string }[] = []
+  // The sentinel comes first: it is the fallback state, and a config that
+  // stores it must not render its selection at the tail of the control.
+  options.push({
+    value: 'inherit',
+    label: props.copy.choice('settings.reasoning.inherit'),
+    title: props.copy.choice('settings.reasoning.inherit'),
+  })
   // A value the route does not declare (stale config, or while the list is
   // still loading) is kept as a visible synthetic choice. Without it the
   // segmented control's indicator has no matching option and slides off the
@@ -178,11 +186,6 @@ export function ReasoningRow(props: RowProps & { provider: string; model: string
       })
     }
   }
-  options.push({
-    value: 'inherit',
-    label: props.copy.choice('settings.reasoning.inherit'),
-    title: props.copy.choice('settings.reasoning.inherit'),
-  })
   const unsupported = !noTiers && phase === 'ready' && capabilities?.source !== 'unavailable' && current !== '' && current !== 'inherit' && !realTierKnown
   const refreshing = feedback === 'refreshing'
   const refresh = (): void => {
@@ -367,7 +370,15 @@ export function ModelRow(props: RowProps & { routing: LlmRoutingState; providerV
         ) : null}
         {provider !== '' ? <option value="__custom__">{props.copy.choice('settings.routing.custom')}</option> : null}
       </SelectControl>
-      {showCustom ? <TextControl value={current} placeholder={props.copy.choice('settings.routing.customPlaceholder')} disabled={props.disabled} onChange={props.onEdit} /> : null}
+      {showCustom ? (
+        <TextControl
+          value={current}
+          placeholder={props.copy.choice('settings.routing.customPlaceholder')}
+          disabled={props.disabled}
+          onChange={(text) => props.onEdit(text, { deferred: true })}
+          onCommit={props.onCommit}
+        />
+      ) : null}
       <p style={HINT_STYLE}>{props.hint}</p>
       {props.routing.models.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsLoading')}</p> : null}
       {props.routing.models.failed && !showCustom ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsFailed')}</p> : null}

@@ -14,6 +14,10 @@ describe('decodeClientSettings', () => {
       streaming: DEFAULT_CONFIG.streaming,
       foldAnimation: DEFAULT_CONFIG.foldAnimation,
       autoFold: DEFAULT_CONFIG.autoFold,
+      reasoningEffort: DEFAULT_CONFIG.reasoningEffort,
+      contextAware: DEFAULT_CONFIG.contextAware,
+      provider: '',
+      model: '',
     })
   })
 
@@ -31,6 +35,10 @@ describe('decodeClientSettings', () => {
       streaming: false,
       foldAnimation: true,
       autoFold: true,
+      reasoningEffort: 'off',
+      contextAware: true,
+      provider: '',
+      model: '',
     })
   })
 

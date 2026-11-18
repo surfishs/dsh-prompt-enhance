@@ -24,6 +24,14 @@ export interface ClientSettings {
   foldAnimation: boolean
   /** Fold the card after Apply and re-open it after Undo. */
   autoFold: boolean
+  /** Configured reasoning effort; inherit omits the field on the call. */
+  reasoningEffort: string
+  /** Read the conversation's recent turns to ground the rewrite. */
+  contextAware: boolean
+  /** Pinned provider override (empty follows the session). */
+  provider: string
+  /** Pinned model override (empty follows the session). */
+  model: string
 }
 
 // Compile-time guarantee: the mirror only tracks keys that exist in the host
@@ -40,6 +48,10 @@ export const DEFAULT_CLIENT_SETTINGS: ClientSettings = {
   streaming: DEFAULT_VALUES.streaming,
   foldAnimation: DEFAULT_VALUES.foldAnimation,
   autoFold: DEFAULT_VALUES.autoFold,
+  reasoningEffort: DEFAULT_VALUES.reasoningEffort,
+  contextAware: DEFAULT_VALUES.contextAware,
+  provider: '',
+  model: '',
 }
 
 const listeners = new Set<() => void>()
@@ -88,5 +100,9 @@ export function decodeClientSettings(section: unknown): ClientSettings {
     streaming: typeof record.streaming === 'boolean' ? record.streaming : DEFAULT_CLIENT_SETTINGS.streaming,
     foldAnimation: typeof record.foldAnimation === 'boolean' ? record.foldAnimation : DEFAULT_CLIENT_SETTINGS.foldAnimation,
     autoFold: typeof record.autoFold === 'boolean' ? record.autoFold : DEFAULT_CLIENT_SETTINGS.autoFold,
+    reasoningEffort: typeof record.reasoningEffort === 'string' ? record.reasoningEffort : DEFAULT_CLIENT_SETTINGS.reasoningEffort,
+    contextAware: typeof record.contextAware === 'boolean' ? record.contextAware : DEFAULT_CLIENT_SETTINGS.contextAware,
+    provider: typeof record.provider === 'string' ? record.provider : DEFAULT_CLIENT_SETTINGS.provider,
+    model: typeof record.model === 'string' ? record.model : DEFAULT_CLIENT_SETTINGS.model,
   }
 }

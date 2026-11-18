@@ -9,7 +9,7 @@
  * @module dsh-prompt-enhance/client/EnhanceButton
  */
 
-import { useCallback, useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -19,10 +19,23 @@ import { EnhanceClientError, requestEnhance, requestEnhanceStream } from './enha
 import { SparkleFishIcon } from './SparkleFishIcon'
 import * as ui from './ui-state'
 import { getClientSettings, subscribeClientSettings } from './settings'
+import { getSettingsWriter, subscribeSettingsWriter } from './settings-writer'
+import { QuickSettingsMenu, type QuickMenuAnchor } from './QuickSettingsMenu'
+import { resolveQuickSettings, writeQuickContext, writeQuickEffort, type QuickContext, type QuickSettingsData } from './quick-settings'
 import { useSessionKey, serverSessionId } from './session-key'
 
 /** Props of the input.right entry: the InputZone owner share + session kit + locale seat. */
-export type EnhanceButtonProps = PropsRuntime<'conversation.input.right'> & PropsLocale<'dsh-prompt-enhance'>
+export type EnhanceButtonProps = PropsRuntime<'conversation.input.right'> &
+  PropsLocale<'dsh-prompt-enhance'> & {
+    /** Client context handed in by the slot registration (the quick menu reads model directories through it). */
+    __ctx?: QuickContext
+  }
+
+/** How long a press on the button must last to open the quick menu. */
+const LONG_PRESS_MS = 600
+
+/** Movement past this many pixels turns a long press back into a drag/click. */
+const LONG_PRESS_SLOP_PX = 6
 
 /** Sentinel of {@link occurrenceCountOf} for a host that exposes no chip view. */
 const OCCURRENCES_UNKNOWN = -1
@@ -89,6 +102,53 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   const otherBusy = anyBusy && !busy
   /** No draft text at all (whitespace and attachment-only drafts count as empty): the icon dims and clicks are no-ops. */
   const empty = draft.trim() === ''
+
+  // ── quick settings ──────────────────────────────────────────────────────
+  // The writer arrives asynchronously (the settings source binds it after
+  // apply). Until it exists the entry does not exist either: a menu that
+  // cannot save is worse than no menu.
+  const writer = useSyncExternalStore(subscribeSettingsWriter, getSettingsWriter)
+  const [menu, setMenu] = useState<{ anchor: QuickMenuAnchor; data: QuickSettingsData } | null>(null)
+  const [menuError, setMenuError] = useState<string | undefined>(undefined)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const longPressOrigin = useRef<{ x: number; y: number } | null>(null)
+  const longPressFired = useRef(false)
+
+  const openMenu = useCallback(
+    async (rect: DOMRect): Promise<void> => {
+      const anchor = { right: rect.right, top: rect.top }
+      setMenuError(undefined)
+      const data = await resolveQuickSettings({ ctx: props.__ctx, sessionId, settings })
+      setMenu({ anchor, data })
+    },
+    [props.__ctx, sessionId, settings],
+  )
+
+  const closeMenu = useCallback((): void => {
+    setMenu(null)
+  }, [])
+
+  const pickEffort = useCallback(
+    (id: string): void => {
+      if (writer === undefined) return
+      void writeQuickEffort(writer, id).then((ok) => {
+        if (ok) setMenu(null)
+        else setMenuError(t('menu.writeFailed'))
+      })
+    },
+    [writer, t],
+  )
+
+  const toggleContext = useCallback(
+    (next: boolean): void => {
+      if (writer === undefined) return
+      void writeQuickContext(writer, next).then((ok) => {
+        if (ok) setMenu(null)
+        else setMenuError(t('menu.writeFailed'))
+      })
+    },
+    [writer, t],
+  )
 
   /** Guard chain + fetch + panel transition for this session. */
   const start = useCallback(
@@ -174,7 +234,80 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     }
   }, [draft, panel, uiKey])
 
+  // Right-click, a 600 ms press, or Shift+F10 / the context-menu key open the
+  // same menu. Registered only when the host can persist settings, so an
+  // unsupported host keeps exactly the old button behaviour.
+  useEffect(() => {
+    if (writer === undefined || !settings.enabled) return
+    const button = rootRef.current
+    if (button === null) return
+    const clearTimer = (): void => {
+      if (longPressTimer.current !== undefined) {
+        clearTimeout(longPressTimer.current)
+        longPressTimer.current = undefined
+      }
+    }
+    const onPointerDown = (event: PointerEvent): void => {
+      const target = event.target
+      if (!(target instanceof Node) || !button.contains(target)) return
+      clearTimer()
+      longPressFired.current = false
+      longPressOrigin.current = { x: event.clientX, y: event.clientY }
+      longPressTimer.current = setTimeout(() => {
+        longPressTimer.current = undefined
+        // The press itself must not also fire the enhance click on release.
+        longPressFired.current = true
+        void openMenu(button.getBoundingClientRect())
+      }, LONG_PRESS_MS)
+    }
+    const onPointerMove = (event: PointerEvent): void => {
+      const origin = longPressOrigin.current
+      if (origin === null) return
+      if (Math.abs(event.clientX - origin.x) > LONG_PRESS_SLOP_PX || Math.abs(event.clientY - origin.y) > LONG_PRESS_SLOP_PX) {
+        longPressOrigin.current = null
+        clearTimer()
+      }
+    }
+    const onPointerUp = (): void => {
+      longPressOrigin.current = null
+      clearTimer()
+    }
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const menuKey = (event.shiftKey && event.key === 'F10') || event.key === 'ContextMenu'
+      if (!menuKey) return
+      if (document.activeElement !== button) return
+      event.preventDefault()
+      void openMenu(button.getBoundingClientRect())
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('pointermove', onPointerMove, true)
+    document.addEventListener('pointerup', onPointerUp, true)
+    document.addEventListener('pointercancel', onPointerUp, true)
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      clearTimer()
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('pointermove', onPointerMove, true)
+      document.removeEventListener('pointerup', onPointerUp, true)
+      document.removeEventListener('pointercancel', onPointerUp, true)
+      document.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [writer, settings.enabled, openMenu])
+
   if (!settings.enabled) return null
+
+  // The tooltip carries the discoverability the entry cannot get from chrome:
+  // only in the idle state, so busy/empty hints keep their single meaning.
+  const storedEffort = settings.reasoningEffort === '' ? 'off' : settings.reasoningEffort
+  const statusTitle = busy ? t('button.busy') : otherBusy ? t('button.otherBusy') : empty ? t('button.emptyTitle') : t('button.title')
+  const quickHint =
+    writer !== undefined && !busy && !otherBusy && !empty
+      ? t('button.quickHint', {
+          effort: storedEffort === 'inherit' ? t('panel.effortDefault') : storedEffort,
+          context: settings.contextAware ? t('menu.contextOn') : t('menu.contextOff'),
+        })
+      : ''
+  const buttonLabel = statusTitle + quickHint
 
   return (
     <>
@@ -186,20 +319,34 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         // Read by useDockAlignment (same attribute constant).
         data-dsh-pe-key={uiKey}
         className={`dsh-pe-btn${busy ? ' is-busy' : ''}${otherBusy && !empty ? ' is-blocked' : ''}${empty && !busy ? ' is-empty' : ''}`}
-        title={busy ? t('button.busy') : otherBusy ? t('button.otherBusy') : empty ? t('button.emptyTitle') : t('button.title')}
-        aria-label={busy ? t('button.busy') : otherBusy ? t('button.otherBusy') : empty ? t('button.emptyTitle') : t('button.title')}
+        title={buttonLabel}
+        aria-label={statusTitle}
+        aria-haspopup={writer === undefined ? undefined : 'menu'}
+        onContextMenu={(event) => {
+          if (writer === undefined) return
+          event.preventDefault()
+          void openMenu(event.currentTarget.getBoundingClientRect())
+        }}
         // `aria-disabled` instead of `disabled`: a disabled button is skipped by
         // the keyboard and by screen readers, so the reason this composer is
         // inert (empty draft, or another session's enhancement occupies the
         // single preview panel) would be unreachable exactly for the users who
         // need it. The click is a no-op either way.
         aria-disabled={empty || otherBusy || undefined}
-        onClick={() => start()}
+        onClick={() => {
+          // A long press opened the menu; its trailing click must not enhance.
+          if (longPressFired.current) {
+            longPressFired.current = false
+            return
+          }
+          start()
+        }}
       >
         <span className="dsh-pe-btn-icon" aria-hidden>
           <SparkleFishIcon size={15} spinning={busy} />
         </span>
       </button>
+      {menu === null ? null : <QuickSettingsMenu t={t} data={menu.data} anchor={menu.anchor} error={menuError} onPick={pickEffort} onToggleContext={toggleContext} onClose={closeMenu} />}
     </>
   )
 }

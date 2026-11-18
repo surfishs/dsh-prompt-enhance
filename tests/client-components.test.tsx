@@ -19,6 +19,7 @@ import { EnhanceClientError, requestEnhance, requestEnhanceStream } from '../src
 import { zh } from '../src/client/locales'
 import * as ui from '../src/client/ui-state'
 import { DEFAULT_CLIENT_SETTINGS, setClientSettings } from '../src/client/settings'
+import { setSettingsWriter } from '../src/client/settings-writer'
 
 /**
  * The slice of the conversation input machine this suite drives.
@@ -698,4 +699,99 @@ describe('incremental streaming display', () => {
       ui.closePanel()
     }
   })
+})
+
+describe('quick settings menu', () => {
+  afterEach(() => {
+    cleanup()
+    setSettingsWriter(undefined)
+  })
+
+  /** Install a writer double and render one composer. */
+  function setupMenu(): { set: ReturnType<typeof vi.fn>; button: HTMLButtonElement } {
+    const set = vi.fn(async () => true)
+    setSettingsWriter({ set, unset: vi.fn(async () => true) })
+    const input = makeFakeInput({ draft: '写个爬虫' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    return { set, button: enhanceButton() }
+  }
+
+  it('opens on right-click and writes the picked tier', async () => {
+    const { set, button } = setupMenu()
+    fireEvent.contextMenu(button)
+    expect(await screen.findByRole('menu')).toBeTruthy()
+
+    // The tier list starts folded into its cell, like the shell's model menu.
+    fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: zh['menu.effortDefault'] }))
+    await waitFor(() => expect(set).toHaveBeenCalledWith('reasoningEffort', 'inherit'))
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+  })
+
+  it('toggles the context switch from the menu', async () => {
+    const { set, button } = setupMenu()
+    fireEvent.contextMenu(button)
+    const toggle = await screen.findByRole('menuitemcheckbox', { name: /上下文/ })
+    fireEvent.click(toggle)
+    await waitFor(() => expect(set).toHaveBeenCalledWith('contextAware', false))
+  })
+
+  it('closes on Escape', async () => {
+    const { button } = setupMenu()
+    fireEvent.contextMenu(button)
+    await screen.findByRole('menu')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+  })
+
+  it('opens from the keyboard menu key', async () => {
+    const { button } = setupMenu()
+    button.focus()
+    fireEvent.keyDown(document, { key: 'F10', shiftKey: true })
+    expect(await screen.findByRole('menu')).toBeTruthy()
+  })
+
+  it('swallows the click that follows a long press', async () => {
+    // The press opens the menu; the release must not also start an enhancement.
+    const { button } = setupMenu()
+    fireEvent.pointerDown(button, { clientX: 10, clientY: 10 })
+    await screen.findByRole('menu', undefined, { timeout: 2500 })
+    fireEvent.pointerUp(button, { clientX: 10, clientY: 10 })
+    fireEvent.click(button)
+    expect(requestEnhance).not.toHaveBeenCalled()
+  }, 10000)
+
+  it('drills into the tier pane and Escape backs out before closing', async () => {
+    const { button } = setupMenu()
+    fireEvent.contextMenu(button)
+    await screen.findByRole('menu')
+
+    // Root pane: one cell plus the context switch, no tier radios. The cell
+    // prints the tier's display name, not the stored lowercase id.
+    const cell = screen.getByRole('menuitem', { name: /推理等级/ })
+    expect(cell.textContent).toContain('Off')
+    expect(screen.queryByRole('menuitemradio')).toBeNull()
+
+    fireEvent.click(cell)
+    expect(screen.queryByRole('menuitem', { name: /推理等级/ })).toBeNull()
+    expect(screen.queryByRole('menuitemcheckbox')).toBeNull()
+    expect(screen.getAllByRole('menuitemradio').length).toBeGreaterThan(1)
+
+    // Escape backs out of the pane, a second Escape closes the menu.
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(await screen.findByRole('menuitem', { name: /推理等级/ })).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+  })
+
+  it('does not register the entry when no writer is installed', async () => {
+    // No writer: no menu, and the button still enhances as before.
+    const input = makeFakeInput({ draft: '写个爬虫' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+    fireEvent.contextMenu(enhanceButton())
+    expect(screen.queryByRole('menu')).toBeNull()
+    fireEvent.click(enhanceButton())
+    expect(await screen.findByText('增强文本')).toBeTruthy()
+  }, 10000)
 })

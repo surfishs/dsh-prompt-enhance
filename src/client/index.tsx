@@ -15,6 +15,7 @@
  * @module dsh-prompt-enhance/client
  */
 
+import type { ReactNode } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -26,6 +27,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-store'
 import { EnhanceButton } from './EnhanceButton'
+import type { EnhanceButtonProps } from './EnhanceButton'
 import { ResultDock } from './ResultDock'
 import { UndoBar } from './UndoBar'
 import * as ui from './ui-state'
@@ -129,7 +131,12 @@ export function apply(ctx: ClientContext): void {
     if (slots === undefined) return
     return slots.inject('conversation.input.right', () => {
       try {
-        return slots.register({ name: 'conversation.input.right', id: 'dsh-prompt-enhance', order: 60, locale: NS }, EnhanceButton as unknown as never)
+        // The quick-settings menu needs the client context (model directories)
+        // but slot components only receive their standard props, so hand the
+        // context down through the closure — the same shape other composer
+        // plugins in this ecosystem use.
+        const Bound = (buttonProps: EnhanceButtonProps): ReactNode => <EnhanceButton {...buttonProps} __ctx={ctx as never} />
+        return slots.register({ name: 'conversation.input.right', id: 'dsh-prompt-enhance', order: 60, locale: NS }, Bound as unknown as never)
       } catch (error) {
         return report('composer enhance button slot', error)
       }

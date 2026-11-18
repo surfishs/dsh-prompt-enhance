@@ -19,9 +19,13 @@ export const CSS = `
 /* One palette for everything the plugin paints into the dock: the result card
    and the standalone undo row are siblings, so the tokens live on their shared
    parent instead of on the card alone (a child could not reach its sibling's
-   variables, which is why the undo row used to re-derive its own colors). */
+   variables, which is why the undo row used to re-derive its own colors). The
+   quick-settings menu lives in the composer slot instead, so it joins the same
+   rule to read the same palette. */
 .dsh-pe-dock {
   width: 100%;
+}
+.dsh-pe-dock {
   --pe-bg: var(--dsw-alias-bg-layer-1, #1f2127);
   --pe-fg: var(--dsw-alias-label-primary, #e6e8ee);
   --pe-fg-dim: var(--dsw-alias-label-secondary, rgba(230, 232, 238, 0.55));
@@ -37,6 +41,144 @@ export const CSS = `
   --pe-warn-border: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #e8c07d) 35%, transparent);
   --pe-warn-bg: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #e8c07d) 12%, transparent);
 }
+/* Quick-settings menu, copied from the shell's own menu primitives:
+   - the card surface is MenuSurface.module.css (radius-lg, elevation stroke,
+     prominent shadow) with the menu fill over an opaque bg-base, so a
+     translucent fill never shows the page through it;
+   - rows and the trailing check are Menu.module.css (.item / .label /
+     .separator / .check);
+   - the check artwork is the exact check-outline regular glyph from
+     @deepseek-ai/dsh-client-ui-primitives (16-unit viewBox, 1px stroke),
+     painted at the shell's 14x14 check size through a mask. */
+.dsh-pe-menu {
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* The shell's model-menu card (ModelSelect.module.css .menu) is the closest
+     relative of this card and starts at 240px, so a short value like "Off" does
+     not leave the card cramped; the primitive's 144px floor is for plain lists. */
+  min-width: min(240px, 100vw - 24px);
+  max-width: min(360px, 100vw - 24px);
+  padding: 4px;
+  border: 0;
+  border-radius: var(--dsw-radius-lg, 12px);
+  --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);
+  color: var(--dsw-alias-label-primary, inherit);
+  box-shadow: var(--dsw-elevation-prominent, 0 12px 32px rgba(0, 0, 0, 0.24));
+  cursor: default;
+  /* The host isolates the card so the material below never becomes a backdrop
+     root for nested menus; matching the shell keeps the blur behaviour equal. */
+  isolation: isolate;
+}
+/* The material, exactly as MenuSurface.module.css paints it (the host uses a
+   child element with z-index:-1; a pseudo-element is the same layer without
+   touching the component): menu fill + backdrop blur. */
+.dsh-pe-menu::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--dsw-menu-surface-fill, rgba(255, 255, 255, 0.96));
+  -webkit-backdrop-filter: var(--dsw-menu-backdrop-filter, blur(12px));
+  backdrop-filter: var(--dsw-menu-backdrop-filter, blur(12px));
+  pointer-events: none;
+}
+/* macOS: the host backs the material with an opaque layer (its .backing
+   element) because Chromium needs opaque pixels behind page content to blur it
+   over native vibrancy. One opaque base colour on the card is that layer here. */
+html[data-platform='darwin'] .dsh-pe-menu {
+  background-color: var(--dsw-alias-bg-base, #ffffff);
+}
+.dsh-pe-menu-group { display: flex; flex-direction: column; }
+
+.dsh-pe-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--dsw-radius-md, 8px);
+  background: transparent;
+  color: var(--dsw-alias-label-primary, inherit);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+}
+.dsh-pe-menu-item:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12)); }
+.dsh-pe-menu-item:focus-visible { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12)); outline: none; }/* Folded tier cell: the shell model menu's .cell (34px, value right in
+   tertiary, a 12px chevron in the menu-icon tone) so the card reads as one
+   compact row until the list is opened. */
+.dsh-pe-menu-cell {
+  height: 34px;
+  min-height: 34px;
+  padding: 0 8px;
+}
+.dsh-pe-menu-cell .dsh-pe-menu-label { flex: 0 0 auto; }
+.dsh-pe-menu-cell .dsh-pe-menu-state {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The chevron is the shell's own chevron-right-outline artwork (16-unit
+   viewBox, 1px stroke) masked at the model menu's 12px cell size; it turns to
+   point down while the list is open. */
+.dsh-pe-menu-chevron {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  color: var(--dsw-alias-menu-icon, var(--dsw-alias-label-tertiary, inherit));
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%23fff'%20stroke-width='1'%3E%3Cpath%20d='M6%2012L9.29289%208.70711C9.68342%208.31658%209.68342%207.68342%209.29289%207.29289L6%204'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%23fff'%20stroke-width='1'%3E%3Cpath%20d='M6%2012L9.29289%208.70711C9.68342%208.31658%209.68342%207.68342%209.29289%207.29289L6%204'/%3E%3C/svg%3E");
+  -webkit-mask-size: 16px 16px;
+  mask-size: 16px 16px;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  transition: transform 120ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dsh-pe-menu-chevron { transition: none; }
+}
+.dsh-pe-menu-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsh-pe-menu-state { flex: none; margin-left: auto; color: var(--dsw-alias-label-tertiary, inherit); }
+/* The shell's check: a 14x14 icon in label-primary. The text glyph is hidden
+   and the exact outline artwork is masked in, so the shape, weight and size
+   are the shell's own. */
+.dsh-pe-menu-mark {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  color: var(--dsw-alias-label-primary, inherit);
+  font-size: 0;
+  background-color: transparent;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%23fff'%20stroke-width='1'%3E%3Cpath%20d='M2.25%208.5L5.49732%2011.7473C5.90519%2012.1552%206.57263%2012.1344%206.95426%2011.7018L13.75%204'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%23fff'%20stroke-width='1'%3E%3Cpath%20d='M2.25%208.5L5.49732%2011.7473C5.90519%2012.1552%206.57263%2012.1344%206.95426%2011.7018L13.75%204'/%3E%3C/svg%3E");
+  -webkit-mask-size: 14px 14px;
+  mask-size: 14px 14px;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+.dsh-pe-menu-item[aria-checked='true'] .dsh-pe-menu-mark { background-color: currentColor; }
+/* The context switch is not a radio choice: it carries its state word instead of
+   a check, so its marker column is removed outright. */
+.dsh-pe-menu-item[role='menuitemcheckbox'] .dsh-pe-menu-mark { display: none; }
+.dsh-pe-menu-sep { height: 0.5px; margin: 3px 8px; background: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.25)); }
+.dsh-pe-menu-error { padding: 6px 8px; font-size: 12px; color: var(--dsw-alias-state-error-primary, #e5484d); }
 .dsh-pe-panel {
   box-sizing: border-box;
   display: flex;
@@ -351,20 +493,25 @@ export const CSS = `
   text-align: center;
   white-space: nowrap;
 }
+/* The Advanced disclosure reads as one more settings row: same 13px/500 label
+   tone as every row title, same vertical rhythm, and a 16px chevron drawn from
+   the shell's chevron-down-outline artwork instead of a hand-drawn triangle. */
 .dsh-pe-advanced {
-  margin-top: 12px;
-  border-top: 1px solid var(--dsw-alias-border-l3, rgba(128, 128, 128, 0.22));
+  margin-top: 4px;
+  border-top: 0.5px solid var(--dsw-alias-border-l3, rgba(128, 128, 128, 0.22));
 }
+/* The shell's settings rows have no hover fill (its DisclosureRow only lifts the
+   text tone), so the row keeps the page chrome and the glyph carries the state. */
 .dsh-pe-advanced > summary {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
-  padding: 0 4px;
+  padding: 12px 0;
   list-style: none;
+  color: var(--dsw-alias-label-primary, inherit);
   font-size: 13px;
   font-weight: 500;
-  color: var(--dsw-alias-label-secondary, inherit);
+  line-height: 20px;
   cursor: pointer;
   user-select: none;
 }
@@ -373,26 +520,42 @@ export const CSS = `
 .dsh-pe-advanced > summary::before {
   content: '';
   flex: none;
-  width: 0;
-  height: 0;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 5px solid currentColor;
+  width: 16px;
+  height: 16px;
+  color: var(--dsw-alias-label-tertiary, inherit);
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%23fff'%20stroke-width='1'%3E%3Cpath%20d='M4%206L7.29289%209.29289C7.68342%209.68342%208.31658%209.68342%208.70711%209.29289L12%206'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%23fff'%20stroke-width='1'%3E%3Cpath%20d='M4%206L7.29289%209.29289C7.68342%209.68342%208.31658%209.68342%208.70711%209.29289L12%206'/%3E%3C/svg%3E");
+  -webkit-mask-size: 16px 16px;
+  mask-size: 16px 16px;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  /* Closed points at the collapsed content, open points down at it. */
+  transform: rotate(-90deg);
   transition: transform 120ms ease;
 }
-.dsh-pe-advanced[open] > summary::before { transform: rotate(90deg); }
+.dsh-pe-advanced[open] > summary::before { transform: none; }
 .dsh-pe-advanced > summary:hover {
-  color: var(--dsw-alias-label-primary, inherit);
-  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.08));
-  border-radius: 6px;
+  color: var(--dsw-alias-label-secondary, inherit);
+}
+.dsh-pe-advanced > summary:hover::before {
+  color: var(--dsw-alias-label-secondary, inherit);
 }
 .dsh-pe-advanced > summary:focus-visible {
   outline: 2px solid var(--dsw-alias-state-business-primary, #4f8cff);
   outline-offset: -2px;
-  border-radius: 6px;
 }
-.dsh-pe-advanced[open] > summary { margin-bottom: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .dsh-pe-advanced > summary::before { transition: none; }
+}/* The footer already adds its own 12px top margin; after the disclosure that would
+   double the header's bottom whitespace (12px padding + 12px margin) against the
+   12px above it, so the two gaps are equalised here. */
 .dsh-pe-advanced + .dsh-pe-form-footer { margin-top: 0; }
+/* Open: the first advanced row brings its own 12px top padding, so the header
+   drops its bottom padding to keep the same rhythm between the two gaps. */
+.dsh-pe-advanced[open] > summary { padding-bottom: 0; }
 .dsh-pe-chip-reset:hover:not(:disabled),
 .dsh-pe-chip-refresh:hover:not(:disabled) {
   --pe-chip-bg: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.18));

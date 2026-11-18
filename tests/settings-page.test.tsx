@@ -490,6 +490,72 @@ describe('settings dialog page', () => {
     expect(resetButtons()).toHaveLength(0)
   })
 
+  it('clears the model when the provider is reset, so its reset action follows', async () => {
+    const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: URL) => {
+        const href = String(url)
+        if (href.includes('llm-providers')) return json({ ok: true, value: { providers: [{ id: 'zhipu', name: 'Zhipu', registered: true }] } })
+        if (href.includes('llm-models')) return json({ ok: true, value: { models: [{ id: 'glm-4.6', name: 'GLM-4.6' }] } })
+        if (href.includes('llm-route-check')) return json({ ok: true, value: { available: true } })
+        return json({ ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } })
+      }),
+    )
+    // The double renders `values`; `user` marks both keys as stored overrides.
+    const { model } = renderSection({ values: { provider: 'zhipu', model: 'glm-4.6' }, user: { provider: 'zhipu', model: 'glm-4.6' } })
+    const resets = (): HTMLElement[] => screen.queryAllByRole('button', { name: zhCopy('settings.reset') })
+    // provider + model are both overridden to start with.
+    expect(resets()).toHaveLength(2)
+
+    fireEvent.click(resets()[0]!)
+
+    // The pair clears together: the select, the staged text and the chip agree.
+    const modelSelect = screen.getByLabelText(sectionTitle('model')) as HTMLSelectElement
+    await waitFor(() => expect(modelSelect.value).toBe(''))
+    expect(model.field('provider').text).toBe('')
+    expect(model.field('model').text).toBe('')
+    expect(resets()).toHaveLength(0)
+  })
+
+  it('clears the model when the provider is switched', async () => {
+    const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: URL) => {
+        const href = String(url)
+        if (href.includes('llm-providers')) {
+          return json({
+            ok: true,
+            value: {
+              providers: [
+                { id: 'zhipu', name: 'Zhipu', registered: true },
+                { id: 'qwen', name: 'Qwen', registered: true },
+              ],
+            },
+          })
+        }
+        if (href.includes('llm-models')) return json({ ok: true, value: { models: [{ id: 'glm-4.6', name: 'GLM-4.6' }] } })
+        if (href.includes('llm-route-check')) return json({ ok: true, value: { available: true } })
+        return json({ ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } })
+      }),
+    )
+    const { model } = renderSection({ values: { provider: 'zhipu', model: 'glm-4.6' }, user: { provider: 'zhipu', model: 'glm-4.6' } })
+    const resets = (): HTMLElement[] => screen.queryAllByRole('button', { name: zhCopy('settings.reset') })
+    expect(resets()).toHaveLength(2)
+    // Wait for the provider catalog: a select cannot take a value it has no
+    // option for, and jsdom would silently fall back to the empty one.
+    await screen.findByRole('option', { name: /Qwen/ })
+
+    fireEvent.change(screen.getByLabelText(sectionTitle('provider')), { target: { value: 'qwen' } })
+
+    // The model belonged to the old provider, so it leaves with it.
+    await waitFor(() => expect(model.field('model').text).toBe(''))
+    expect(model.field('provider').text).toBe('qwen')
+    // Only the provider row still has something to reset.
+    expect(resets()).toHaveLength(1)
+  })
+
   it('resets an overridden row by clearing the stored value', async () => {
     const { mutate } = renderSection({ values: { streaming: false }, user: { streaming: true } })
     fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.reset') }))

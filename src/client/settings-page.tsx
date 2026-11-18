@@ -250,11 +250,26 @@ function SettingsRows(props: {
     markSaved()
   }
 
+  /**
+   * The rows a reset of key also clears. provider and model are one pair:
+   * clearing the provider leaves a model its (now empty) provider can no longer
+   * offer, so the select falls back to drawing its first option ("follow
+   * session") while the staged value — and its reset chip — stay behind. The
+   * pair is reset together so the control and its chip report the same state.
+   */
+  const resetTargets = (key: string): string[] => (key === 'provider' && viewOf(props.state, 'model').text !== '' ? ['provider', 'model'] : [key])
+
   const resetAndSave = (key: string): void => {
-    props.resetField(key)
-    const fallback = defaultTextOf(key)
-    savedValues.current.set(key, fallback)
-    void runReset(key, fallback)
+    const targets = resetTargets(key)
+    for (const target of targets) {
+      props.resetField(target)
+      savedValues.current.set(target, defaultTextOf(target))
+    }
+    // Sequential: runReset takes a sequence ticket per call, and awaiting keeps
+    // the provider write from being superseded by the model write.
+    void (async () => {
+      for (const target of targets) await runReset(target, defaultTextOf(target))
+    })()
   }
 
   const manualSave = async (): Promise<void> => {
@@ -312,10 +327,20 @@ function SettingsRows(props: {
     timers.current.set(key, timer)
   }
 
-  const onEdit = (key: string, text: string): void => {
+  const onEdit = (key: string, text: string, options?: { deferred?: boolean }): void => {
+    const previousProvider = key === 'provider' ? viewOf(props.state, 'provider').text : ''
     props.edit(key, text)
+    // provider and model are one unit: a hand-typed model id belongs to the
+    // provider it was typed for, so switching providers clears it instead of
+    // leaving a value the new provider cannot serve (and a stale reset chip).
+    if (key === 'provider' && text !== previousProvider && viewOf(props.state, 'model').text !== '') {
+      props.resetField('model')
+      savedValues.current.set('model', '')
+      void runReset('model', '')
+    }
     const row = ROWS.find((item) => item.key === key)
-    const debounced = row !== undefined && (row.kind === 'text' || row.kind === 'number')
+    const typing = row !== undefined && (row.kind === 'text' || row.kind === 'number')
+    const debounced = options?.deferred === true || typing
     scheduleSave(key, text, !debounced)
   }
 
@@ -363,7 +388,7 @@ function SettingsRows(props: {
           reasoningPair={{ provider, model }}
           routing={routing}
           providerValue={provider}
-          onEdit={(text: string) => onEdit(row.key, text)}
+          onEdit={(text: string, options?: { deferred?: boolean }) => onEdit(row.key, text, options)}
           onReset={() => resetAndSave(row.key)}
           onCommit={() => flushField(row.key, viewOf(props.state, row.key).text)}
         />

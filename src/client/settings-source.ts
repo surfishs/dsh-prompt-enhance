@@ -21,6 +21,7 @@
  */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import { getSettingsWriter, setSettingsWriter } from './settings-writer'
 
 /** Snapshot face shared by every generation's form object. */
 interface FormSnapshotLike {
@@ -33,6 +34,9 @@ interface BoundFormLike {
   getSnapshot?: () => FormSnapshotLike | unknown
   subscribe?: (listener: () => void) => (() => void) | undefined
   dispose?: () => unknown
+  /** Present on hosts that allow writing this form (the settings page uses it). */
+  set?: (field: string, value: unknown) => Promise<boolean>
+  unset?: (field: string) => Promise<boolean>
 }
 
 /** The shared describe mirror's read face (`ctx.configForms.describe()`). */
@@ -95,6 +99,22 @@ function servedNamespaces(forms: ConfigFormsLike): readonly string[] {
  * @param ctx - the browser half's context.
  * @param options - candidate row ids and the section sink.
  */
+/**
+ * Adopt the form's write methods when it has them. The settings page writes
+ * through the same object, so a form without set is a host where the
+ * composer cannot save — the quick-settings entry then stays hidden.
+ * @param form - the bound form of one source.
+ * @param highest - whether this source outranks any writer already installed.
+ */
+function adoptWriter(form: BoundFormLike, highest: boolean): void {
+  if (typeof form.set !== 'function' || typeof form.unset !== 'function') return
+  if (!highest && getSettingsWriter() !== undefined) return
+  setSettingsWriter({
+    set: (field, value) => form.set?.(field, value) ?? Promise.resolve(false),
+    unset: (field) => form.unset?.(field) ?? Promise.resolve(false),
+  })
+}
+
 export function installClientSettingsSource(ctx: ClientContext, options: ClientSettingsSourceOptions): void {
   let rank: number = RANK.none
   const adopt = (next: number, section: unknown): void => {
@@ -169,6 +189,7 @@ export function installClientSettingsSource(ctx: ClientContext, options: ClientS
       unsubscribeForm = undefined
       boundId = entryId
       adoptSnapshot(RANK.configForms, form)
+      adoptWriter(form, true)
       try {
         unsubscribeForm = form.subscribe?.(() => adoptSnapshot(RANK.configForms, form as BoundFormLike))
       } catch {
@@ -225,6 +246,7 @@ export function installClientSettingsSource(ctx: ClientContext, options: ClientS
     }
     if (bound === undefined) return
     adoptSnapshot(RANK.binder, bound)
+    adoptWriter(bound, false)
     let unsubscribe: (() => void) | undefined
     try {
       unsubscribe = bound.subscribe?.(() => adoptSnapshot(RANK.binder, bound as BoundFormLike))
@@ -259,6 +281,7 @@ export function installClientSettingsSource(ctx: ClientContext, options: ClientS
       return
     }
     adoptSnapshot(RANK.legacyScope, bound)
+    adoptWriter(bound, false)
     let unsubscribe: (() => void) | undefined
     try {
       unsubscribe = bound.subscribe?.(() => adoptSnapshot(RANK.legacyScope, bound))

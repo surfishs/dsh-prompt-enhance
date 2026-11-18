@@ -294,8 +294,13 @@ export interface RowProps {
   view: FieldView
   /** Whether writes are refused by this deployment. */
   disabled: boolean
-  /** Stage new text for this row. */
-  onEdit: (text: string) => void
+  /**
+   * Stage new text for this row. deferred asks the frame to debounce the
+   * write instead of saving at once — free text (a hand-typed model id) should
+   * not write the configuration once per keystroke, while a discrete choice
+   * still saves immediately.
+   */
+  onEdit: (text: string, options?: { deferred?: boolean }) => void
   /** Clear the stored value so the row re-inherits the composition default. */
   onReset: () => void
   /** Commit the current text now, e.g. on blur or Enter. */
