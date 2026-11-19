@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/v/@surfishs/dsh-prompt-enhance.svg)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 
-**DeepSeek Harness 的「提示词增强」插件** —— 一键把输入框草稿改写为结构化提示词：角色与目标、上下文与约束、可执行步骤、输出格式、验收标准、边界条件。以原文为准，不改变原意、不凭空编造需求；信息不足时留占位，草稿不会被改动。
+**DeepSeek Harness Web GUI 的「提示词增强」插件** —— 一键把输入框草稿改写为结构化提示词：角色与目标、上下文与约束、可执行步骤、输出格式、验收标准、边界条件。以原文为准，不改变原意、不凭空编造需求；信息不足时留占位，草稿不会被改动。
 
 简体中文 | [English](./README.en.md)
 

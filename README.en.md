@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/v/@surfishs/dsh-prompt-enhance.svg)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 
-**Prompt enhancement for DeepSeek Harness** — turn a composer draft into a structured prompt in one click: role and goal, context and constraints, executable steps, output format, acceptance criteria, edge cases. It keeps your intent unchanged, invents no requirements, and writes a placeholder instead of guessing; the composer draft is never modified.
+**Prompt enhancement for the DeepSeek Harness web GUI** — turn a composer draft into a structured prompt in one click: role and goal, context and constraints, executable steps, output format, acceptance criteria, edge cases. It keeps your intent unchanged, invents no requirements, and writes a placeholder instead of guessing; the composer draft is never modified.
 
 [简体中文](./README.md) | English
 
