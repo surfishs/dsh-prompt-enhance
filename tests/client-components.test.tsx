@@ -203,6 +203,29 @@ describe('EnhanceButton guard chain', () => {
     expect(screen.getByText(zh['error.occurrences'])).toBeTruthy()
   })
 
+  // `claimed` means the leading command chip is waiting for its arguments — the
+  // editor is editable, nothing is submitting. Naming it "busy (submitting)"
+  // sent the user looking for a stuck submission instead of removing the
+  // command, so the command case now has its own copy.
+  it('refuses a command-chip draft with the command message, not the busy one', () => {
+    const input = makeFakeInput({ draft: '/计划 帮我写个方案', phase: 'claimed' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    fireEvent.click(enhanceButton())
+    expect(screen.getByText(zh['error.command'])).toBeTruthy()
+    expect(screen.queryByText(zh['error.phase'])).toBeNull()
+    expect(requestEnhance).not.toHaveBeenCalled()
+    expect(requestEnhanceStream).not.toHaveBeenCalled()
+  })
+
+  it('keeps the busy copy for a phase that is actually submitting', () => {
+    const input = makeFakeInput({ draft: '文本', phase: 'submitting' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    fireEvent.click(enhanceButton())
+    expect(screen.getByText(zh['error.phase'])).toBeTruthy()
+    expect(screen.queryByText(zh['error.command'])).toBeNull()
+    expect(requestEnhance).not.toHaveBeenCalled()
+  })
+
   it('fails closed when the host exposes no reference-chip view', () => {
     // Fill-back writes plain text over the editor document, so a chip the plugin
     // cannot see is a chip it would destroy — irreversibly. "Unknown" must not

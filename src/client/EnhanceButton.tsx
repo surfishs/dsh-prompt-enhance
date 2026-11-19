@@ -345,6 +345,17 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         ui.openError(uiKey, source, { code: 'rejected', localized: occurrences })
         return
       }
+      // `claimed` is a command chip waiting for its arguments (`/plan ` in
+      // front of the body), not a submission in flight: the editor is still
+      // editable and the phase persists until the command runs. The busy copy
+      // named the wrong state and hid what the user had to do, so a
+      // command-led draft gets its own message. The genuinely busy phases
+      // (adjudicating / submitting / sending) keep the busy copy below.
+      if (phase === 'claimed') {
+        const command = t('error.command')
+        ui.openError(uiKey, source, { code: 'rejected', localized: command })
+        return
+      }
       if (phase !== 'plain') {
         const busyPhase = t('error.phase')
         ui.openError(uiKey, source, { code: 'rejected', localized: busyPhase })
