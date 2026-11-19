@@ -29,7 +29,7 @@ With context awareness on, the plugin reads the last few turns to resolve refere
 | 🐋 **One-click enhance** | The composer toolbar button (the DeepSeek whale mark with a sparkle in its corner); the shortcut is off by default and can be set in settings |
 | 🎛️ **Right-click quick settings** | Right-click or long-press the composer button: switch the reasoning tier (pick one inside) and context awareness; the model row is read-only and shows the pinned route or "Follow session" |
 | 🖼️ **Docked result card** | Shown above the composer without covering the conversation, with the model, reasoning tier, timing and `token` usage; folds to its title and footer rows; a truncated result is flagged |
-| ↩️ **Apply, copy and undo** | Copy the result; applying folds the card and shows the undo bar, and undo restores the draft and expands the card |
+| ↩️ **Apply, copy and undo** | Copy the result; applying folds the card to its title row by default and turns its footer button into Undo, which restores the draft and expands the card |
 | 🔄 **Regenerate** | Request another version from the current text; an applied enhanced draft can be regenerated too |
 | 💬 **`/enhance` command** | Rewrite any text from the slash menu; the result never enters model history |
 | 🧭 **Model routing** | A pinned `provider` + `model` pair wins; otherwise it follows the session model, then the global default |
@@ -96,15 +96,15 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 1. **Start**: leave a draft in the composer and click the enhance button in the toolbar (or your configured shortcut).
 2. **Review**: the result appears in a card docked above the composer. You can:
-   - **Apply**: write it back; the card folds to its title row and the composer shows "Original draft replaced + Undo";
+   - **Apply**: write it back; the card folds to its title row by default and its footer button becomes Undo;
    - **Copy**: copy the result;
    - **Regenerate**: run the current draft again.
-3. **Undo**: click Undo above the composer to restore the original draft; the result card expands again.
+3. **Undo**: click Undo in the card footer to restore the original draft; the card expands again.
 4. **Close**: sending the draft closes the card automatically; Escape also closes it.
 
-Right-click or long-press the enhance button in the toolbar to open the quick settings card: choose a reasoning tier inside its list, toggle context awareness, and read the pinned provider/model (or "Follow session"). Full settings stay on the settings page.
+Right-click or long-press the enhance button in the toolbar to open the quick settings card: choose a reasoning tier inside its list, toggle context awareness directly, and read the pinned provider/model (or "Follow session"). Full settings stay on the settings page.
 
-An empty or attachment-only draft dims the button and makes it unclickable; over-length drafts and drafts containing commands or file references are rejected locally. A result that hits the token cap is marked as possibly incomplete.
+An empty or attachment-only draft dims the button and makes it unclickable; over-length drafts, or drafts containing commands or file references, are rejected locally. A result that hits the token cap is marked as possibly incomplete.
 
 `/enhance <text>`: rewrite any text from the slash menu; the result is copyable and never enters model history.
 
