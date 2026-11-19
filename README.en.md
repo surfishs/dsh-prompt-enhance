@@ -169,6 +169,31 @@ flowchart LR
 - `/enhance` runs through the command plane and never enters conversation history.
 - The right-click quick settings card only changes settings such as the reasoning tier and context awareness; it never starts an enhancement.
 
+## The built-in enhancement strategy
+
+The default system prompt asks the model to act as a prompt-rewriting expert, applying only what the draft actually needs across six parts:
+
+1. **Role and goal**: state who the assistant acts as and what the final deliverable is.
+2. **Context and constraints**: add only the background and limits the draft implies; never add facts or requirements the draft does not carry.
+3. **Steps**: break vague or multi-part requests into numbered, executable steps.
+4. **Output format**: specify structure, language, length and style where the request implies them.
+5. **Acceptance criteria**: state how to recognize a correct result.
+6. **Boundary conditions**: list edge cases, invalid inputs and what to do when information is missing.
+
+Four hard rules ride along:
+
+- **Preserve intent**: keep the user's information, without deleting, altering or contradicting it, and keep the task's scope unchanged.
+- **Never fabricate**: use only what the draft supports; when a needed detail is missing, write `(待补充：…)` / `(TBD: …)` instead of inventing one.
+- **Body only**: no explanations, preamble, comparison with the original, code fences or pleasantries.
+- **Language and length**: mirror the input language (Chinese in → Chinese out); stay at roughly 1–3× the original length without padding; a well-formed draft gets light polish only.
+
+`strategyMode` decides how a custom strategy combines with the built-in one:
+
+- `replace-default`: **replaces it entirely** — the hard rules are **not retained** automatically, so carry them into your own text.
+- `extend-default`: **appends** your text after the built-in strategy, keeping the hard rules in force.
+
+With no custom strategy, the default behavior is "keep the draft's intent, invent nothing"; with `replace-default`, that guarantee becomes your strategy's responsibility.
+
 ## Troubleshooting
 
 | Symptom | Check / fix |
