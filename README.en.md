@@ -22,7 +22,7 @@ The result appears in a card docked above the composer without covering the conv
 
 With context awareness on, the plugin passes the last few turns to the model, helping it understand references and the task background (such as what "it" or "that" means, or premises the draft leaves out), so the rewrite matches what you meant. Turn it off in the settings page or the right-click quick settings card at any time.
 
-**Note**: it only reads the most recent turns. If the draft depends on a topic that has dropped out of that window, add the needed background to the draft; otherwise the rewrite may drift from your intent.
+> **Note**: it only reads the most recent turns. If the draft depends on a topic that has dropped out of that window, add the needed background to the draft; otherwise the rewrite may drift from your intent.
 
 ## Feature overview
 
