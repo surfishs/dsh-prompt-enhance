@@ -3,6 +3,25 @@
 All notable changes to this project are documented in this file.
 The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
 
+## [0.1.3] - 2026-11-19
+
+### Added
+
+- Show the context window usage on the result card: the footer info button reports the turns, characters and percentage actually referenced, plus the reason when the window had to cut content.
+
+### Changed
+
+- Call the inherited reasoning effort "Model default" across the quick menu, result badge, settings and errors, and explain that the field is omitted so the provider applies its default.
+- Keep the context button as a standalone status icon: the warning tint appears only on hover or keyboard focus, and reaching the turn cap no longer counts as a warning.
+- Match the context tooltip to the shell theme with its tokens, an anchored caret, tabular numbers and a tighter stat line.
+
+### Fixed
+
+- Count only real user turns: DSH-injected environment, skill and time messages no longer appear as recent conversation or inflate the context usage of a fresh session.
+- Keep the context button's 1px outline continuous at fractional card heights by drawing it as an SVG path instead of a CSS border.
+
+[0.1.3]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.2...v0.1.3
+
 ## [0.1.2] - 2026-11-18
 
 ### Added
@@ -256,4 +275,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.0.1]: https://github.com/surfishs/dsh-prompt-enhance/commits/v0.0.1
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.3...HEAD
