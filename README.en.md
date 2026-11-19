@@ -145,6 +145,30 @@ An empty or attachment-only draft dims the button and starts no request; raise `
 - **Sensitive conversations**: if the content must not leave the machine, turn off `contextAware` or use a local/private model route you trust.
 - **Local tier cache**: the plugin caches "which reasoning tiers does this route declare" per provider/model under `$DSH_HOME/dsh-prompt-enhance/reasoning-efforts/` (`~/.dsh/…` when `DSH_HOME` is unset), and each entry expires and is re-probed after 30 days. The cached files hold only the provider, the model and the tier metadata — no API key, draft or conversation text. Use the Refresh control in the settings page to re-probe immediately, or delete the directory.
 
+## How it works
+
+```mermaid
+flowchart LR
+    A[Composer draft] --> B{Local guards<br/>empty / attachments only / over-length / command or reference}
+    B -- refuse --> R[Result card: readable error<br/>draft untouched]
+    B -- pass --> C["POST /dsh-prompt-enhance/enhance<br/>streaming at /dsh-prompt-enhance/enhance-stream"]
+    C --> D["ctx.llm.stream<br/>calls the model on the resolved route"]
+    D --> E[Normalize: strip fences, trim whitespace<br/>refuse an empty result]
+    E --> F[Result card: docked above the composer]
+    F -- apply --> G["write back to the composer<br/>original pushed to the undo stack"]
+    F -- copy / close --> H[Draft unchanged]
+    G --> U[Undo: restore the original]
+```
+
+- **Host half**: declares the settings section, mounts `POST /dsh-prompt-enhance/enhance` (streaming at `/dsh-prompt-enhance/enhance-stream`) on the host web server, registers the `/enhance` command, and calls the model through `ctx.llm.stream`; the route resolves as the pinned `provider`/`model` pair → the session's recorded model → the harness default model.
+- **Browser half**: the composer button, the right-click quick settings card, the docked result card, the undo bar and the shortcut all live here, together with the settings mirror.
+- A click first passes **local guards**: empty, attachment-only, over-length and command-or-reference drafts are refused before any request is sent.
+- A passing draft goes to the host route, which validates again and calls the model; the browser prefers SSE and falls back to the one-shot JSON route when the host or network cannot stream.
+- The output is **normalized** (fences stripped, whitespace trimmed, an empty response refused) and shown in the **docked result card**.
+- **Apply** writes the result back and pushes the original onto the undo stack; **Undo** restores it.
+- `/enhance` runs through the command plane and never enters conversation history.
+- The right-click quick settings card only changes settings such as the reasoning tier and context awareness; it never starts an enhancement.
+
 ## Troubleshooting
 
 | Symptom | Check / fix |

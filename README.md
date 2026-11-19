@@ -145,6 +145,30 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 - **敏感会话**：如果内容不能外发，请关闭 `contextAware`，或改用你信任的本地/私有模型服务。
 - **本机档位缓存**：插件把「当前路由声明了哪些推理档位」按 provider/model 缓存在 `$DSH_HOME/dsh-prompt-enhance/reasoning-efforts/`（未设置 `DSH_HOME` 时为 `~/.dsh/…`），30 天后自动失效并重新探测。缓存文件只含 provider、model 与档位信息，不含 API key、草稿或对话内容；可在设置页点「刷新」立即重新探测，或直接删除该目录。
 
+## 工作原理
+
+```mermaid
+flowchart LR
+    A[输入框草稿] --> B{本地校验<br/>空 / 仅附件 / 超长 / 含命令或文件引用}
+    B -- 拒绝 --> R[结果卡：可读错误<br/>草稿不被改动]
+    B -- 通过 --> C["POST /dsh-prompt-enhance/enhance<br/>流式为 /dsh-prompt-enhance/enhance-stream"]
+    C --> D["ctx.llm.stream<br/>按设置解析出的路由调用模型"]
+    D --> E[归一化：去代码围栏、裁剪空白<br/>空结果拒绝]
+    E --> F[结果卡：停靠在输入框上方]
+    F -- 回填 --> G["写回输入框<br/>原文进入撤销栈"]
+    F -- 复制 / 关闭 --> H[草稿保持不变]
+    G --> U[撤销：恢复原文]
+```
+
+- **宿主端（Host half）**：声明设置项，在宿主 Web 服务挂 `POST /dsh-prompt-enhance/enhance`（流式 `/dsh-prompt-enhance/enhance-stream`），注册 `/enhance` 命令，并通过 `ctx.llm.stream` 调模型；路由按「设置里的 `provider`/`model` → 当前会话记录的模型 → harness 默认模型」解析。
+- **浏览器端（Browser half）**：输入框按钮、右键快捷设置卡、停靠结果卡、撤销条与快捷键都在这一半，它同时把设置镜像到界面。
+- 点按钮后先在**本地拦截**：空输入、仅附件、超长、含命令或文件引用的草稿直接拒绝，不发请求。
+- 通过后请求宿主路由；宿主再校验一次并调用模型，浏览器优先走 SSE，不支持时回退一次性 JSON。
+- 模型输出经**归一化**（去代码围栏、裁剪空白、空结果拒绝）后进入**停靠结果卡**。
+- **回填**把结果写回输入框，并把原文压入撤销栈；点「撤销」恢复原文。
+- `/enhance` 走命令通道，结果只出现在命令面板、不进入会话历史。
+- 右键快捷设置卡只修改推理等级、上下文感知等设置，本身不触发增强。
+
 ## 故障排查
 
 | 现象 | 检查与处理 |
