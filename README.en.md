@@ -20,7 +20,7 @@ The plugin adds a Prompt enhancement button to the composer toolbar: one click s
 
 The result appears in a card docked above the composer without covering the conversation; your draft is never replaced — apply it, copy it, regenerate it, or undo, and the original text can always be restored.
 
-With context awareness on, the plugin reads the last few turns to resolve references such as "it" or "that," so the rewrite matches what you meant; turn it off in the settings page or the right-click quick settings card at any time.
+With context awareness on, the plugin passes the last few turns to the model, helping it understand references and the task background (such as what "it" or "that" means, or premises the draft leaves out), so the rewrite matches what you meant; turn it off in the settings page or the right-click quick settings card at any time.
 
 ## Feature overview
 
