@@ -4,7 +4,7 @@
  * @module tests/quick-settings
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearCatalogCache } from '../src/client/llm-catalog'
 import { fetchReasoningCapabilities } from '../src/client/reasoning-options'
 import { menuOptionsOf, resolveQuickSettings, writeQuickContext, writeQuickEffort } from '../src/client/quick-settings'
@@ -14,6 +14,15 @@ import type { SettingsWriter } from '../src/client/settings-writer'
 vi.mock('../src/client/reasoning-options', () => ({
   fetchReasoningCapabilities: vi.fn(),
 }))
+
+beforeEach(() => {
+  // Label lookups read the host catalog; keep them off the network so a slow or
+  // filtered connection cannot stretch one case past its timeout.
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('', { status: 404 })),
+  )
+})
 
 afterEach(() => {
   vi.mocked(fetchReasoningCapabilities).mockReset()
