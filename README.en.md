@@ -14,13 +14,13 @@
 
 ## Why you need it
 
-A good prompt spells out four things: who the model acts as, what it hands over, in what format, and what counts as correct. Most drafts do not.
+A good prompt spells out four things: who the model acts as, what it hands over, in what format, and what counts as correct — most drafts say none of this.
 
-This plugin adds a Prompt enhance button to the composer; clicking it calls your harness LLM service to produce a properly structured prompt.
+The plugin adds a Prompt enhancement button to the composer toolbar: one click sends the draft to DSH's model service, which rewrites it around those four things as a structured prompt.
 
-The enhanced result appears above the composer without covering the conversation; it does not replace the original text by itself — fill it back, copy it, regenerate it, or undo it, and the original stays safe.
+The result appears in a card docked above the composer without covering the conversation; your draft is never replaced — apply it, copy it, regenerate it, or undo, and the original text can always be restored.
 
-With context awareness on, it also reads the last few turns to resolve pronouns and works out what you need on its own.
+With context awareness on, the plugin reads the last few turns to resolve references such as "it" or "that," so the rewrite matches what you meant; turn it off in the settings page or the right-click quick settings card at any time.
 
 ## Feature overview
 
