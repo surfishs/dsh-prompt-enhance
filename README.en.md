@@ -20,9 +20,9 @@ The plugin adds a Prompt enhancement button to the composer toolbar: one click s
 
 The result appears in a card docked above the composer without covering the conversation; your draft is never replaced — apply it, copy it, regenerate it, or undo, and the original text can always be restored.
 
-With context awareness on, the plugin passes the last few real turns to the model, helping it understand references and the task background (such as what "it" or "that" means, or premises the draft leaves out), so the rewrite matches what you meant. Only turns you sent and the assistant's replies are counted; environment, skill, time and other context injected by DSH are not conversation turns. Turn it off in the settings page or the right-click quick settings card at any time.
+With context awareness on, the plugin passes the recent turns you and the assistant exchanged to the model, helping it understand references and the task background (such as what "it" or "that" means, or premises the draft leaves out), so the rewrite matches what you meant. Only turns you sent and the assistant's replies are counted; environment, skill, time and other context injected by DSH are not conversation turns. Turn it off in the settings page or the right-click quick settings card at any time.
 
-> **Note**: it only reads the most recent real turns. If the draft depends on a topic that has dropped out of that window, add the needed background to the draft; otherwise the rewrite may drift from your intent.
+> **Note**: it only reads the most recent turns. If the draft depends on a topic that has dropped out of that window, add the needed background to the draft; otherwise the rewrite may drift from your intent.
 
 ## Feature overview
 
@@ -35,7 +35,7 @@ With context awareness on, the plugin passes the last few real turns to the mode
 | 🔄 **Regenerate** | Request another version from the current text; an applied enhanced draft can be regenerated too |
 | 💬 **`/enhance` command** | Rewrite any text from the slash menu; the result never enters model history |
 | 🧭 **Model routing** | A pinned `provider` + `model` pair wins; otherwise it follows the session model, then the global default |
-| 🧩 **Context aware** | With `contextAware` on, recent real turns resolve references such as "it" or "that" (DSH-injected environment/skill/time and other messages are excluded); turn it off at any time |
+| 🧩 **Context aware** | With `contextAware` on, recent turns resolve references such as "it" or "that" (DSH-injected environment/skill/time and other messages are excluded); turn it off at any time |
 | 🔑 **Zero credentials** | Calls use DSH's model service and credential store; the plugin never reads or stores keys |
 | 🛡️ **Draft safety** | Empty, attachment-only, over-length and command-or-reference drafts are blocked locally; upstream failures get a readable message and never touch the draft |
 | ⚙️ **Live settings** | Fields save automatically, common rows first and the rest under Advanced; changes apply on the next call |
@@ -134,8 +134,8 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | `foldAnimation` | `true` | Whether the card animates when it folds or expands; never animates when the system asks for reduced motion |
 | `autoFold` | `true` | Fold the card after applying and expand it again after undoing |
 | `contextAware` | `true` | Read recent conversation to resolve references; turn it off for sensitive sessions |
-| `contextMaxMessages` | `8` | Real conversation turns considered (user + assistant; DSH-injected messages excluded); `0` disables |
-| `contextMaxChars` | `4000` | Character budget of the real-turn history snippet (DSH-injected messages excluded); `0` disables |
+| `contextMaxMessages` | `8` | Conversation turns considered (only messages you sent and assistant replies; DSH-injected messages excluded); `0` disables |
+| `contextMaxChars` | `4000` | Character budget of the history snippet (DSH-injected messages excluded); `0` disables |
 | `maxConcurrent` | `2` | Concurrent enhancement limit; a new request past the limit is told to retry later |
 | `rateLimitPerMinute` | `10` | Successful enhancements per minute, counted over any rolling 60 seconds; past the limit the request is told to retry later |
 
