@@ -29,8 +29,8 @@ With context awareness on, the plugin passes the last few turns to the model, he
 | Feature | What it does |
 |---|---|
 | 🐋 **One-click enhance** | The composer toolbar button (the DeepSeek whale mark with a sparkle in its corner); the shortcut is off by default and can be set in settings |
-| 🎛️ **Right-click quick settings** | Right-click or long-press the composer button: switch the reasoning tier (pick one inside) and context awareness; the model row is read-only and shows the pinned route or "Follow session" |
-| 🖼️ **Docked result card** | Shown above the composer without covering the conversation, with the model, reasoning tier, timing and `token` usage; folds to its title and footer rows; a truncated result is flagged |
+| 🎛️ **Right-click quick settings** | Right-click or long-press the composer button: switch the reasoning tier (pick one inside) and context awareness; the model row is read-only and shows the pinned route or "Follow session"; no settings page needed |
+| 🖼️ **Docked result card** | Shown above the composer without covering the conversation, with the model, reasoning tier, timing and `token` usage; folds to its title and footer rows so long results do not fill the screen; a truncated result is flagged |
 | ↩️ **Apply, copy and undo** | Copy the result; applying folds the card to its title row by default and turns its footer button into Undo, which restores the draft and expands the card |
 | 🔄 **Regenerate** | Request another version from the current text; an applied enhanced draft can be regenerated too |
 | 💬 **`/enhance` command** | Rewrite any text from the slash menu; the result never enters model history |
@@ -140,10 +140,13 @@ An empty or attachment-only draft dims the button and starts no request; raise `
 ## Security
 
 - **Local access only**: the enhance route is served by the local DSH host; it accepts only requests from this machine (a loopback connection whose `Host` / `Origin` name the local host) and rejects external origins.
+- **Do not expose it behind a reverse proxy**: proxied external requests arrive over a loopback socket, so the `Host` / `Origin` checks no longer tell them apart; use the route directly from this machine only.
+- **Prompt-injection boundary**: the draft is framed between `<raw_prompt>` tags, and a closing tag inside it is neutralized; this lowers the risk of a tag escape, but a prompt-level boundary is **best effort, not a guarantee**.
 - **No model keys stored**: the plugin does not read or store model API keys; calls reuse the model configuration and credentials already in DSH.
 - **Context sent only when enabled**: with `contextAware` on, the most recent user/assistant text and the current draft are sent to the configured model provider (default: up to 8 messages and 4,000 characters); system messages, model reasoning, tool results and attachments are excluded. With it off, only the draft is sent.
 - **Sensitive conversations**: if the content must not leave the machine, turn off `contextAware` or use a local/private model route you trust.
 - **Local tier cache**: the plugin caches "which reasoning tiers does this route declare" per provider/model under `$DSH_HOME/dsh-prompt-enhance/reasoning-efforts/` (`~/.dsh/…` when `DSH_HOME` is unset), and each entry expires and is re-probed after 30 days. The cached files hold only the provider, the model and the tier metadata — no API key, draft or conversation text. Use the Refresh control in the settings page to re-probe immediately, or delete the directory.
+- **Caps are per process**: `maxConcurrent` and `rateLimitPerMinute` are tracked by each DSH process on its own, so multiple processes or mounts each get their own quota instead of one global limit.
 
 ## How it works
 
@@ -185,7 +188,7 @@ Five hard rules ride along:
 - **Preserve intent**: keep the user's information, without deleting, altering or contradicting it, and keep the task's scope unchanged.
 - **Never fabricate**: use only what the draft supports; when a needed detail is missing, write `(待补充：…)` / `(TBD: …)` instead of inventing one.
 - **Body only**: no explanations, preamble, comparison with the original, code fences or pleasantries.
-- **Language and length**: mirror the input language (Chinese in → Chinese out); stay at roughly 1–3× the original length without padding; a well-formed draft gets light polish only.
+- **Language and length**: mirror the input language (Chinese in → Chinese out; best effort at the prompt level, not a hard guarantee); stay at roughly 1–3× the original length without padding; a well-formed draft gets light polish only.
 - **Rewrite greetings too**: a greeting, small talk or a task-less fragment is still the draft to rewrite — describe how an assistant should respond to it, never answer it yourself.
 
 The plugin also appends an invariant contract to every call, and it **applies in both custom-strategy modes**:
@@ -231,7 +234,10 @@ npm run lint
 npm run format:check
 npm test
 npm run build
+npm run watch
 ```
+
+Tests cover input validation, output normalization, the host routes (real HTTP), the settings and quick-settings state machines, and the React components.
 
 **Architecture**
 
