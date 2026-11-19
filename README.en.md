@@ -224,6 +224,8 @@ The table is organized by what you see; parameter meanings and defaults are in C
 | Enhancement timed out or was cancelled | Over `timeoutMs`, or you pressed Cancel | Retry or raise `timeoutMs` after a timeout; a cancel leaves the draft unchanged — just run it again |
 | Authentication failure | The provider's credentials or API key are invalid | Check that provider's credentials/API key in DSH |
 | Truncated result | Reached `maxOutputTokens` | Check the truncation warning and raise `maxOutputTokens` in settings |
+| Context usage shows `8/8 turns` (default) | The `contextMaxMessages` turn cap (default 8) was reached; this is normal truncation and is not shown as a warning | Usually nothing to do; raise `contextMaxMessages` if you need older turns, though `contextMaxChars` (default 4,000 chars) may be hit first |
+| Context usage shows `4,000/4,000 chars` (default, amber) | The `contextMaxChars` limit (default 4,000) was reached, so earlier content was not sent; if the latest turn was cut, the reason says only its opening was sent | Raise `contextMaxChars`, or trim the conversation/references; more context means more input tokens and cost |
 | Message says no model is configured for the enhancement (no model route) | No pinned `provider`/`model` pair and no session model route | Set both `provider` and `model` in settings, or send a message in the current session so the plugin can follow the session model |
 | `/enhance` shows only the first line and cannot be expanded | A rendering limit of the DSH chat UI, not this plugin | Put the same text in the composer and use the enhance button; its card wraps and scrolls |
 

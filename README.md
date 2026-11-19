@@ -224,6 +224,8 @@ flowchart LR
 | 提示增强超时，或增强被取消 | 超过 `timeoutMs`，或你点了「取消」 | 超时可重试或调大 `timeoutMs`；取消不会改动原输入，重新点增强即可 |
 | 提示鉴权失败 | 对应 provider 的凭据或 API key 无效 | 检查该 provider 在 DSH 中的凭据/API key 是否有效 |
 | 结果被截断 | 达到 `maxOutputTokens` | 查看截断提示，并在设置中调高 `maxOutputTokens` |
+| 上下文用量显示 `8/8 条`（默认值） | 达到 `contextMaxMessages` 的轮次上限（默认 8）；这是正常截断，不显示警告 | 一般无需处理；需要更早的对话时调大 `contextMaxMessages`，但可能先撞上 `contextMaxChars`（默认 4,000 字） |
+| 上下文用量显示 `4,000/4,000 字`（默认值，琥珀色） | 达到 `contextMaxChars` 的字数上限（默认 4,000），较早内容未发送；最新一条被截头时原因行会写「最新一条仅发送了开头」 | 调大 `contextMaxChars`，或精简对话/减少引用；上下文越多，输入 token 和费用越高 |
 | 提示「还没确定用哪个模型」（缺模型路由） | 未固定 `provider`/`model`，且当前会话没有模型路由 | 在设置中成对填写 `provider` / `model`；或先在当前会话发一条消息，让插件跟随会话模型 |
 | `/enhance` 的结果只显示第一行、点不开 | DSH 聊天界面的渲染限制，与本插件无关 | 把同样的文本放进输入框，用增强按钮；结果卡会自动折行并可滚动 |
 
