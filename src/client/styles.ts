@@ -457,8 +457,9 @@ html[data-platform='darwin'] .dsh-pe-menu {
 }
 .dsh-pe-context:hover { background: var(--pe-hover); }
 .dsh-pe-context.is-limited {
-  border-color: #d08a3a;
+  border-color: #b45309;
   color: #b45309;
+  background: rgba(180, 83, 9, 0.1);
 }
 .dsh-pe-context-icon {
   display: block;
@@ -476,18 +477,42 @@ html[data-platform='darwin'] .dsh-pe-menu {
   box-sizing: border-box;
   width: max-content;
   max-width: min(340px, calc(100vw - 40px));
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: #2f2f2f;
-  color: #ffffff;
-  font-size: 12px;
-  line-height: 18px;
+  padding: 6px 10px;
+  border-radius: var(--dsw-radius-sm, 6px);
+  background: var(--dsw-alias-tooltip-bg, #2f2f2f);
+  color: var(--dsw-alias-tooltip-label, #ffffff);
+  font-size: 13px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
   white-space: normal;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
   pointer-events: none;
+  animation: dsh-pe-context-tip-in 140ms ease-out;
 }
-/* The stats line is one unit: a wrap that leaves "（68%）" alone reads as a
-   layout bug. The reason line may wrap freely. */
+/* The bubble needs an anchor: it floats above the icon and would otherwise
+   read as disconnected from the footer. */
+.dsh-pe-context-tip::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  bottom: -5px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--dsw-alias-tooltip-bg, #2f2f2f);
+}
+@keyframes dsh-pe-context-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dsh-pe-context-tip { animation: none; }
+}
+/* The stats line is one unit: a wrap that leaves the percentage alone reads
+   as a layout bug. The reason line may wrap freely. */
 .dsh-pe-context-tip .dsh-pe-context-stats { white-space: nowrap; }
 .dsh-pe-context-tip .dsh-pe-context-reason { color: #f2c185; }
 /* Narrow viewports: the card itself is close to the viewport width, so the
