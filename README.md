@@ -222,6 +222,8 @@ flowchart LR
 
 ## 开发
 
+**常用命令**
+
 ```bash
 npm install
 npm run typecheck

@@ -222,6 +222,8 @@ The table is organized by what you see; parameter meanings and defaults are in C
 
 ## Development
 
+**Common commands**
+
 ```bash
 npm install
 npm run typecheck
