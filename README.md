@@ -47,6 +47,8 @@
 | DSH | `>= 0.1.1-rc.2 < 0.3.0`，已在 `0.2.2-rc.3` 验证 |
 | Node（仅从源码构建时需要） | `^22.19.0 \|\| >=24.0.0` |
 
+超出该范围的 DSH 版本未经验证，可能无法加载或工作异常。
+
 ## 安装
 
 安装前请先确认包名：npm 上的 `dsh-prompt-enhance`（无 scope）是上游原项目，本插件是它的重写版，包名是 `@surfishs/dsh-prompt-enhance`。安装时请使用本仓库 `surfishs/dsh-prompt-enhance`。**不要**执行 `dsh plugin add dsh-prompt-enhance`。

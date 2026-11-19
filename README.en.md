@@ -47,6 +47,8 @@ With context awareness on, the plugin passes the last few turns to the model, he
 | DSH | `>= 0.1.1-rc.2 < 0.3.0`, verified on `0.2.2-rc.3` |
 | Node (needed only for source builds) | `^22.19.0 \|\| >=24.0.0` |
 
+DSH versions outside this range are untested; the plugin may fail to load or misbehave.
+
 ## Install
 
 Before installing, confirm the package name. `dsh-prompt-enhance` on npm (no scope) is the upstream project; this plugin is a rewrite of it, and its package name is `@surfishs/dsh-prompt-enhance`. Install from this repository (`surfishs/dsh-prompt-enhance`). **Do not** run `dsh plugin add dsh-prompt-enhance`.
