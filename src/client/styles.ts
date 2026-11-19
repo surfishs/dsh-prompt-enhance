@@ -429,6 +429,78 @@ html[data-platform='darwin'] .dsh-pe-menu {
   border-top: 1px solid var(--pe-separator);
 }
 .dsh-pe-foot .dsh-pe-grow { flex: 1; }
+
+/* The context-usage button sits at the quiet end of the footer, opposite the
+   actions. Its tooltip opens upward into the card body, so no portal is needed
+   and the card's own overflow clipping stays out of the way. */
+.dsh-pe-context-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.dsh-pe-context {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--pe-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #8a8a8a);
+  font-size: 12px;
+  font-weight: 600;
+  font-style: italic;
+  font-family: Georgia, 'Times New Roman', serif;
+  cursor: default;
+}
+.dsh-pe-context:hover { background: var(--pe-hover); }
+.dsh-pe-context.is-limited {
+  border-color: #d08a3a;
+  color: #b45309;
+}
+.dsh-pe-context-icon {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+.dsh-pe-context-tip {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 40px));
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #2f2f2f;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: normal;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+/* The stats line is one unit: a wrap that leaves "（68%）" alone reads as a
+   layout bug. The reason line may wrap freely. */
+.dsh-pe-context-tip .dsh-pe-context-stats { white-space: nowrap; }
+.dsh-pe-context-tip .dsh-pe-context-reason { color: #f2c185; }
+/* Narrow viewports: the card itself is close to the viewport width, so the
+   fixed tooltip width would clip. Give it a viewport-relative cap and let the
+   stats line wrap instead of overflowing. */
+@media (max-width: 560px) {
+  .dsh-pe-context-tip {
+    min-width: 0;
+    width: 230px;
+    max-width: calc(100vw - 40px);
+  }
+  .dsh-pe-context-tip .dsh-pe-context-stats { white-space: normal; }
+}
 .dsh-pe-btn-action {
   box-sizing: border-box;
   display: inline-flex;

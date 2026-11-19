@@ -10,9 +10,9 @@ import type { Context } from '@deepseek-ai/cordis'
 import { randomUUID } from 'node:crypto'
 import { effectiveSystemPrompt, type Config } from './config'
 import { DEFAULT_SYSTEM_PROMPT, withContextRules } from './prompts'
-import { buildConversationContext } from './context'
+import { buildConversationContextWithUsage } from './context'
 import { EnhanceFailure, enhanceText, resolveRoute, toEnhanceError, type RoutePair } from './enhancer'
-import type { EnhanceResult } from './shared/protocol'
+import type { ContextUsage, EnhanceResult } from './shared/protocol'
 import { countText } from './shared/validate'
 import type { LlmResolvedModelInfo } from '@deepseek-ai/dsh-llm'
 import { readCachedCapabilities, writeCachedCapabilities } from './reasoning-cache'
@@ -180,6 +180,22 @@ export function defaultRouteOf(ctx: Context): RoutePair | undefined {
  * @returns the framed snippet, or undefined to run unconstrained.
  */
 export function conversationContextOf(ctx: Context, sessionId: string | undefined, config: Config, draft: string): string | undefined {
+  return conversationContextWithUsage(ctx, sessionId, config, draft)?.text
+}
+
+/**
+ * The conversation-context snippet plus its usage numbers, or nothing at all.
+ *
+ * Same fail-open rules as {@link conversationContextOf}; the only addition is
+ * the {@link ContextUsage} the result card displays. Callers that only need
+ * the text keep using the wrapper above.
+ * @param ctx - registrant context (optional `sessions`).
+ * @param sessionId - the session the draft belongs to, when known.
+ * @param config - the resolved config (switch + window).
+ * @param draft - the raw draft being enhanced.
+ * @returns the framed snippet and its usage, or undefined.
+ */
+export function conversationContextWithUsage(ctx: Context, sessionId: string | undefined, config: Config, draft: string): { text: string; usage: ContextUsage } | undefined {
   if (!config.contextAware) return undefined
   if (sessionId === undefined || sessionId === '') return undefined
   const session = serviceEntry(ctx, 'sessions', sessionId) as ReturnType<SessionsFace['get']> | undefined
@@ -193,7 +209,7 @@ export function conversationContextOf(ctx: Context, sessionId: string | undefine
     // A session-layer hiccup must not turn one enhance request into a 502.
     return undefined
   }
-  return buildConversationContext(messages, { maxMessages: config.contextMaxMessages, maxChars: config.contextMaxChars }, draft)
+  return buildConversationContextWithUsage(messages, { maxMessages: config.contextMaxMessages, maxChars: config.contextMaxChars }, draft)
 }
 
 /** One orchestration request. */
@@ -287,7 +303,8 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
     if (llm === undefined) {
       throw new EnhanceFailure({ code: 'internal' })
     }
-    const context = options.context !== undefined ? options.context : conversationContextOf(ctx, options.sessionId, config, options.text)
+    const derivedContext = options.context === undefined ? conversationContextWithUsage(ctx, options.sessionId, config, options.text) : undefined
+    const context = options.context !== undefined ? options.context : derivedContext?.text
     const effort = await effectiveReasoningEffort(llm, route.provider, route.model, config.reasoningEffort)
     const result = await enhanceText(llm, {
       route,
@@ -305,7 +322,9 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
       ...(options.sessionId !== undefined ? { sessionId: options.sessionId } : {}),
     })
     console.info(`[dsh-prompt-enhance] ${requestId} in=${countText(options.text)} out=${countText(result.text)} ctx=${context === undefined ? 0 : 1} ${result.elapsedMs}ms ok`)
-    return result
+    // The card reports what the context window actually held; a caller that
+    // supplied its own snippet has no usage to report, so the field stays out.
+    return derivedContext === undefined ? result : { ...result, context: derivedContext.usage }
   } catch (error) {
     const wire = toEnhanceError(error)
     console.info(`[dsh-prompt-enhance] ${requestId} in=${countText(options.text)} error=${wire.code} ${Date.now() - started}ms`)

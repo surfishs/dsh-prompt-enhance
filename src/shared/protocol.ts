@@ -65,6 +65,24 @@ export interface EnhanceUsage {
 }
 
 /** One successful enhancement. */
+/** How much conversation history one enhancement actually sent. */
+export interface ContextUsage {
+  /** Turns admitted into the snippet. */
+  usedTurns: number
+  /** Configured turn cap (`contextMaxMessages`). */
+  maxTurns: number
+  /** Unicode code points admitted (turn text only, matching the context budget). */
+  usedChars: number
+  /** Configured character cap (`contextMaxChars`). */
+  maxChars: number
+  /** Qualifying turns that did not fit. */
+  droppedTurns: number
+  /** Which cap stopped the selection; null when everything qualified fit. */
+  limitedBy: 'turns' | 'chars' | null
+  /** True when the newest turn was cut to its head and marked as truncated. */
+  cutTurn: boolean
+}
+
 export interface EnhanceResult {
   /** The rewritten prompt body (already normalized: no fences, trimmed). */
   text: string
@@ -84,6 +102,8 @@ export interface EnhanceResult {
    * field, so the UI must treat it as optional.
    */
   reasoningEffort?: string
+  /** Conversation-history usage of this call; absent when no context was sent. */
+  context?: ContextUsage
 }
 
 /**

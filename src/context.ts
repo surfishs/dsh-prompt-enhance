@@ -14,6 +14,7 @@
  */
 
 import { countText } from './shared/validate'
+import type { ContextUsage } from './shared/protocol'
 
 /** One turn of conversation history admitted into the context window. */
 export interface ContextTurn {
@@ -35,6 +36,25 @@ export interface ContextWindowOptions {
 interface HistoryMessageLike {
   role?: unknown
   content?: unknown
+  source?: unknown
+}
+
+/**
+ * Whether a user-role message was injected by the harness rather than typed
+ * by the user. DSH represents environment, skill and time context as
+ * `user/message` events whose `source.kind` is not `user` (e.g.
+ * `runtime-context`, `skill-catalog`, `time-context`); they are visible to the
+ * model but not to the user, so they must not spend the conversation-context
+ * budget or show up as "your recent turns".
+ * @param message - one derived history message (untrusted).
+ * @returns true for non-user producer kinds; false when the source is absent
+ *   (older hosts) or is the user's own message.
+ */
+function isInjectedUserContext(message: HistoryMessageLike): boolean {
+  const source = message.source
+  if (source === null || typeof source !== 'object') return false
+  const kind = (source as { kind?: unknown }).kind
+  return typeof kind === 'string' && kind !== 'user'
 }
 
 /** Marker appended to a turn that was cut to fit the character budget. */
@@ -82,6 +102,14 @@ function turnTextOf(message: HistoryMessageLike): string {
   return parts.join('\n')
 }
 
+/** One selection plus the usage numbers the result card reports. */
+export interface ContextSelection {
+  /** Admitted turns, chronological. */
+  turns: ContextTurn[]
+  /** How much of the configured window was used, and why it stopped. */
+  usage: ContextUsage
+}
+
 /**
  * Pick the turns that fit the configured window, newest last.
  *
@@ -95,15 +123,34 @@ function turnTextOf(message: HistoryMessageLike): string {
  * @returns the admitted turns in chronological order; empty when none fit.
  */
 export function selectTurns(messages: readonly unknown[], options: ContextWindowOptions, draft?: string): ContextTurn[] {
+  return selectTurnsWithUsage(messages, options, draft).turns
+}
+
+/**
+ * The same selection as {@link selectTurns}, plus what the result card shows.
+ *
+ * `usedChars` counts the admitted turn text only — the same gauge the budget
+ * spends — so the reported fraction always matches the configured cap.
+ * @param messages - the session's derived history (untrusted).
+ * @param options - the configured window.
+ * @param draft - the raw draft being enhanced.
+ * @returns the admitted turns and their usage.
+ */
+export function selectTurnsWithUsage(messages: readonly unknown[], options: ContextWindowOptions, draft?: string): ContextSelection {
   const maxMessages = Number.isInteger(options.maxMessages) ? Math.max(0, options.maxMessages) : 0
   const maxChars = Number.isInteger(options.maxChars) ? Math.max(0, options.maxChars) : 0
-  if (maxMessages === 0 || maxChars === 0) return []
+  const empty = (): ContextSelection => ({
+    turns: [],
+    usage: { usedTurns: 0, maxTurns: maxMessages, usedChars: 0, maxChars, droppedTurns: 0, limitedBy: null, cutTurn: false },
+  })
+  if (maxMessages === 0 || maxChars === 0) return empty()
 
   const turns: ContextTurn[] = []
   for (const message of messages) {
     if (message === null || typeof message !== 'object') continue
     const record = message as HistoryMessageLike
     if (record.role !== 'user' && record.role !== 'assistant') continue
+    if (record.role === 'user' && isInjectedUserContext(record)) continue
     const text = turnTextOf(record)
     if (text === '') continue
     turns.push({ role: record.role, text })
@@ -125,9 +172,13 @@ export function selectTurns(messages: readonly unknown[], options: ContextWindow
     }
   }
 
+  const total = turns.length
   const windowed = turns.slice(-maxMessages)
+  const droppedByMessages = total - windowed.length
   const kept: ContextTurn[] = []
   let used = 0
+  let limitedBy: ContextUsage['limitedBy'] = null
+  let cutTurn = false
   for (let index = windowed.length - 1; index >= 0; index--) {
     const turn = windowed[index]!
     // Same gauge as `shared/validate.countText`, the input cap, and the host
@@ -141,14 +192,31 @@ export function selectTurns(messages: readonly unknown[], options: ContextWindow
       // marked as cut. The head is what names the task, the stack, and the
       // constraints the draft is shorthand for.
       if (kept.length === 0 && room > TRUNCATION_MARK.length + 40) {
-        kept.unshift({ role: turn.role, text: `${cutToCodePoints(turn.text, room - TRUNCATION_MARK.length).trimEnd()}${TRUNCATION_MARK}` })
+        const cut = `${cutToCodePoints(turn.text, room - TRUNCATION_MARK.length).trimEnd()}${TRUNCATION_MARK}`
+        kept.unshift({ role: turn.role, text: cut })
+        cutTurn = true
+      } else {
+        limitedBy = 'chars'
       }
       break
     }
     used += length
     kept.unshift(turn)
   }
-  return kept
+  if (!cutTurn && limitedBy === null && droppedByMessages > 0) limitedBy = 'turns'
+  const usedChars = kept.reduce((sum, turn) => sum + countText(turn.text), 0)
+  return {
+    turns: kept,
+    usage: {
+      usedTurns: kept.length,
+      maxTurns: maxMessages,
+      usedChars,
+      maxChars,
+      droppedTurns: total - kept.length,
+      limitedBy,
+      cutTurn,
+    },
+  }
 }
 
 /**
@@ -180,9 +248,21 @@ export function formatContextBlock(turns: readonly ContextTurn[]): string {
  * @returns the framed snippet, or `undefined` when there is no usable history
  *   — the caller then runs the original single-prompt enhancement.
  */
-export function buildConversationContext(messages: readonly unknown[] | undefined, options: ContextWindowOptions, draft?: string): string | undefined {
+export function buildConversationContextWithUsage(messages: readonly unknown[] | undefined, options: ContextWindowOptions, draft?: string): { text: string; usage: ContextUsage } | undefined {
   if (messages === undefined) return undefined
-  const turns = selectTurns(messages, options, draft)
-  if (turns.length === 0) return undefined
-  return formatContextBlock(turns)
+  const selection = selectTurnsWithUsage(messages, options, draft)
+  if (selection.turns.length === 0) return undefined
+  return { text: formatContextBlock(selection.turns), usage: selection.usage }
+}
+
+/**
+ * Build the grounding snippet for one enhancement, or nothing at all.
+ * @param messages - the session's derived history (untrusted, may be undefined).
+ * @param options - the configured window.
+ * @param draft - the raw draft being enhanced.
+ * @returns the framed snippet, or `undefined` when there is no usable history
+ *   — the caller then runs the original single-prompt enhancement.
+ */
+export function buildConversationContext(messages: readonly unknown[] | undefined, options: ContextWindowOptions, draft?: string): string | undefined {
+  return buildConversationContextWithUsage(messages, options, draft)?.text
 }

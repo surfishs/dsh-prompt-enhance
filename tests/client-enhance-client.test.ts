@@ -139,3 +139,29 @@ describe('result narrowing keeps the reported reasoning effort', () => {
     expect(result.reasoningEffort).toBeUndefined()
   })
 })
+
+describe('result narrowing keeps the context usage', () => {
+  const CONTEXT_USAGE = { usedTurns: 3, maxTurns: 8, usedChars: 3140, maxChars: 4000, droppedTurns: 5, limitedBy: 'chars' as const, cutTurn: false }
+  const CONTEXT_VALUE = { ...ONESHOT_OK.value, context: CONTEXT_USAGE }
+  const jsonResponse = (envelope: unknown): Response => new Response(JSON.stringify(envelope), { status: 200, headers: { 'content-type': 'application/json' } })
+
+  it('carries the usage onto the one-shot result', async () => {
+    stubFetch(() => jsonResponse({ ok: true, value: CONTEXT_VALUE }))
+    const result = await requestEnhance({ text: '写个爬虫' })
+    expect(result.context).toEqual(CONTEXT_USAGE)
+  })
+
+  it('carries it through the streamed done frame too', async () => {
+    const frame = `event: done\ndata: ${JSON.stringify({ type: 'done', value: CONTEXT_VALUE })}\n\n`
+    stubFetch(() => new Response(frame, { status: 200, headers: { 'content-type': 'text/event-stream' } }))
+    const result = await requestEnhanceStream({ text: '写个爬虫' }, { onDelta: (): void => {} })
+    expect(result.context).toEqual(CONTEXT_USAGE)
+  })
+
+  it('drops a malformed usage block instead of showing a broken tooltip', async () => {
+    const malformed = { ...CONTEXT_VALUE, context: { ...CONTEXT_USAGE, usedChars: 'many' } }
+    stubFetch(() => jsonResponse({ ok: true, value: malformed }))
+    const result = await requestEnhance({ text: '写个爬虫' })
+    expect(result.context).toBeUndefined()
+  })
+})

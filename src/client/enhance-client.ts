@@ -11,6 +11,7 @@ import {
   type EnhanceError,
   type EnhanceErrorCode,
   type EnhanceRequestBody,
+  type ContextUsage,
   type EnhanceResult,
   type EnhanceStreamEvent,
   type EnhanceUsage,
@@ -82,6 +83,41 @@ function parseUsage(value: unknown): EnhanceUsage | undefined {
 }
 
 /** Strictly narrow one success value; anything malformed is a client-visible error. */
+/**
+ * Validate the optional context-usage block the host sends with a result.
+ *
+ * The panel relies on the numbers being integers (malformed fractions would
+ * format oddly) and on `limitedBy` being one of the two caps; anything else
+ * is treated as "no usage" rather than surfacing a broken tooltip.
+ * @param value - the untrusted wire value.
+ * @returns the usage, or undefined when absent/malformed.
+ */
+function parseContextUsage(value: unknown): ContextUsage | undefined {
+  const record = value as Partial<ContextUsage> | null
+  if (record === null || typeof record !== 'object') return undefined
+  const integer = (field: unknown): field is number => typeof field === 'number' && Number.isInteger(field) && field >= 0
+  if (
+    !integer(record.usedTurns) ||
+    !integer(record.maxTurns) ||
+    !integer(record.usedChars) ||
+    !integer(record.maxChars) ||
+    !integer(record.droppedTurns) ||
+    (record.limitedBy !== null && record.limitedBy !== 'turns' && record.limitedBy !== 'chars') ||
+    typeof record.cutTurn !== 'boolean'
+  ) {
+    return undefined
+  }
+  return {
+    usedTurns: record.usedTurns,
+    maxTurns: record.maxTurns,
+    usedChars: record.usedChars,
+    maxChars: record.maxChars,
+    droppedTurns: record.droppedTurns,
+    limitedBy: record.limitedBy,
+    cutTurn: record.cutTurn,
+  }
+}
+
 function parseResult(value: unknown): EnhanceResult {
   const record = value as Partial<EnhanceResult> | null
   if (
@@ -97,6 +133,7 @@ function parseResult(value: unknown): EnhanceResult {
     Number.isFinite(record.elapsedMs)
   ) {
     const usage = parseUsage((record as { usage?: unknown }).usage)
+    const context = parseContextUsage((record as { context?: unknown }).context)
     return {
       text: record.text,
       provider: record.provider,
@@ -113,6 +150,7 @@ function parseResult(value: unknown): EnhanceResult {
       // drops anything not listed here, so a new result field has to be added
       // in this exact place or the UI silently never sees it.
       ...(typeof record.reasoningEffort === 'string' ? { reasoningEffort: record.reasoningEffort } : {}),
+      ...(context === undefined ? {} : { context }),
     }
   }
   throw new EnhanceClientError({ code: 'internal', params: { reason: 'malformed' } })

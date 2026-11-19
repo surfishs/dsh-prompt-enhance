@@ -8,7 +8,7 @@
 
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
-import type { EnhanceError, EnhanceUsage, ClientFailureReason } from '../shared/protocol'
+import type { ContextUsage, EnhanceError, EnhanceUsage, ClientFailureReason } from '../shared/protocol'
 import type { PromptEnhanceKey } from './locales'
 import type { PanelState } from './ui-state'
 import { ChevronIcon, CopyIcon, FillIcon, RegenerateIcon, UndoIcon, XIcon } from './ActionIcons'
@@ -177,6 +177,62 @@ function totalTokensOf(usage: EnhanceUsage): number {
   return usage.totalTokens ?? usage.inputTokens + usage.outputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0)
 }
 
+/**
+ * Footer info button: the call's context usage, on hover/focus (and a tap on
+ * touch devices, where there is no hover). The card has no room for this in
+ * its header, and the footer keeps the action row intact.
+ * @param props - the usage numbers and the locale seat.
+ * @returns the info button and its tooltip.
+ */
+function ContextUsageInfo(props: { usage?: ContextUsage; t: TranslateNS<'dsh-prompt-enhance'> }): ReactNode {
+  const { usage, t } = props
+  const [open, setOpen] = useState(false)
+  const limited = usage !== undefined && (usage.cutTurn || usage.limitedBy !== null)
+  const percent = usage !== undefined && usage.maxChars > 0 ? Math.round((usage.usedChars / usage.maxChars) * 100) : 0
+  const stats =
+    usage === undefined
+      ? t('panel.contextUnused')
+      : t('panel.contextStats', {
+          turns: usage.usedTurns,
+          maxTurns: usage.maxTurns,
+          chars: formatTokens(usage.usedChars),
+          maxChars: formatTokens(usage.maxChars),
+          percent,
+        })
+  const reason =
+    usage === undefined ? '' : usage.cutTurn ? t('panel.contextCut') : usage.limitedBy === 'chars' ? t('panel.contextCharsLimited') : usage.limitedBy === 'turns' ? t('panel.contextTurnsLimited') : ''
+  return (
+    <span className="dsh-pe-context-wrap">
+      <button
+        type="button"
+        className={`dsh-pe-context${limited ? ' is-limited' : ''}`}
+        aria-label={t('panel.contextUsage')}
+        aria-expanded={open}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onClick={() => setOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setOpen(false)
+        }}
+      >
+        <svg className="dsh-pe-context-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" strokeWidth="1.4" />
+          <circle cx="8" cy="4.8" r="0.95" fill="currentColor" />
+          <path d="M8 7.3v4.1" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      </button>
+      {open && (
+        <span role="tooltip" className="dsh-pe-context-tip">
+          <span className="dsh-pe-context-stats">{stats}</span>
+          {reason !== '' && <span className="dsh-pe-context-reason">{reason}</span>}
+        </span>
+      )}
+    </span>
+  )
+}
+
 /** One enhancement result card. */
 export function ResultPanel(props: ResultPanelProps): ReactNode {
   const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, regenerated = false, collapsed = false, onToggleCollapsed, foldAnimation = true } = props
@@ -338,6 +394,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
       </div>
 
       <footer className="dsh-pe-foot">
+        {state.phase === 'result' && <ContextUsageInfo usage={state.result?.context} t={t} />}
         <span className="dsh-pe-grow" />
         {state.phase === 'result' && (
           <button type="button" className="dsh-pe-btn-action plain dsh-pe-btn-floor" onClick={onRegenerate} disabled={onRegenerate === undefined}>

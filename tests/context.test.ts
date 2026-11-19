@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { buildConversationContext, formatContextBlock, selectTurns } from '../src/context'
+import { buildConversationContext, buildConversationContextWithUsage, formatContextBlock, selectTurns, selectTurnsWithUsage } from '../src/context'
 
 /** One derived history message; `null` blocks stand in for non-text content. */
 function turn(role: string, ...blocks: (string | null)[]): unknown {
@@ -28,6 +28,29 @@ describe('selectTurns', () => {
   it('ignores system turns, tool blocks, and textless messages', () => {
     const turns = selectTurns([turn('system', 'you are a helper'), turn('user', null), turn('user', '   '), turn('assistant', 'real answer')], WINDOW)
     expect(turns).toEqual([{ role: 'assistant', text: 'real answer' }])
+  })
+
+  it('ignores harness-injected user context messages', () => {
+    // DSH publishes environment/skill/time context as user-role messages with a
+    // non-user source; the transcript never shows them, so they must not count
+    // as the user's recent turns (a fresh session used to report 3/8 turns and
+    // ~4,000 chars before the user typed anything but "你好").
+    const sourced = (text: string, kind: string): unknown => ({ role: 'user', content: [{ type: 'text', text }], source: { kind } })
+    const messages = [
+      sourced('runtime context', 'runtime-context'),
+      sourced('skills catalog', 'skill-catalog'),
+      sourced('time context', 'time-context'),
+      sourced('你好', 'user'),
+      { role: 'assistant', content: [{ type: 'text', text: '你好！' }] },
+    ]
+    const { turns, usage } = selectTurnsWithUsage(messages, WINDOW)
+    expect(turns.map((each) => `${each.role}:${each.text}`)).toEqual(['user:你好', 'assistant:你好！'])
+    expect(usage).toMatchObject({ usedTurns: 2, usedChars: 5, droppedTurns: 0 })
+  })
+
+  it('keeps a user message whose host did not stamp a source', () => {
+    const { turns } = selectTurnsWithUsage([turn('user', '旧版宿主')], WINDOW)
+    expect(turns.map((each) => each.text)).toEqual(['旧版宿主'])
   })
 
   it('never lets the draft be its own context', () => {
@@ -62,6 +85,49 @@ describe('selectTurns', () => {
   it('joins multiple text blocks of one turn', () => {
     const turns = selectTurns([turn('user', 'first', 'second')], WINDOW)
     expect(turns[0]!.text).toBe('first\nsecond')
+  })
+})
+
+describe('selectTurnsWithUsage', () => {
+  it('reports the admitted turns and their code points', () => {
+    const { turns, usage } = selectTurnsWithUsage([turn('user', 'abc'), turn('assistant', 'de')], WINDOW)
+    expect(turns.map((each) => each.text)).toEqual(['abc', 'de'])
+    expect(usage).toEqual({ usedTurns: 2, maxTurns: 8, usedChars: 5, maxChars: 4000, droppedTurns: 0, limitedBy: null, cutTurn: false })
+  })
+
+  it('attributes a dropped window to the message cap', () => {
+    const messages = [turn('user', 'one'), turn('assistant', 'two'), turn('user', 'three'), turn('assistant', 'four')]
+    const { usage } = selectTurnsWithUsage(messages, { ...WINDOW, maxMessages: 2 })
+    expect(usage.usedTurns).toBe(2)
+    expect(usage.droppedTurns).toBe(2)
+    expect(usage.limitedBy).toBe('turns')
+  })
+
+  it('attributes a cut window to the character cap', () => {
+    const messages = [turn('user', 'aaaa'), turn('assistant', 'bbbb'), turn('user', 'cccc')]
+    const { turns, usage } = selectTurnsWithUsage(messages, { maxMessages: 8, maxChars: 9 })
+    expect(turns.map((each) => each.text)).toEqual(['bbbb', 'cccc'])
+    expect(usage).toMatchObject({ usedTurns: 2, usedChars: 8, maxChars: 9, droppedTurns: 1, limitedBy: 'chars', cutTurn: false })
+  })
+
+  it('marks a newest-turn head cut without reporting a cap breach', () => {
+    const long = 'x'.repeat(500)
+    const { turns, usage } = selectTurnsWithUsage([turn('user', long)], { maxMessages: 8, maxChars: 120 })
+    expect(turns).toHaveLength(1)
+    expect(usage).toMatchObject({ usedTurns: 1, maxChars: 120, cutTurn: true, limitedBy: null })
+    expect(usage.usedChars).toBeLessThanOrEqual(120)
+  })
+
+  it('counts the draft removal so the card does not overstate the window', () => {
+    const { usage } = selectTurnsWithUsage([turn('user', '旧草稿'), turn('assistant', '答复')], WINDOW, '  旧草稿  ')
+    expect(usage.usedTurns).toBe(1)
+    expect(usage.droppedTurns).toBe(0)
+  })
+
+  it('carries usage alongside the framed snippet', () => {
+    const built = buildConversationContextWithUsage([turn('user', '用 Rust 重写')], WINDOW)
+    expect(built?.text).toContain('[user] 用 Rust 重写')
+    expect(built?.usage.usedChars).toBe('用 Rust 重写'.length)
   })
 })
 

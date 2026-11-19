@@ -12,7 +12,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { EnhanceError, EnhanceResult } from '../src/shared/protocol'
 import { en, zh, type PromptEnhanceKey } from '../src/client/locales'
@@ -101,6 +101,49 @@ describe('ResultPanel upstream error copy', () => {
     const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
     expect(container.textContent).toContain('增强后的正文')
     expect(container.textContent).toContain('1.2s')
+  })
+
+  it('shows the context usage behind the footer info button', () => {
+    const result: EnhanceResult = {
+      text: '增强后的正文',
+      provider: 'p',
+      model: 'm',
+      elapsedMs: 1234,
+      context: { usedTurns: 3, maxTurns: 8, usedChars: 3140, maxChars: 4000, droppedTurns: 5, limitedBy: null, cutTurn: false },
+    }
+    const state: PanelState = { sessionId: 's1', phase: 'result', original: '旧原文', result }
+    const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
+    const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
+    expect(button).not.toBeNull()
+    fireEvent.focus(button)
+    expect(container.textContent).toContain('3/8')
+    expect(container.textContent).toContain('79%')
+  })
+
+  it('shows the info button even when no context was used', () => {
+    const result: EnhanceResult = { text: '增强后的正文', provider: 'p', model: 'm', elapsedMs: 1234 }
+    const state: PanelState = { sessionId: 's1', phase: 'result', original: '旧原文', result }
+    const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
+    const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
+    expect(button).not.toBeNull()
+    fireEvent.focus(button)
+    expect(container.textContent).toContain(zh['panel.contextUnused'])
+  })
+
+  it('marks the info button when the context window was cut', () => {
+    const result: EnhanceResult = {
+      text: '增强后的正文',
+      provider: 'p',
+      model: 'm',
+      elapsedMs: 1234,
+      context: { usedTurns: 8, maxTurns: 8, usedChars: 4000, maxChars: 4000, droppedTurns: 2, limitedBy: 'chars', cutTurn: false },
+    }
+    const state: PanelState = { sessionId: 's1', phase: 'result', original: '旧原文', result }
+    const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
+    const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
+    expect(button.classList.contains('is-limited')).toBe(true)
+    fireEvent.focus(button)
+    expect(container.textContent).toContain(zh['panel.contextCharsLimited'])
   })
 
   it('warns when the host reports a token-capped rewrite', () => {
