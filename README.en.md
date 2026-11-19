@@ -231,7 +231,7 @@ npm test
 npm run build
 ```
 
-### Architecture
+**Architecture**
 
 ```text
 src/

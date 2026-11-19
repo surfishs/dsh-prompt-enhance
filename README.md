@@ -231,7 +231,7 @@ npm test
 npm run build
 ```
 
-### 架构
+**架构**
 
 ```text
 src/
