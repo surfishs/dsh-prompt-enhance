@@ -112,7 +112,7 @@ An empty or attachment-only draft dims the button and makes it unclickable; over
 
 `/enhance <text>`: rewrite any text from the slash menu; the result is copyable and never enters model history.
 
-The ⓘ in the result-card footer reports the conversation turns and characters this enhancement actually referenced, e.g. `3/8 turns · 3,140/4,000 chars · 79%`: the 8 comes from `contextMaxMessages` and the percentage is measured against `contextMaxChars`. DSH-injected environment, skill, time and other messages are not counted.
+The ⓘ in the result-card footer reports the conversation turns and characters this enhancement actually referenced, e.g. `3/8 turns · 3,140/4,000 chars (79%)`: the 8 comes from `contextMaxMessages` and the percentage is measured against `contextMaxChars`. DSH-injected environment, skill, time and other messages are not counted.
 
 ## Configuration
 
