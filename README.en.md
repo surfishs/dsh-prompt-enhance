@@ -147,11 +147,11 @@ An empty or attachment-only draft dims the button and starts no request; raise `
 
 | Symptom | Check / fix |
 |---|---|
-| No enhance button in the toolbar | Confirm `enabled` is `true`; restart DSH (desktop app or `dsh web`) after installing; confirm the active profile. |
+| No enhance button in the toolbar | Confirm `enabled` is `true`; restart DSH (desktop app or `dsh web`) after installing the plugin; confirm the active profile. |
 | Button is greyed out | The composer is empty or has attachments only; type text to enable it. |
 | Truncated result | Check the truncation warning and raise `maxOutputTokens` in settings. |
 | "No model is configured for the enhancement" | Set both `provider` and `model` in settings, or send a message in the current session so the plugin can follow the session route. |
-| Authentication failure | Check the provider credentials/API key configured in DSH. |
+| Authentication failure | Check that the provider's credentials/API key in DSH are valid. |
 | `/enhance` shows only the first line and cannot be expanded | A rendering limit of the DSH chat UI, not this plugin: as of `@deepseek-ai/dsh-client-ui-chat` 0.2.2-rc.3, only results containing a newline get an expand control, so a single-line result is ellipsized with no way to open it. To read the whole result, put the same text in the composer and use the enhance button — the button's card wraps and scrolls. |
 
 ## Development
