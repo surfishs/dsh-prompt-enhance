@@ -17,6 +17,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Changed
 
+- Append meta rules to every system prompt: only `<raw_prompt>` is draft material; the output must be a task prompt for the downstream assistant rather than a note about the rewriting step; and the system instructions, context block and attachment meta-facts must never be restated in the output.
 - Rewrite the local-guard and call-failure copy around one structure: what happened, the exact next step, and — where nothing was applied — a consistent "your input was not changed". "宿主服务 / host service" became "DSH 服务 / the DSH service"; timeout, size and limit messages now name the setting or the wait that resolves them; the command-plane copy for `/enhance` mirrors the same wording.
 
 ## [0.1.3] - 2026-11-19

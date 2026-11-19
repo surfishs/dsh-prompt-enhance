@@ -9,7 +9,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { randomUUID } from 'node:crypto'
 import { effectiveSystemPrompt, type Config } from './config'
-import { DEFAULT_SYSTEM_PROMPT, withAttachmentRules, withContextRules } from './prompts'
+import { DEFAULT_SYSTEM_PROMPT, withAttachmentRules, withContextRules, withMetaRules } from './prompts'
 import { buildConversationContextWithUsage } from './context'
 import { EnhanceFailure, enhanceText, resolveRoute, toEnhanceError, type RoutePair } from './enhancer'
 import type { ContextUsage, EnhanceResult } from './shared/protocol'
@@ -311,11 +311,13 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
     // for direct callers, and zero must leave the prompt byte-identical.
     const attachmentCount = options.attachments !== undefined && Number.isSafeInteger(options.attachments.count) && options.attachments.count > 0 ? options.attachments.count : 0
     const effort = await effectiveReasoningEffort(llm, route.provider, route.model, config.reasoningEffort)
-    // The context rules ride along ONLY when there is context to reason
-    // about, and the attachment rules ONLY when the draft carries attachments,
-    // so a call without either keeps byte-identical instructions.
+    // The context rules ride along ONLY when there is context to reason about,
+    // and the attachment rules ONLY when the draft carries attachments. The
+    // meta rules are appended to every call, last, so "these instructions"
+    // covers whatever came before them.
     const baseSystem = effectiveSystemPrompt(config, context === undefined ? DEFAULT_SYSTEM_PROMPT : withContextRules(DEFAULT_SYSTEM_PROMPT))
-    const system = attachmentCount > 0 ? withAttachmentRules(baseSystem) : baseSystem
+    const withAttachments = attachmentCount > 0 ? withAttachmentRules(baseSystem) : baseSystem
+    const system = withMetaRules(withAttachments)
     const result = await enhanceText(llm, {
       route,
       system,

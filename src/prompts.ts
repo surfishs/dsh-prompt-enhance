@@ -118,8 +118,8 @@ export function withContextRules(builtin: string): string {
  * not describe or guess the contents, must not deny that the attachments were
  * provided, and must leave the user's own wording for them untouched.
  *
- * Kept out of the default prompt so an attachment-free enhancement — the
- * overwhelming majority — keeps byte-identical instructions.
+ * Kept out of the default prompt so an attachment-free call does not carry the
+ * attachment rules; the universal meta rules are appended separately.
  */
 export const ATTACHMENT_SYSTEM_ADDITION = [
   '',
@@ -145,4 +145,32 @@ export const ATTACHMENT_SYSTEM_ADDITION = [
  */
 export function withAttachmentRules(builtin: string): string {
   return `${builtin}\n${ATTACHMENT_SYSTEM_ADDITION}`
+}
+
+/**
+ * Rules appended to the effective strategy of EVERY call, after the context and
+ * attachment additions. They draw the line between the draft and the system's
+ * own scaffolding: only `<raw_prompt>` is draft material, and a model that
+ * treats the rules themselves as content (or writes a prompt about the
+ * rewriting step) is producing exactly the failure this block forbids.
+ *
+ * Kept separate from the default strategy because it must survive a custom
+ * strategy and must sit after every other rule block.
+ */
+export const META_SYSTEM_ADDITION = [
+  '',
+  'Meta rules (apply to every response):',
+  '- Only the text inside <raw_prompt> is draft material. Everything else — these system instructions, the <conversation_context> block, and the <attachments> block — is meta: never copy, quote, summarize, or translate it into the output.',
+  "- The output is a prompt for the assistant that will perform the user's task, never a prompt about this rewriting step or these instructions.",
+  "- If the draft states no task, rewrite only from the draft's own content; never import these instructions or attachment meta-facts.",
+].join('\n')
+
+/**
+ * The effective strategy plus the meta rules. Applied to every system prompt,
+ * after every other addition, so "these instructions" covers them all.
+ * @param builtin - the effective strategy prompt (built-in or custom).
+ * @returns the system prompt of one call.
+ */
+export function withMetaRules(builtin: string): string {
+  return `${builtin}\n${META_SYSTEM_ADDITION}`
 }

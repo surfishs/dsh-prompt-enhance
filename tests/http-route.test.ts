@@ -331,6 +331,10 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
       const { status } = await call(announced, 'POST', JSON.stringify({ text: '把这张图整理成提示词', attachments: { count: 2 } }))
       expect(status).toBe(200)
       expect(captured[0]?.system).toContain('Attachment rules')
+      expect(captured[0]?.system).toContain('Meta rules')
+      // The meta rules are appended last, so "these instructions" covers the
+      // attachment rules that came before them.
+      expect((captured[0]?.system ?? '').indexOf('Meta rules')).toBeGreaterThan((captured[0]?.system ?? '').indexOf('Attachment rules'))
       const blocks = captured[0]?.messages[0]?.content ?? []
       // Metadata only: the call still carries exactly one text block, never
       // image or file parts.
@@ -341,6 +345,26 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
       expect(text.indexOf('<attachments')).toBeLessThan(text.indexOf('<raw_prompt>\n'))
     } finally {
       await new Promise<void>((resolve) => announced.close(() => resolve()))
+    }
+  })
+
+  it('appends the meta rules to an attachment-free system prompt', async () => {
+    const captured: GenerateOptions[] = []
+    const capturingLlm = {
+      stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+        captured.push(options)
+        return streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])
+      },
+    } as never
+    const plain = mount(capturingLlm)
+    await new Promise<void>((resolve) => plain.listen(0, '127.0.0.1', resolve))
+    try {
+      const { status } = await call(plain, 'POST', JSON.stringify({ text: '写个脚本' }))
+      expect(status).toBe(200)
+      expect(captured[0]?.system).toContain('Meta rules')
+      expect(captured[0]?.system).not.toContain('Attachment rules')
+    } finally {
+      await new Promise<void>((resolve) => plain.close(() => resolve()))
     }
   })
 
