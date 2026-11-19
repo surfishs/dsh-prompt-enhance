@@ -317,6 +317,41 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     expect(json).toMatchObject({ ok: false, error: { code: 'rejected' } })
   })
 
+  it('announces the attachment count in the prompt without sending contents', async () => {
+    const captured: GenerateOptions[] = []
+    const capturingLlm = {
+      stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+        captured.push(options)
+        return streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])
+      },
+    } as never
+    const announced = mount(capturingLlm)
+    await new Promise<void>((resolve) => announced.listen(0, '127.0.0.1', resolve))
+    try {
+      const { status } = await call(announced, 'POST', JSON.stringify({ text: '把这张图整理成提示词', attachments: { count: 2 } }))
+      expect(status).toBe(200)
+      expect(captured[0]?.system).toContain('Attachment rules')
+      const blocks = captured[0]?.messages[0]?.content ?? []
+      // Metadata only: the call still carries exactly one text block, never
+      // image or file parts.
+      expect(blocks).toHaveLength(1)
+      const block = blocks[0]
+      const text = block?.type === 'text' ? block.text : ''
+      expect(text).toContain('<attachments count="2" content="not-included" />')
+      expect(text.indexOf('<attachments')).toBeLessThan(text.indexOf('<raw_prompt>\n'))
+    } finally {
+      await new Promise<void>((resolve) => announced.close(() => resolve()))
+    }
+  })
+
+  it('rejects a malformed attachment count with 422', async () => {
+    for (const attachments of [{ count: -1 }, { count: 1.5 }, { count: 101 }, { count: '1' }, { count: null }, '1', [], null]) {
+      const { status, json } = await call(server, 'POST', JSON.stringify({ text: '写', attachments }))
+      expect(status).toBe(422)
+      expect(json).toMatchObject({ ok: false, error: { code: 'rejected' } })
+    }
+  })
+
   it('rejects a GET with 405', async () => {
     const { status, json } = await call(server, 'GET')
     expect(status).toBe(405)

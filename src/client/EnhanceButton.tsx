@@ -64,6 +64,17 @@ function occurrenceCountOf(value: unknown): number {
 }
 
 /**
+ * Read the composer's attachment count. Only the count is forwarded into the
+ * prompt — the contents are never sent — and a host without the field counts
+ * as zero, the same defensive shape as the other optional input fields.
+ * @param value - the untrusted field.
+ * @returns the array length, or 0 when absent/not an array.
+ */
+function attachmentCountOf(value: unknown): number {
+  return Array.isArray(value) ? value.length : 0
+}
+
+/**
  * Read a field that downstream code requires to be a string. `draft` drives
  * `checkInputText`, which iterates the text — an absent field would throw on
  * click instead of on render, but it is the same class of brittleness against
@@ -85,6 +96,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   const draft = useInput((state: InputState) => stringOf((state as { draft?: unknown }).draft))
   const phase = useInput((state: InputState) => (state as { phase?: unknown }).phase)
   const occurrenceCount = useInput((state: InputState) => occurrenceCountOf((state as { occurrences?: unknown }).occurrences))
+  const attachmentCount = useInput((state: InputState) => attachmentCountOf((state as { attachmentIds?: unknown }).attachmentIds))
   const settings = useSyncExternalStore(subscribeClientSettings, getClientSettings)
   const panel = useSyncExternalStore(ui.subscribe, ui.getPanel)
   const rootRef = useRef<HTMLButtonElement | null>(null)
@@ -362,7 +374,10 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         return
       }
       const controller = new AbortController()
-      ui.openLoading({ sessionId: uiKey, original: source, abort: () => controller.abort() })
+      // Snapshot the count at request time: the result card reports what the
+      // call announced, not what the composer holds later.
+      const attachments = attachmentCount > 0 ? { attachments: { count: attachmentCount } } : {}
+      ui.openLoading({ sessionId: uiKey, original: source, abort: () => controller.abort(), ...attachments })
       const settle = (result: Parameters<typeof ui.settleResult>[1]): void => ui.settleResult(uiKey, result)
       const fail = (error: unknown): void => {
         const detail: EnhanceError = error instanceof EnhanceClientError ? error.detail : { code: 'internal', message: error instanceof Error ? error.message : String(error) }
@@ -373,7 +388,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       // the transport cannot stream.
       if (settings.streaming) {
         requestEnhanceStream(
-          { sessionId: wireId, text: source },
+          { sessionId: wireId, text: source, ...attachments },
           {
             signal: controller.signal,
             onDelta: (delta: string): void => ui.appendDelta(uiKey, delta),
@@ -381,9 +396,9 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         ).then(settle, fail)
         return
       }
-      requestEnhance({ sessionId: wireId, text: source }, controller.signal).then(settle, fail)
+      requestEnhance({ sessionId: wireId, text: source, ...attachments }, controller.signal).then(settle, fail)
     },
-    [anyBusy, draft, occurrenceCount, phase, settings, uiKey, wireId, t],
+    [anyBusy, draft, occurrenceCount, attachmentCount, phase, settings, uiKey, wireId, t],
   )
 
   // The session registry holds a stable identity; run always dispatches to

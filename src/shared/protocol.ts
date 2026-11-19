@@ -41,6 +41,12 @@ export interface EnhanceRequestBody {
   sessionId?: string
   /** The raw draft text to rewrite. */
   text: string
+  /**
+   * Draft attachments the prompt only *announces*: the count is forwarded into
+   * the prompt, their contents are never sent. Absent or zero keeps the request
+   * byte-identical to one without attachments.
+   */
+  attachments?: { readonly count: number }
 }
 
 /**

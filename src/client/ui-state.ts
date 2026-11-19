@@ -17,6 +17,11 @@ export interface PanelState {
   readonly phase: 'loading' | 'result' | 'error'
   /** The draft as it was when the request started (never mutated). */
   readonly original: string
+  /**
+   * Draft attachments the request announced to the model. Count only — the
+   * contents are never sent — and a snapshot of the request-time composer.
+   */
+  readonly attachments?: { readonly count: number }
   readonly result?: EnhanceResult
   readonly error?: EnhanceError
   /** True while the card body is collapsed: the header and the footer stay, the body hides. */
@@ -164,7 +169,13 @@ export function openLoading(state: Omit<PanelState, 'phase' | 'result' | 'error'
 /** Settle the open panel with a result. Ignored when the panel moved on. */
 export function settleResult(sessionId: string, result: EnhanceResult): void {
   if (panelState?.sessionId !== sessionId || panelState.phase !== 'loading') return
-  panelState = { sessionId, phase: 'result', original: panelState.original, result }
+  panelState = {
+    sessionId,
+    phase: 'result',
+    original: panelState.original,
+    result,
+    ...(panelState.attachments === undefined ? {} : { attachments: panelState.attachments }),
+  }
   notify()
 }
 

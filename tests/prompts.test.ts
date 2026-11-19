@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SYSTEM_PROMPT, INVARIANT_CONTRACT, frameUserPrompt } from '../src/prompts'
+import { ATTACHMENT_SYSTEM_ADDITION, DEFAULT_SYSTEM_PROMPT, INVARIANT_CONTRACT, frameUserPrompt, withAttachmentRules } from '../src/prompts'
 
 describe('frameUserPrompt', () => {
   it('frames the draft between raw_prompt tags and states the data contract', () => {
@@ -43,5 +43,36 @@ describe('DEFAULT_SYSTEM_PROMPT', () => {
     // for non-task input the model fell back to chat mode.
     expect(DEFAULT_SYSTEM_PROMPT).toContain('greeting, small talk')
     expect(INVARIANT_CONTRACT).toContain('greeting, fragment')
+  })
+})
+
+describe('attachment notice', () => {
+  it('announces the count before the raw prompt and outside its tags', () => {
+    const framed = frameUserPrompt('帮我写个爬虫', undefined, 2)
+    expect(framed).toContain('<attachments count="2" content="not-included" />')
+    expect(framed.indexOf('<attachments')).toBeLessThan(framed.indexOf('<raw_prompt>\n'))
+    // The block is metadata the model must not repeat: it sits outside the
+    // rewrite target, exactly like the conversation context does.
+    expect(framed.indexOf('</raw_prompt>')).toBeGreaterThan(framed.indexOf('<attachments'))
+  })
+
+  it('keeps the prompt byte-identical for zero or absent counts', () => {
+    expect(frameUserPrompt('文本', undefined, 0)).toBe(frameUserPrompt('文本'))
+    expect(frameUserPrompt('文本', undefined, undefined)).toBe(frameUserPrompt('文本'))
+  })
+
+  it('places the attachments block after the conversation context', () => {
+    const context = '<conversation_context>\n用户: 上面那个\n</conversation_context>'
+    const framed = frameUserPrompt('文本', context, 1)
+    expect(framed.indexOf('<conversation_context>')).toBeLessThan(framed.indexOf('<attachments'))
+    expect(framed.indexOf('<attachments')).toBeLessThan(framed.indexOf('<raw_prompt>\n'))
+  })
+
+  it('appends the attachment rules only through withAttachmentRules', () => {
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain('Attachment rules')
+    expect(withAttachmentRules('SYS')).toContain('Attachment rules')
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('never claim that the user provided no attachment')
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('overrides the general placeholder guidance')
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('Do not infer attachment contents from the conversation context.')
   })
 })

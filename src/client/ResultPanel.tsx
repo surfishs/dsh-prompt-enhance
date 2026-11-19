@@ -184,8 +184,8 @@ function totalTokensOf(usage: EnhanceUsage): number {
  * @param props - the usage numbers and the locale seat.
  * @returns the info button and its tooltip.
  */
-function ContextUsageInfo(props: { usage?: ContextUsage; t: TranslateNS<'dsh-prompt-enhance'> }): ReactNode {
-  const { usage, t } = props
+function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: number }; t: TranslateNS<'dsh-prompt-enhance'> }): ReactNode {
+  const { usage, attachments, t } = props
   const [open, setOpen] = useState(false)
   // Reaching the turn cap is the normal shape of the window, not a warning;
   // only a character squeeze or a cut turn needs the amber treatment.
@@ -227,6 +227,7 @@ function ContextUsageInfo(props: { usage?: ContextUsage; t: TranslateNS<'dsh-pro
         <span role="tooltip" className="dsh-pe-context-tip">
           <span className="dsh-pe-context-stats">{stats}</span>
           {reason !== '' && <span className="dsh-pe-context-reason">{reason}</span>}
+          {attachments !== undefined && attachments.count > 0 && <span className="dsh-pe-context-attachments">{t('panel.attachmentsCount', { count: attachments.count })}</span>}
         </span>
       )}
     </span>
@@ -394,7 +395,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
       </div>
 
       <footer className="dsh-pe-foot">
-        {state.phase === 'result' && <ContextUsageInfo usage={state.result?.context} t={t} />}
+        {state.phase === 'result' && <ContextUsageInfo usage={state.result?.context} attachments={state.attachments} t={t} />}
         <span className="dsh-pe-grow" />
         {state.phase === 'result' && (
           <button type="button" className="dsh-pe-btn-action plain dsh-pe-btn-floor" onClick={onRegenerate} disabled={onRegenerate === undefined}>

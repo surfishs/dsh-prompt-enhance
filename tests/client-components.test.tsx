@@ -267,6 +267,52 @@ describe('EnhanceButton guard chain', () => {
   })
 })
 
+describe('attachment notice', () => {
+  afterEach(cleanup)
+
+  it('forwards the request-time attachment count', async () => {
+    const input = makeFakeInput({ draft: '旧原文', attachmentIds: ['a1' as never, 'a2' as never] })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    expect(await screen.findByText('增强文本')).toBeTruthy()
+    expect(requestEnhance).toHaveBeenCalledWith({ sessionId: 's1', text: '旧原文', attachments: { count: 2 } }, expect.anything())
+  })
+
+  it('leaves the request body untouched without attachments', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    expect(await screen.findByText('增强文本')).toBeTruthy()
+    expect(requestEnhance).toHaveBeenCalledWith({ sessionId: 's1', text: '旧原文' }, expect.anything())
+  })
+
+  it('reports the request-time count in the context tooltip', async () => {
+    const input = makeFakeInput({ draft: '旧原文', attachmentIds: ['a1' as never] })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    expect(await screen.findByText('增强文本')).toBeTruthy()
+    fireEvent.click(screen.getByLabelText(zh['panel.contextUsage']))
+    expect(screen.getByText(zh['panel.attachmentsCount'].replace('{count}', '1'))).toBeTruthy()
+  })
+
+  it('omits the line when the draft carries no attachment', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    expect(await screen.findByText('增强文本')).toBeTruthy()
+    fireEvent.click(screen.getByLabelText(zh['panel.contextUsage']))
+    expect(document.querySelector('.dsh-pe-context-attachments')).toBeNull()
+  })
+})
+
 describe('enhance → apply → undo loop', () => {
   afterEach(cleanup)
 

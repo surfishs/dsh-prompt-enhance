@@ -9,7 +9,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { randomUUID } from 'node:crypto'
 import { effectiveSystemPrompt, type Config } from './config'
-import { DEFAULT_SYSTEM_PROMPT, withContextRules } from './prompts'
+import { DEFAULT_SYSTEM_PROMPT, withAttachmentRules, withContextRules } from './prompts'
 import { buildConversationContextWithUsage } from './context'
 import { EnhanceFailure, enhanceText, resolveRoute, toEnhanceError, type RoutePair } from './enhancer'
 import type { ContextUsage, EnhanceResult } from './shared/protocol'
@@ -224,6 +224,8 @@ export interface RunEnhanceOptions {
   sessionId?: string
   /** Pre-built context snippet; when absent it is derived from the session. */
   context?: string
+  /** Draft attachments the prompt only announces; their contents are never sent. */
+  attachments?: { readonly count: number }
   /** Receives each text delta for incremental display (display only; may be async). */
   onDelta?: (delta: string) => void | Promise<void>
 }
@@ -305,12 +307,18 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
     }
     const derivedContext = options.context === undefined ? conversationContextWithUsage(ctx, options.sessionId, config, options.text) : undefined
     const context = options.context !== undefined ? options.context : derivedContext?.text
+    // Count only: the route validates the wire shape, but this stays defensive
+    // for direct callers, and zero must leave the prompt byte-identical.
+    const attachmentCount = options.attachments !== undefined && Number.isSafeInteger(options.attachments.count) && options.attachments.count > 0 ? options.attachments.count : 0
     const effort = await effectiveReasoningEffort(llm, route.provider, route.model, config.reasoningEffort)
+    // The context rules ride along ONLY when there is context to reason
+    // about, and the attachment rules ONLY when the draft carries attachments,
+    // so a call without either keeps byte-identical instructions.
+    const baseSystem = effectiveSystemPrompt(config, context === undefined ? DEFAULT_SYSTEM_PROMPT : withContextRules(DEFAULT_SYSTEM_PROMPT))
+    const system = attachmentCount > 0 ? withAttachmentRules(baseSystem) : baseSystem
     const result = await enhanceText(llm, {
       route,
-      // The context rules ride along ONLY when there is context to reason
-      // about, so a context-free call keeps byte-identical instructions.
-      system: effectiveSystemPrompt(config, context === undefined ? DEFAULT_SYSTEM_PROMPT : withContextRules(DEFAULT_SYSTEM_PROMPT)),
+      system,
       text: options.text,
       temperature: config.temperature,
       reasoningEffort: effort,
@@ -318,6 +326,7 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
       timeoutMs: config.timeoutMs,
       signal: options.signal,
       ...(context !== undefined ? { context } : {}),
+      ...(attachmentCount > 0 ? { attachmentCount } : {}),
       ...(options.onDelta !== undefined ? { onDelta: options.onDelta } : {}),
       ...(options.sessionId !== undefined ? { sessionId: options.sessionId } : {}),
     })

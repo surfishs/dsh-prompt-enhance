@@ -5,6 +5,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- Tell the enhancement model that the draft carries attachments: the request forwards the composer's attachment count, the prompt announces it in an `<attachments>` block with rules against describing, guessing or inferring the contents, and the result card's context tooltip reports the count. Attachment contents are never sent.
+
 ### Fixed
 
 - Name the real reason a command-chip draft is refused: `claimed` (a `/plan`-style command waiting for its arguments) now says command blocks are unsupported, instead of the misleading "busy (submitting)" copy. Adjudicating/submitting/sending keep the busy message.

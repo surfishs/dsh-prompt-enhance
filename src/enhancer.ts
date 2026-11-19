@@ -116,6 +116,8 @@ export interface EnhanceCallOptions {
   sessionId?: string
   /** The framed conversation-context snippet, when the call carries one. */
   context?: string
+  /** Draft attachment count the prompt only announces; contents are never sent. */
+  attachmentCount?: number
   /**
    * Receives each text delta as the model produces it (display only). May be
    * async — the streaming route's sink awaits socket backpressure, and this
@@ -172,7 +174,7 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
     const BlockAssemblerClass = runtime.BlockAssembler
     const messages = [
       createMessage({
-        content: [{ type: 'text', text: frameUserPrompt(options.text, options.context) }],
+        content: [{ type: 'text', text: frameUserPrompt(options.text, options.context, options.attachmentCount) }],
         source: { kind: 'dsh-prompt-enhance' },
       }),
     ]

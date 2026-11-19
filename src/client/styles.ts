@@ -524,6 +524,8 @@ html[data-platform='darwin'] .dsh-pe-menu {
    as a layout bug. The reason line may wrap freely. */
 .dsh-pe-context-tip .dsh-pe-context-stats { white-space: nowrap; }
 .dsh-pe-context-tip .dsh-pe-context-reason { color: #f2c185; }
+/* Attachment count is metadata, not a warning: same tooltip body color. */
+.dsh-pe-context-tip .dsh-pe-context-attachments { white-space: nowrap; }
 /* Narrow viewports: the card itself is close to the viewport width, so the
    fixed tooltip width would clip. Give it a viewport-relative cap and let the
    stats line wrap instead of overflowing. */

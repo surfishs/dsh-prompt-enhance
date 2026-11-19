@@ -99,6 +99,15 @@ describe('enhanceText', () => {
     expect(llm.calls[0]?.messages[0]?.content[0]).toMatchObject({ type: 'text' })
   })
 
+  it('announces the attachment count in the framed user message', async () => {
+    const llm = stubLlm(() => textStream(['ok'], { reason: 'stop' }))
+    await enhanceText(llm, { ...baseOptions, attachmentCount: 3 })
+    const block = llm.calls[0]?.messages[0]?.content[0]
+    const text = block?.type === 'text' ? block.text : ''
+    expect(text).toContain('<attachments count="3" content="not-included" />')
+    expect(text.indexOf('<attachments')).toBeLessThan(text.indexOf('<raw_prompt>\n'))
+  })
+
   // Cost regression: omitting the field makes the adapter apply the model's own
   // default effort, which measured ~11x the output tokens of `off` on
   // deepseek-flash for the same draft. The effort must reach the call.

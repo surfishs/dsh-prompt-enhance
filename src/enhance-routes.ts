@@ -27,6 +27,25 @@ import { serveCatalog } from './catalog-route'
 const bodyCapOf = (maxInputChars: number): number => maxInputChars * 6 + 4096
 
 /**
+ * Sanity bound on the announced attachment count. This is not a product limit
+ * (the composer decides what may be added); it only keeps a malformed or
+ * hostile body from writing an absurd number into the prompt.
+ */
+const MAX_ATTACHMENT_COUNT = 100
+
+/**
+ * Validate the optional `attachments` field of one request body.
+ * @param value - the untrusted field.
+ * @returns the count (0 for absent), or undefined when the shape is invalid.
+ */
+function attachmentCountOf(value: unknown): number | undefined {
+  if (value === undefined) return 0
+  if (value === null || typeof value !== 'object') return undefined
+  const count = (value as { count?: unknown }).count
+  return typeof count === 'number' && Number.isSafeInteger(count) && count >= 0 && count <= MAX_ATTACHMENT_COUNT ? count : undefined
+}
+
+/**
  * Serve one enhance POST against the request envelope.
  * @param ctx - registrant context (llm, optional sessions/settings).
  * @param readConfig - per-request config reader.
@@ -108,9 +127,17 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     })
     return
   }
-  const record = body as { sessionId?: unknown; text?: unknown } | null
+  const record = body as { sessionId?: unknown; text?: unknown; attachments?: unknown } | null
   if (record === null || typeof record !== 'object' || typeof record.text !== 'string') {
-    writeJson(res, 422, { ok: false, error: { code: 'rejected', message: '请求体必须是 { sessionId?, text } JSON。' } })
+    writeJson(res, 422, { ok: false, error: { code: 'rejected', message: '请求体必须是 { sessionId?, text, attachments? } JSON。' } })
+    return
+  }
+  // The attachment count is metadata the browser snapshots from the composer:
+  // it is forwarded into the prompt (never the contents), so it must be a
+  // bounded integer before it can reach the model.
+  const attachmentCount = attachmentCountOf(record.attachments)
+  if (attachmentCount === undefined) {
+    writeJson(res, 422, { ok: false, error: { code: 'rejected', message: 'attachments 必须是 { count: 0–100 的整数 }。' } })
     return
   }
   // The session id arrives from the request body and is used as-is for the route
@@ -161,6 +188,7 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
       sessionRoute: sessionRouteOf(ctx, sessionId),
       signal: callerAbort.signal,
       ...(sessionId !== undefined ? { sessionId } : {}),
+      ...(attachmentCount > 0 ? { attachments: { count: attachmentCount } } : {}),
     }
     if (stream) {
       // The stream already opens before the model call, so the client sees
