@@ -57,4 +57,4 @@ Only the repository owner does this; a fork needs none of it — publishing requ
 1. Bump `version` in `package.json` and add the matching `CHANGELOG.md` entry. This project follows Semantic Versioning, so the major/minor/patch choice describes what actually changed.
 2. Run `npm run build`. `lib/client.js` inlines the version, so the committed artifacts must be regenerated; commit them together with the manifest.
 3. Push the branch, then tag the release commit `v<version>` and push the tag. The publish workflow rejects a tag that does not match `package.json`, and a matching tag publishes the npm package (with provenance) on its own.
-4. Create the GitHub Release afterwards from your own machine: `gh release create <tag> --verify-tag --notes-file <notes>`.
+4. Once the tag's publish workflow has passed, create the GitHub Release from your own machine with the notes you confirmed before tagging: `gh release create <tag> --verify-tag --notes-file <notes>`. Registry propagation can lag and is checked separately; do not wait for it before creating the Release.
