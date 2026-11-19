@@ -47,13 +47,13 @@ With context awareness on, the plugin reads the last few turns to resolve refere
 
 ## Install
 
-Check the package name first. `dsh-prompt-enhance` on npm (no scope) is the upstream project and this plugin is a rewrite of it; this plugin is `@surfishs/dsh-prompt-enhance`. Install from this repository (`surfishs/dsh-prompt-enhance`). **Do not** run `dsh plugin add dsh-prompt-enhance`.
+Before installing, confirm the package name. `dsh-prompt-enhance` on npm (no scope) is the upstream project; this plugin is a rewrite of it, and its package name is `@surfishs/dsh-prompt-enhance`. Install from this repository (`surfishs/dsh-prompt-enhance`). **Do not** run `dsh plugin add dsh-prompt-enhance`.
 
 The DSH desktop app and the web build use the same package and the same install steps; only the profile name differs — usually `desktop` for the app and `web` for the web build. Replace `<profile>` in the commands below with your profile name.
 
 ### Let an agent install it
 
-No command line needed. Send the block below to an agent that can run commands on your machine (DSH desktop or web):
+No command line needed. Send the block below to an agent that can run commands on your machine (DSH desktop or web build):
 
 ```text
 Install the DeepSeek Harness plugin @surfishs/dsh-prompt-enhance.
@@ -72,7 +72,7 @@ dsh plugin --profile <profile> add @surfishs/dsh-prompt-enhance
 # restart dsh
 ```
 
-From GitHub (the built `lib/` is committed, so no local build happens):
+From GitHub (the built `lib/` is committed, so no local build is needed):
 
 ```bash
 dsh plugin --profile <profile> add github:surfishs/dsh-prompt-enhance
