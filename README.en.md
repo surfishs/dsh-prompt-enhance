@@ -14,7 +14,7 @@
 
 ## Why you need it
 
-A prompt is rarely the hard part; shaping it for a model to execute is: the role (who the assistant plays), the deliverable (what it must hand over), the output format (structure, language, length, style), and the acceptance criteria (how to tell the result is right).
+A good prompt spells out four things: who the model acts as, what it hands over, in what format, and what counts as correct. Most drafts do not.
 
 This plugin adds a Prompt enhance button to the composer; clicking it calls your harness LLM service to produce a properly structured prompt.
 
