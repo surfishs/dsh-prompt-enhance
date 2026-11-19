@@ -196,14 +196,21 @@ With no custom strategy, the default behavior is "keep the draft's intent, inven
 
 ## Troubleshooting
 
-| Symptom | Check / fix |
-|---|---|
-| No enhance button in the toolbar | Confirm `enabled` is `true`; restart DSH (desktop app or `dsh web`) after installing the plugin; confirm the active profile. |
-| Button is greyed out | The composer is empty or has attachments only; type text to enable it. |
-| Truncated result | Check the truncation warning and raise `maxOutputTokens` in settings. |
-| "No model is configured for the enhancement" | Set both `provider` and `model` in settings, or send a message in the current session so the plugin can follow the session route. |
-| Authentication failure | Check that the provider's credentials/API key in DSH are valid. |
-| `/enhance` shows only the first line and cannot be expanded | A rendering limit of the DSH chat UI, not this plugin: as of `@deepseek-ai/dsh-client-ui-chat` 0.2.2-rc.3, only results containing a newline get an expand control, so a single-line result is ellipsized with no way to open it. To read the whole result, put the same text in the composer and use the enhance button — the button's card wraps and scrolls. |
+The table is organized by what you see; parameter meanings and defaults are in Configuration.
+
+| Symptom | Likely cause | What to do |
+|---|---|---|
+| No enhance button in the toolbar | `enabled` is off, the plugin is not active, or DSH was not restarted | Confirm `enabled` is `true`; restart DSH (desktop app or `dsh web`) after installing the plugin; confirm the active profile |
+| Button is greyed out | The composer is empty or has attachments only | Type text to enable it |
+| Message says the draft is too long | Over `maxInputChars` | Shorten the draft, or raise `maxInputChars` in settings |
+| Message says the draft contains commands or references | The draft carries `/commands` or `@references`, which fill-back would destroy | Use plain text and try again |
+| Message says N enhancements are already running | The `maxConcurrent` cap is full | Wait for one to finish; multiple sessions enhancing at once also counts |
+| Message says at most N enhancements per minute | The `rateLimitPerMinute` cap is reached | Wait as the message says, or raise the cap in settings |
+| Enhancement timed out or was cancelled | Over `timeoutMs`, or you pressed Cancel | Retry or raise `timeoutMs` after a timeout; a cancel leaves the draft unchanged — just run it again |
+| Authentication failure | The provider's credentials or API key are invalid | Check that provider's credentials/API key in DSH |
+| Truncated result | Reached `maxOutputTokens` | Check the truncation warning and raise `maxOutputTokens` in settings |
+| Message says no model is configured for the enhancement (no model route) | No pinned `provider`/`model` pair and no session model route | Set both `provider` and `model` in settings, or send a message in the current session so the plugin can follow the session model |
+| `/enhance` shows only the first line and cannot be expanded | A rendering limit of the DSH chat UI, not this plugin | Put the same text in the composer and use the enhance button; its card wraps and scrolls |
 
 ## Development
 
