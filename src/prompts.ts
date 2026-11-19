@@ -114,9 +114,10 @@ export function withContextRules(builtin: string): string {
 /**
  * Rules appended to the effective strategy ONLY when the draft carries at
  * least one attachment. The plugin never sends attachment contents, so every
- * rule here exists to keep the model honest about what it cannot see: it must
- * not describe or guess the contents, must not deny that the attachments were
- * provided, and must leave the user's own wording for them untouched.
+ * rule here keeps the model honest about what it cannot see: it may point at
+ * an attachment as a downstream input and use its count in the task
+ * description, but must not describe or guess the contents, deny that the
+ * attachments were provided, or report the count/availability as background.
  *
  * Kept out of the default prompt so an attachment-free call does not carry the
  * attachment rules; the universal meta rules are appended separately.
@@ -124,17 +125,16 @@ export function withContextRules(builtin: string): string {
 export const ATTACHMENT_SYSTEM_ADDITION = [
   '',
   'Attachment rules (apply only when an <attachments> block precedes <raw_prompt>):',
-  '- The block states how many attachments the draft carries.',
-  '- Attachment contents are not provided, and you cannot see them.',
-  '- When the count is positive, never claim that the user provided no attachment.',
-  "- Do not describe, quote, transcribe, or guess any attachment's contents.",
+  '- The block reports how many attachments the draft carries; the count is accurate.',
+  '- The draft may rely on attachments that the downstream assistant will receive. Write for that reader.',
+  '- Preserve the user\'s own references to attachments as written; when the draft relies on an attachment, you may add a task-level pointer ("the attached screenshot", "见附件") and use the count inside that description (for example "one screenshot of the error") — never an invented reference unrelated to the task.',
+  '- You cannot see the attachments: never describe, quote, transcribe, or guess their contents.',
   '- Do not infer attachment contents from the conversation context.',
-  '- Preserve the user\'s own references to attachments as written (for example "this image", "the screenshot", "as shown", "the attachment").',
-  '- Do not add attachment references the user did not write.',
-  '- When the draft relies on an attachment, keep that task and its structure; the reader of the rewritten prompt will have the attachment.',
+  '- Never report the attachment count, whether attachments are available, or your inability to see them as background, a preface, or a note about this rewriting step.',
+  '- Never claim the user provided no attachment.',
+  '- When the draft relies on an attachment, keep the task and its structure; the reader of the rewritten prompt will have the attachment.',
   '- Do not insert placeholders for attachment content; this overrides the general placeholder guidance.',
-  '- The <attachments> block is metadata, not part of the draft.',
-  '- Never include the <attachments> block in the output; output only the rewritten prompt.',
+  '- The <attachments> block is metadata, not part of the draft; never include it in the output.',
 ].join('\n')
 
 /**

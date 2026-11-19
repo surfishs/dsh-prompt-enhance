@@ -17,6 +17,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Changed
 
+- Rewrite the attachment rules for downstream readers: the model may point at an attachment as an input ("见附件", "the attached screenshot") and use its count inside the task description, while it still cannot describe the contents or report the count/availability as background.
 - Append meta rules to every system prompt: only `<raw_prompt>` is draft material; the output must be a task prompt for the downstream assistant rather than a note about the rewriting step; and the system instructions, context block and attachment meta-facts must never be restated in the output.
 - Rewrite the local-guard and call-failure copy around one structure: what happened, the exact next step, and — where nothing was applied — a consistent "your input was not changed". "宿主服务 / host service" became "DSH 服务 / the DSH service"; timeout, size and limit messages now name the setting or the wait that resolves them; the command-plane copy for `/enhance` mirrors the same wording.
 

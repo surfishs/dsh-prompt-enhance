@@ -71,9 +71,21 @@ describe('attachment notice', () => {
   it('appends the attachment rules only through withAttachmentRules', () => {
     expect(DEFAULT_SYSTEM_PROMPT).not.toContain('Attachment rules')
     expect(withAttachmentRules('SYS')).toContain('Attachment rules')
-    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('never claim that the user provided no attachment')
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('Never claim the user provided no attachment.')
     expect(ATTACHMENT_SYSTEM_ADDITION).toContain('overrides the general placeholder guidance')
     expect(ATTACHMENT_SYSTEM_ADDITION).toContain('Do not infer attachment contents from the conversation context.')
+  })
+
+  it('lets the model point at an attachment and use its count in the task description', () => {
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('you may add a task-level pointer')
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('use the count inside that description')
+    // The old blanket ban on new reference wording is gone: a task-level
+    // pointer is exactly what the expected output ("见附件") needs.
+    expect(ATTACHMENT_SYSTEM_ADDITION).not.toContain('Do not add attachment references')
+  })
+
+  it('forbids reporting the count as background instead of task content', () => {
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('as background, a preface, or a note about this rewriting step')
   })
 })
 
