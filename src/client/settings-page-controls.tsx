@@ -185,7 +185,7 @@ export function ReasoningRow(props: RowProps & { provider: string; model: string
   }, [cacheKey, pair, refreshToken])
 
   // Every provider — DeepSeek included — shows the adapter's own tier names;
-  // only the "not specified" sentinel is plugin copy. It leads the control: the
+  // only the "model default" sentinel is plugin copy. It leads the control: the
   // stored value can point at it, and it must not trail the concrete tiers.
   const current = props.view.text
   const realTierKnown = phase === 'ready' && capabilities !== undefined && capabilities.source !== 'unavailable' && capabilities.efforts.some((effort) => effort.id === current)

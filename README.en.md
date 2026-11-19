@@ -123,7 +123,7 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | `enabled` | `true` | Master switch; off hides the composer button and disables the command and shortcut |
 | `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (no pinned route). With only one filled, the save falls back to follow-session; switching the provider clears the chosen model so a stale pair cannot remain |
 | `temperature` | `0.3` | Sampling temperature `0~1` (step 0.05); lower stays closer to the original |
-| `reasoningEffort` | `off` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`). "Not specified" sends no field; switching to a model that does not declare the stored tier rewrites it to "Not specified" |
+| `reasoningEffort` | `off` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`). "Model default" sends no field, so the provider applies its default; switching to a model that does not declare the stored tier rewrites it to "Model default" |
 | `maxOutputTokens` | `8192` | Output token cap per call |
 | `maxInputChars` | `12000` | Input character cap; over-limit is rejected, never truncated |
 | `timeoutMs` | `60000` | End-to-end timeout per call (ms) |

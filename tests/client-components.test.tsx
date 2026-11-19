@@ -794,7 +794,7 @@ describe('quick settings menu', () => {
       fireEvent.contextMenu(button)
       await screen.findByRole('menu')
       fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
-      // Only the "not specified" row, plus a line that says why it is alone.
+      // Only the "model default" row, plus a line that says why it is alone.
       expect(screen.queryByRole('menuitemradio', { name: 'Off' })).toBeNull()
       expect(await screen.findByText(zh['menu.effortsNone'])).toBeTruthy()
     } finally {

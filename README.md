@@ -123,7 +123,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `enabled` | `true` | 总开关；关闭后隐藏输入框按钮，并停用命令与快捷键 |
 | `provider` + `model` | 空 | 从 DSH 已注册的 LLM provider 及模型中选择；模型可选「自定义…」手填 ID；未配置的 provider 置灰、需先在 DSH 模型服务中配置；留空表示跟随当前会话模型（不固定路由）。只填一个时保存后按跟随会话处理；切换 provider 会清空已选 model，避免留下不匹配的旧值 |
 | `temperature` | `0.3` | 采样温度 `0~1`（步进 0.05），越低越忠实原文 |
-| `reasoningEffort` | `off` | 档位由当前 provider/model 的声明决定；DeepSeek 为 `off` / `low` / `high` / `max`。选「不指定」时不发送该字段；切换到不声明当前档位的模型时，插件会自动改回「不指定」 |
+| `reasoningEffort` | `off` | 档位由当前 provider/model 的声明决定；DeepSeek 为 `off` / `low` / `high` / `max`。选「模型默认」时不发送该字段，由提供方使用默认档；切换到不声明当前档位的模型时，插件会自动改回「模型默认」 |
 | `maxOutputTokens` | `8192` | 单次调用的输出 token 上限 |
 | `maxInputChars` | `12000` | 输入字符上限；超限拒绝，不截断 |
 | `timeoutMs` | `60000` | 单次调用端到端超时（毫秒） |
