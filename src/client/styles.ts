@@ -438,15 +438,17 @@ html[data-platform='darwin'] .dsh-pe-menu {
   display: inline-flex;
 }
 .dsh-pe-context {
+  position: relative;
   box-sizing: border-box;
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--pe-border);
-  border-radius: 50%;
+  border: 0;
+  border-radius: 8px;
   background: transparent;
   color: var(--dsw-alias-label-tertiary, #8a8a8a);
   font-size: 12px;
@@ -457,11 +459,35 @@ html[data-platform='darwin'] .dsh-pe-menu {
 }
 .dsh-pe-context:hover { background: var(--pe-hover); }
 .dsh-pe-context.is-limited {
-  border-color: #b45309;
   color: #b45309;
   background: rgba(180, 83, 9, 0.1);
 }
+/* The limited fill wins over the plain hover rule by source order, so hover
+   needs its own (more specific) shade; the amber semantics stay in place. */
+.dsh-pe-context.is-limited:hover {
+  background: rgba(180, 83, 9, 0.18);
+}
+/* The ring is a vector path, not a CSS border: a 1px border on a 28px circle
+   breaks into gaps at fractional card heights, while a stroked circle keeps
+   continuous coverage. The glyph sits above it. */
+.dsh-pe-context-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  /* Follow the card's own frame, not the label colour: the default ring is the
+     same 1px --pe-border as .dsh-pe-panel, while the info glyph keeps the
+     tertiary label colour. The limited state overrides both to amber. */
+  color: var(--pe-border);
+  pointer-events: none;
+}
+.dsh-pe-context.is-limited .dsh-pe-context-ring {
+  color: #b45309;
+}
 .dsh-pe-context-icon {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 14px;
   height: 14px;

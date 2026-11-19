@@ -218,6 +218,9 @@ function ContextUsageInfo(props: { usage?: ContextUsage; t: TranslateNS<'dsh-pro
           if (event.key === 'Escape') setOpen(false)
         }}
       >
+        <svg className="dsh-pe-context-ring" viewBox="0 0 28 28" aria-hidden="true" focusable="false">
+          <rect x="0.5" y="0.5" width="27" height="27" rx="8" ry="8" fill="none" stroke="currentColor" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        </svg>
         <svg className="dsh-pe-context-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
           <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" strokeWidth="1.4" />
           <circle cx="8" cy="4.8" r="0.95" fill="currentColor" />
