@@ -20,9 +20,9 @@ The plugin adds a Prompt enhancement button to the composer toolbar: one click s
 
 The result appears in a card docked above the composer without covering the conversation; your draft is never replaced — apply it, copy it, regenerate it, or undo, and the original text can always be restored.
 
-With context awareness on, the plugin passes the last few turns to the model, helping it understand references and the task background (such as what "it" or "that" means, or premises the draft leaves out), so the rewrite matches what you meant. Turn it off in the settings page or the right-click quick settings card at any time.
+With context awareness on, the plugin passes the last few real turns to the model, helping it understand references and the task background (such as what "it" or "that" means, or premises the draft leaves out), so the rewrite matches what you meant. Only turns you sent and the assistant's replies are counted; environment, skill and time context injected by DSH are not conversation turns. Turn it off in the settings page or the right-click quick settings card at any time.
 
-> **Note**: it only reads the most recent turns. If the draft depends on a topic that has dropped out of that window, add the needed background to the draft; otherwise the rewrite may drift from your intent.
+> **Note**: it only reads the most recent real turns. If the draft depends on a topic that has dropped out of that window, add the needed background to the draft; otherwise the rewrite may drift from your intent.
 
 ## Feature overview
 
@@ -35,7 +35,7 @@ With context awareness on, the plugin passes the last few turns to the model, he
 | 🔄 **Regenerate** | Request another version from the current text; an applied enhanced draft can be regenerated too |
 | 💬 **`/enhance` command** | Rewrite any text from the slash menu; the result never enters model history |
 | 🧭 **Model routing** | A pinned `provider` + `model` pair wins; otherwise it follows the session model, then the global default |
-| 🧩 **Context aware** | With `contextAware` on, recent turns resolve references such as "it" or "that"; turn it off at any time |
+| 🧩 **Context aware** | With `contextAware` on, recent real turns resolve references such as "it" or "that" (DSH-injected environment/skill/time messages are excluded); turn it off at any time |
 | 🔑 **Zero credentials** | Calls use DSH's model service and credential store; the plugin never reads or stores keys |
 | 🛡️ **Draft safety** | Empty, attachment-only, over-length and command-or-reference drafts are blocked locally; upstream failures get a readable message and never touch the draft |
 | ⚙️ **Live settings** | Fields save automatically, common rows first and the rest under Advanced; changes apply on the next call |
@@ -112,6 +112,8 @@ An empty or attachment-only draft dims the button and makes it unclickable; over
 
 `/enhance <text>`: rewrite any text from the slash menu; the result is copyable and never enters model history.
 
+The ⓘ in the result-card footer reports the conversation turns and characters this enhancement actually referenced, e.g. `3/8 turns · 3,140/4,000 chars (79%)`: the 8 comes from `contextMaxMessages` and the percentage is measured against `contextMaxChars`. DSH-injected environment, skill and time messages are not counted.
+
 ## Configuration
 
 Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance` → **Configure**). All fields:
@@ -132,8 +134,8 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | `foldAnimation` | `true` | Whether the card animates when it folds or expands; never animates when the system asks for reduced motion |
 | `autoFold` | `true` | Fold the card after applying and expand it again after undoing |
 | `contextAware` | `true` | Read recent conversation to resolve references; turn it off for sensitive sessions |
-| `contextMaxMessages` | `8` | Number of recent messages considered; `0` disables |
-| `contextMaxChars` | `4000` | Character budget of the history snippet; `0` disables |
+| `contextMaxMessages` | `8` | Real conversation turns considered (user + assistant; DSH-injected messages excluded); `0` disables |
+| `contextMaxChars` | `4000` | Character budget of the real-turn history snippet (DSH-injected messages excluded); `0` disables |
 | `maxConcurrent` | `2` | Concurrent enhancement limit; a new request past the limit is told to retry later |
 | `rateLimitPerMinute` | `10` | Successful enhancements per minute, counted over any rolling 60 seconds; past the limit the request is told to retry later |
 
@@ -145,7 +147,7 @@ An empty or attachment-only draft dims the button and starts no request; raise `
 - **Do not expose it behind a reverse proxy**: proxied external requests arrive over a loopback socket, so the `Host` / `Origin` checks no longer tell them apart; use the route directly from this machine only.
 - **Prompt-injection boundary**: the draft is framed between `<raw_prompt>` tags, and a closing tag inside it is neutralized; this lowers the risk of a tag escape, but a prompt-level boundary is **best effort, not a guarantee**.
 - **No model keys stored**: the plugin does not read or store model API keys; calls reuse the model configuration and credentials already in DSH.
-- **Context sent only when enabled**: with `contextAware` on, the most recent user/assistant text and the current draft are sent to the configured model provider (default: up to 8 messages and 4,000 characters); system messages, model reasoning, tool results and attachments are excluded. With it off, only the draft is sent.
+- **Context sent only when enabled**: with `contextAware` on, the most recent user/assistant text and the current draft are sent to the configured model provider (default: up to 8 messages and 4,000 characters); system messages, model reasoning, tool results and attachments are excluded; only turns you sent and assistant replies are counted, and environment/skill/time context injected by DSH is neither counted nor charged against the budget. With it off, only the draft is sent.
 - **Sensitive conversations**: if the content must not leave the machine, turn off `contextAware` or use a local/private model route you trust.
 - **Local tier cache**: the plugin caches "which reasoning tiers does this route declare" per provider/model under `$DSH_HOME/dsh-prompt-enhance/reasoning-efforts/` (`~/.dsh/…` when `DSH_HOME` is unset), and each entry expires and is re-probed after 30 days. The cached files hold only the provider, the model and the tier metadata — no API key, draft or conversation text. Use the Refresh control in the settings page to re-probe immediately, or delete the directory.
 - **Caps are per process**: `maxConcurrent` and `rateLimitPerMinute` are tracked by each DSH process on its own, so multiple processes or mounts each get their own quota instead of one global limit.
