@@ -26,17 +26,17 @@ With context awareness on, the plugin reads the last few turns to resolve refere
 
 | Feature | What it does |
 |---|---|
-| 🐋 **One-click enhance** | The composer toolbar button (the DeepSeek whale mark whose upper-left corner carries a sparkle); the shortcut is off by default and can be set in the settings |
-| 🎛️ **Right-click settings** | Right-click or long-press the composer button to open a small card for the reasoning tier (choose one from the list it opens) and context awareness; the model row is read-only and shows the pinned provider/model or "Follow session" |
-| 🖼️ **Docked result card** | The result appears above the composer without covering the conversation, with the model, reasoning tier, timing and `token` usage; the card folds to its title and footer rows, and a truncated result is marked as possibly incomplete |
-| ↩️ **Apply, copy and undo** | Applying folds the card and shows the undo bar above the composer; Undo restores the draft and expands the card; the result can also be copied directly |
-| 🔄 **Regenerate** | Requests another version from the current composer text; after applying, it regenerates the enhanced draft as well |
-| 💬 **`/enhance` command** | Rewrites any text from the slash menu; the result never enters model history |
-| 🧭 **Model routing** | A pinned `provider` + `model` pair wins; otherwise it follows the current session model, then the global default model |
-| 🧩 **Context aware** | With `contextAware` on, recent turns resolve references such as "it" or "that"; it can be turned off |
-| 🔑 **Zero credentials** | Calls go through the harness LLM service and its credential store; the plugin neither reads nor stores keys |
-| 🛡️ **Draft safety** | Empty, attachment-only, over-length and command-or-reference drafts are blocked locally before any request; upstream failures map to readable messages; a failure never touches the draft |
-| ⚙️ **Live settings** | Fields save automatically, common rows come first and the rest fold into Advanced settings; changes apply to the next call with no restart |
+| 🐋 **One-click enhance** | The composer toolbar button (the DeepSeek whale mark with a sparkle in its corner); the shortcut is off by default and can be set in settings |
+| 🎛️ **Right-click quick settings** | Right-click or long-press the composer button: switch the reasoning tier (pick one inside) and context awareness; the model row is read-only and shows the pinned route or "Follow session" |
+| 🖼️ **Docked result card** | Shown above the composer without covering the conversation, with the model, reasoning tier, timing and `token` usage; folds to its title and footer rows; a truncated result is flagged |
+| ↩️ **Apply, copy and undo** | Copy the result; applying folds the card and shows the undo bar, and undo restores the draft and expands the card |
+| 🔄 **Regenerate** | Request another version from the current text; an applied enhanced draft can be regenerated too |
+| 💬 **`/enhance` command** | Rewrite any text from the slash menu; the result never enters model history |
+| 🧭 **Model routing** | A pinned `provider` + `model` pair wins; otherwise it follows the session model, then the global default |
+| 🧩 **Context aware** | With `contextAware` on, recent turns resolve references such as "it" or "that"; turn it off at any time |
+| 🔑 **Zero credentials** | Calls use DSH's model service and credential store; the plugin never reads or stores keys |
+| 🛡️ **Draft safety** | Empty, attachment-only, over-length and command-or-reference drafts are blocked locally; upstream failures get a readable message and never touch the draft |
+| ⚙️ **Live settings** | Fields save automatically, common rows first and the rest under Advanced; changes apply on the next call |
 
 ## Requirements
 
