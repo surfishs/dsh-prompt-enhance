@@ -40,8 +40,6 @@ With context awareness on, the plugin passes the last few turns to the model, he
 | 🛡️ **Draft safety** | Empty, attachment-only, over-length and command-or-reference drafts are blocked locally; upstream failures get a readable message and never touch the draft |
 | ⚙️ **Live settings** | Fields save automatically, common rows first and the rest under Advanced; changes apply on the next call |
 
-![The right-click quick settings card: model, reasoning effort and context awareness](./docs/images/quick-settings-en.png)
-
 ## Requirements
 
 | Item | Requirement |
