@@ -115,7 +115,7 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | Field | Default | Notes |
 |---|---|---|
 | `enabled` | `true` | Master switch; off hides the composer button and disables the command and shortcut |
-| `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (none). With only one filled, the save falls back to follow-session; switching the provider clears the chosen model so a stale pair cannot remain |
+| `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (no pinned route). With only one filled, the save falls back to follow-session; switching the provider clears the chosen model so a stale pair cannot remain |
 | `temperature` | `0.3` | Sampling temperature `0~1` (step 0.05); lower stays closer to the original |
 | `reasoningEffort` | `off` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`). "Not specified" sends no field; switching to a model that does not declare the stored tier rewrites it to "Not specified" |
 | `maxOutputTokens` | `8192` | Output token cap per call |
@@ -123,7 +123,7 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | `timeoutMs` | `60000` | End-to-end timeout per call (ms) |
 | `systemPrompt` | empty | Custom system prompt; empty uses the built-in strategy |
 | `strategyMode` | `replace-default` | `replace-default` replaces the built-in strategy (the minimal output contract still applies); `extend-default` appends the custom strategy after the built-in one |
-| `shortcut` | empty (disabled) | Trigger shortcut; e.g. `ctrl+alt+shift+e`. Needs at least one of ctrl/alt/meta; shift is optional; the settings page has a Record button that captures the combination |
+| `shortcut` | empty (disabled) | Shortcut that triggers the enhancement; e.g. `ctrl+alt+shift+e`. Needs at least one of ctrl/alt/meta; shift is optional; the settings page has a Record button that captures the combination |
 | `streaming` | `true` | Show the result as it is written; display only, the final result is unchanged |
 | `foldAnimation` | `true` | Whether the card animates when it folds or expands; never animates when the system asks for reduced motion |
 | `autoFold` | `true` | Fold the card after applying and expand it again after undoing |
@@ -131,7 +131,7 @@ Edit in **Settings → dsh-prompt-enhance** (or Plugins → `dsh-prompt-enhance`
 | `contextMaxMessages` | `8` | Number of recent messages considered; `0` disables |
 | `contextMaxChars` | `4000` | Character budget of the history snippet; `0` disables |
 | `maxConcurrent` | `2` | Concurrent enhancement limit; a new request past the limit is told to retry later |
-| `rateLimitPerMinute` | `10` | Successful enhancements per minute (sliding window); past the limit the request is told to retry later |
+| `rateLimitPerMinute` | `10` | Successful enhancements per minute, counted over any rolling 60 seconds; past the limit the request is told to retry later |
 
 An empty or attachment-only draft dims the button and starts no request; raise `maxOutputTokens` when a result is truncated.
 

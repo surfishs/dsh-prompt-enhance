@@ -115,7 +115,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `enabled` | `true` | 总开关；关闭后隐藏输入框按钮，并停用命令与快捷键 |
-| `provider` + `model` | 空 | 从 DSH 已注册的 LLM provider 及模型中选择；模型可选「自定义…」手填 ID；未配置的 provider 置灰、需先在 DSH 模型服务中配置；留空表示跟随当前会话模型（不指定）。只填一个时保存后按跟随会话处理；切换 provider 会清空已选 model，避免留下不匹配的旧值 |
+| `provider` + `model` | 空 | 从 DSH 已注册的 LLM provider 及模型中选择；模型可选「自定义…」手填 ID；未配置的 provider 置灰、需先在 DSH 模型服务中配置；留空表示跟随当前会话模型（不固定路由）。只填一个时保存后按跟随会话处理；切换 provider 会清空已选 model，避免留下不匹配的旧值 |
 | `temperature` | `0.3` | 采样温度 `0~1`（步进 0.05），越低越忠实原文 |
 | `reasoningEffort` | `off` | 档位由当前 provider/model 的声明决定；DeepSeek 为 `off` / `low` / `high` / `max`。选「不指定」时不发送该字段；切换到不声明当前档位的模型时，插件会自动改回「不指定」 |
 | `maxOutputTokens` | `8192` | 单次调用的输出 token 上限 |
@@ -123,7 +123,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `timeoutMs` | `60000` | 单次调用端到端超时（毫秒） |
 | `systemPrompt` | 空 | 自定义系统提示词；留空使用内置增强策略 |
 | `strategyMode` | `replace-default` | `replace-default` 整体替换内置策略（仍保留最小输出契约）；`extend-default` 把自定义策略追加在内置策略之后 |
-| `shortcut` | 空（禁用） | 触发快捷键；例 `ctrl+alt+shift+e`。须包含 ctrl/alt/meta 中至少一个修饰键，shift 可选；设置页可点「录制」直接按键录入 |
+| `shortcut` | 空（禁用） | 触发增强的快捷键；例如 `ctrl+alt+shift+e`。须包含 ctrl/alt/meta 中至少一个修饰键，shift 可选；设置页可点「录制」直接按键录入 |
 | `streaming` | `true` | 边写边显示；仅影响显示节奏，最终结果不变 |
 | `foldAnimation` | `true` | 结果卡折叠/展开时是否播放动画；系统开启「减少动态效果」时始终不播放 |
 | `autoFold` | `true` | 回填后自动折叠结果卡，撤销后自动展开 |
@@ -131,9 +131,9 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `contextMaxMessages` | `8` | 参考的最近消息条数；`0` 表示不参考 |
 | `contextMaxChars` | `4000` | 历史片段的字符预算；`0` 表示不参考 |
 | `maxConcurrent` | `2` | 同时进行的增强上限；达到上限时新请求会提示稍后再试 |
-| `rateLimitPerMinute` | `10` | 每分钟增强次数上限（滑动窗口）；超限时提示稍后再试 |
+| `rateLimitPerMinute` | `10` | 每分钟成功增强次数上限，按任意连续 60 秒计算；超限时提示稍后再试 |
 
-输入为空或只有附件时按钮灰掉，不发起请求；结果被截断时调高 `maxOutputTokens`。
+输入为空或只有附件时按钮变灰、不可点，不发起请求；结果被截断时调高 `maxOutputTokens`。
 
 ## 安全
 
