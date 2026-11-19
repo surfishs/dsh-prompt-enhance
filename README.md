@@ -137,11 +137,11 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 ## 安全
 
-- **仅本机可访问**：增强路由由本机 DSH 宿主提供，只接受回环地址和本地 `Host` / `Origin`，不接受外部来源。
-- **不保存模型密钥**：插件不读取或存储模型 API key，调用走宿主已有的 LLM 配置。
-- **上下文按需发送**：`contextAware` 开启时，最近几轮 user/assistant 文本和当前草稿会发给当前配置的模型服务商（默认最多 8 条消息、4000 字符）；system、reasoning、工具结果和附件不会进入上下文。关闭后只发送草稿。
+- **仅本机可访问**：增强路由由本机 DSH 宿主提供，只接受来自本机的请求（连接来自回环地址，且 `Host` / `Origin` 指向本机），外部来源一律拒绝。
+- **不保存模型密钥**：插件不读取或存储模型 API key，调用复用 DSH 已有的模型配置与凭据。
+- **上下文仅在开启时发送**：`contextAware` 开启时，最近几轮 user/assistant 文本和当前草稿会发给当前配置的模型服务商（默认最多 8 条消息、4000 字符）；系统消息、模型推理内容、工具结果和附件不会进入上下文。关闭后只发送草稿。
 - **敏感会话**：如果内容不能外发，请关闭 `contextAware`，或改用你信任的本地/私有模型服务。
-- **本机档位缓存**：插件会把「当前路由声明了哪些推理档位」的查询结果按 provider/model 分别缓存到 `$DSH_HOME/dsh-prompt-enhance/reasoning-efforts/` 目录（未设置 `DSH_HOME` 时为 `~/.dsh/…`），每条缓存 30 天后自动失效并重新探测。文件内容只有 provider、model 与档位信息，不含 API key、草稿或对话内容；也可在设置页点「刷新」立即重新探测，或直接删除该目录。
+- **本机档位缓存**：插件把「当前路由声明了哪些推理档位」按 provider/model 缓存在 `$DSH_HOME/dsh-prompt-enhance/reasoning-efforts/`（未设置 `DSH_HOME` 时为 `~/.dsh/…`），30 天后自动失效并重新探测。缓存文件只含 provider、model 与档位信息，不含 API key、草稿或对话内容；可在设置页点「刷新」立即重新探测，或直接删除该目录。
 
 ## 故障排查
 
