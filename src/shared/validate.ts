@@ -85,12 +85,14 @@ export function checkInputText(text: string, maxChars: number): InputCheck {
 }
 
 /**
- * Render one verdict as the displayable Chinese message (host-side copy).
- * @param check - the structured verdict.
- * @returns the message; empty string for a passing check.
+ * Render one host-side check verdict as Simplified Chinese for the `/enhance`
+ * command plane, which has no browser locale dictionary. The copy mirrors the
+ * client guard's structure: what happened, then the exact next step.
+ * @param check - the verdict to render.
+ * @returns the message, or an empty string for an accepted draft.
  */
 export function formatInputCheckZh(check: InputCheck): string {
   if (check.ok) return ''
-  if (check.code === 'empty') return '输入框为空，请先输入要增强的提示词。'
-  return `内容共 ${check.count} 个字符，超过 ${check.max} 个字符上限（按 Unicode 字符数统计，不是 token 数）。为避免改变原意不会自动截断，请精简后再试。`
+  if (check.code === 'empty') return '输入框是空的，请先输入要增强的文字。'
+  return `草稿共 ${check.count} 个字符，超过 ${check.max} 个字符上限（按 Unicode 字符数计，不是 token）。为避免改变原意不会自动截断，请精简后再试。`
 }

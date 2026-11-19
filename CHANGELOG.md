@@ -11,6 +11,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Stop attributing commands to the reference-chip guard: `error.occurrences` now names file and session references only, because a command chip is caught by its own message.
 - Say what the busy guard actually covers: `error.phase` reads "submitting or checking", since it spans adjudicating, submitting and sending.
 
+### Changed
+
+- Rewrite the local-guard and call-failure copy around one structure: what happened, the exact next step, and — where nothing was applied — a consistent "your input was not changed". "宿主服务 / host service" became "DSH 服务 / the DSH service"; timeout, size and limit messages now name the setting or the wait that resolves them; the command-plane copy for `/enhance` mirrors the same wording.
+
 ## [0.1.3] - 2026-11-19
 
 ### Added

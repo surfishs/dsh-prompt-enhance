@@ -45,7 +45,7 @@ describe('checkInputText', () => {
 
 describe('formatInputCheckZh', () => {
   it('renders the empty message', () => {
-    expect(formatInputCheckZh({ ok: false, code: 'empty' })).toContain('输入框为空')
+    expect(formatInputCheckZh({ ok: false, code: 'empty' })).toContain('输入框是空的')
   })
 
   it('renders counts in the too-long message', () => {
