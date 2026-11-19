@@ -231,6 +231,30 @@ npm test
 npm run build
 ```
 
+### Architecture
+
+```text
+src/
+├── index.ts                 host apply: settings section, routes and the /enhance command
+├── prompts.ts               default strategy, invariant contract and <raw_prompt> framing
+├── enhance-routes.ts        POST /dsh-prompt-enhance/enhance and the SSE stream
+├── shared/                  shared by both halves: protocol, input checks, output normalization
+└── client/
+    ├── EnhanceButton.tsx    composer button, local guards and request orchestration
+    ├── QuickSettingsMenu.tsx right-click card (model, tier, context)
+    ├── ResultPanel.tsx      docked result card (apply, copy, regenerate, cancel)
+    └── UndoBar.tsx          undo bar that restores the original draft
+scripts/
+└── build.mjs                builds both halves into lib/
+```
+
+Build outputs:
+
+- `lib/index.js` — host half (ESM, every package import kept external and resolved by the DSH plugin loader);
+- `lib/client.js` — browser half (CJS inside the `window.__ModuleLoader__.load({ id, factory })` envelope).
+
+`lib/` is committed so a GitHub install needs no local build. CI rebuilds from `src/` on every push and fails when `lib/` differs from what is committed, so run `npm run build` and commit the result together with your source changes.
+
 See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License

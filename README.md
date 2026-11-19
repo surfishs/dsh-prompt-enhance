@@ -231,6 +231,30 @@ npm test
 npm run build
 ```
 
+### 架构
+
+```text
+src/
+├── index.ts                 宿主装配：设置节、路由与 /enhance 命令
+├── prompts.ts               默认策略、不可变契约与 <raw_prompt> 框定
+├── enhance-routes.ts        POST /dsh-prompt-enhance/enhance 与 SSE 流
+├── shared/                  两端共用：协议、输入校验、输出归一化
+└── client/
+    ├── EnhanceButton.tsx    输入框按钮、本地拦截与请求编排
+    ├── QuickSettingsMenu.tsx 右键快捷设置卡（模型、档位、上下文）
+    ├── ResultPanel.tsx      停靠结果卡（回填、复制、重新生成、取消）
+    └── UndoBar.tsx          撤销条（恢复原文）
+scripts/
+└── build.mjs                构建两半到 lib/
+```
+
+构建产物：
+
+- `lib/index.js`：宿主半（ESM，包导入保持 external，由 DSH 插件加载器解析 `@deepseek-ai/*`）；
+- `lib/client.js`：浏览器半（CJS，包在 `window.__ModuleLoader__.load({ id, factory })` 外壳里）。
+
+`lib/` **随仓库提交**，从 GitHub 安装时无需本地构建。CI 会在每次 push 时从 `src/` 重新构建并比对 `lib/`，不一致就失败——所以改完源码要跑 `npm run build`，把 `lib/` 和源码一起提交。
+
 详见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
 ## 许可证
