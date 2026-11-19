@@ -8,6 +8,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ### Fixed
 
 - Name the real reason a command-chip draft is refused: `claimed` (a `/plan`-style command waiting for its arguments) now says command blocks are unsupported, instead of the misleading "busy (submitting)" copy. Adjudicating/submitting/sending keep the busy message.
+- Stop attributing commands to the reference-chip guard: `error.occurrences` now names file and session references only, because a command chip is caught by its own message.
+- Say what the busy guard actually covers: `error.phase` reads "submitting or checking", since it spans adjudicating, submitting and sending.
 
 ## [0.1.3] - 2026-11-19
 
