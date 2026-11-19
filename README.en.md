@@ -42,8 +42,8 @@ With context awareness on, the plugin reads the last few turns to resolve refere
 
 | Item | Requirement |
 |---|---|
-| dsh | `>= 0.1.1-rc.2 < 0.3.0`, verified on `0.2.2-rc.3` |
-| Node (source builds only) | `^22.19.0 \|\| >=24.0.0` |
+| DSH | `>= 0.1.1-rc.2 < 0.3.0`, verified on `0.2.2-rc.3` |
+| Node (needed only for source builds) | `^22.19.0 \|\| >=24.0.0` |
 
 ## Install
 
