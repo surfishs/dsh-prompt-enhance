@@ -187,7 +187,9 @@ function totalTokensOf(usage: EnhanceUsage): number {
 function ContextUsageInfo(props: { usage?: ContextUsage; t: TranslateNS<'dsh-prompt-enhance'> }): ReactNode {
   const { usage, t } = props
   const [open, setOpen] = useState(false)
-  const limited = usage !== undefined && (usage.cutTurn || usage.limitedBy !== null)
+  // Reaching the turn cap is the normal shape of the window, not a warning;
+  // only a character squeeze or a cut turn needs the amber treatment.
+  const limited = usage !== undefined && (usage.cutTurn || usage.limitedBy === 'chars')
   const percent = usage !== undefined && usage.maxChars > 0 ? Math.round((usage.usedChars / usage.maxChars) * 100) : 0
   const stats =
     usage === undefined
@@ -199,8 +201,7 @@ function ContextUsageInfo(props: { usage?: ContextUsage; t: TranslateNS<'dsh-pro
           maxChars: formatTokens(usage.maxChars),
           percent,
         })
-  const reason =
-    usage === undefined ? '' : usage.cutTurn ? t('panel.contextCut') : usage.limitedBy === 'chars' ? t('panel.contextCharsLimited') : usage.limitedBy === 'turns' ? t('panel.contextTurnsLimited') : ''
+  const reason = usage === undefined ? '' : usage.cutTurn ? t('panel.contextCut') : usage.limitedBy === 'chars' ? t('panel.contextCharsLimited') : ''
   return (
     <span className="dsh-pe-context-wrap">
       <button

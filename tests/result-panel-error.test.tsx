@@ -130,6 +130,26 @@ describe('ResultPanel upstream error copy', () => {
     expect(container.textContent).toContain(zh['panel.contextUnused'])
   })
 
+  it('does not warn when only the turn cap was reached', () => {
+    // Eight turns is the window doing its job, not a fault: the stats still
+    // show 8/8, but the icon stays grey and no reason line appears.
+    const result: EnhanceResult = {
+      text: '增强后的正文',
+      provider: 'p',
+      model: 'm',
+      elapsedMs: 1234,
+      context: { usedTurns: 8, maxTurns: 8, usedChars: 3216, maxChars: 4000, droppedTurns: 2, limitedBy: 'turns', cutTurn: false },
+    }
+    const state: PanelState = { sessionId: 's1', phase: 'result', original: '旧原文', result }
+    const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
+    const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
+    expect(button.classList.contains('is-limited')).toBe(false)
+    fireEvent.focus(button)
+    expect(container.textContent).toContain('8/8')
+    expect(container.textContent).not.toContain(zh['panel.contextCharsLimited'])
+    expect(container.textContent).not.toContain('已达条数上限')
+  })
+
   it('marks the info button when the context window was cut', () => {
     const result: EnhanceResult = {
       text: '增强后的正文',
