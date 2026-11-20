@@ -1,12 +1,16 @@
 # dsh-prompt-enhance
 
-[![CI](https://github.com/surfishs/dsh-prompt-enhance/actions/workflows/ci.yml/badge.svg)](https://github.com/surfishs/dsh-prompt-enhance/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/surfishs/dsh-prompt-enhance/ci.yml?branch=main&style=flat&label=CI&logo=github)](https://github.com/surfishs/dsh-prompt-enhance/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@surfishs/dsh-prompt-enhance.svg)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
-[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
-
-**Prompt enhancement for the DeepSeek Harness web GUI** — turn a composer draft into a structured prompt in one click: role and goal, context and constraints, executable steps, output format, acceptance criteria, edge cases. It keeps your intent unchanged, invents no requirements, and writes a placeholder instead of guessing; the composer draft is never modified.
+[![npm monthly downloads](https://img.shields.io/npm/dm/@surfishs/dsh-prompt-enhance.svg)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/surfishs/dsh-prompt-enhance/blob/main/LICENSE)
+[![Platform: DSH Desktop + Web](https://img.shields.io/badge/Platform-DSH%20Desktop%20%2B%20Web-2F81F7?style=flat)](https://github.com/surfishs/dsh-prompt-enhance/blob/main/README.en.md#install)
+[![Supported DSH versions: 0.1.1–0.2.x](https://img.shields.io/badge/DSH-0.1.1%E2%80%930.2.x-8A2BE2?style=flat)](https://github.com/surfishs/dsh-prompt-enhance/blob/main/README.en.md#requirements)
+[![GitHub stars](https://img.shields.io/github/stars/surfishs/dsh-prompt-enhance.svg)](https://github.com/surfishs/dsh-prompt-enhance/stargazers)
 
 [简体中文](./README.md) | English
+
+**Prompt enhancement for the DeepSeek Harness web GUI** — turn a composer draft into a structured prompt in one click: role and goal, context and constraints, executable steps, output format, acceptance criteria, edge cases. It keeps your intent unchanged, invents no requirements, and writes a placeholder instead of guessing; the composer draft is never modified.
 
 ![Prompt Enhance: the docked result card above the composer](./docs/images/panel-en.png)
 
