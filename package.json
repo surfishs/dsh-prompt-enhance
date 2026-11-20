@@ -88,6 +88,7 @@
     "locale/*.json",
     "icon.svg",
     "docs/images/**",
+    "NOTICE",
     "README.md",
     "README.en.md"
   ],
