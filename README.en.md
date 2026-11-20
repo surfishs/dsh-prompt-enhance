@@ -111,11 +111,19 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 3. **Undo**: click Undo in the card footer to restore the original draft; the card expands again.
 4. **Close**: sending the draft closes the card automatically; Escape also closes it.
 
+### Button appearance
+
+![Enhance button states: empty, default and hover](./docs/images/enhance-button.png)
+
+The button sits at the right end of the composer toolbar. From left to right: empty (dimmed), default and hover.
+
 An empty or attachment-only draft dims the button and makes it unclickable; Regenerate is also dimmed on an empty draft and says to type text first; over-length drafts, or drafts containing commands or file references, are rejected locally. A result that hits the token cap shows a red truncation warning; once the draft changes, that warning yields to the stale-draft notice.
 
 ### Quick settings card
 
 Right-click or long-press the enhance button in the toolbar to open the quick settings card: choose a reasoning tier inside its list, toggle context awareness directly, and read the pinned provider/model (or "Follow session"). The card only changes settings and never starts an enhancement; full settings stay on the settings page.
+
+![Quick settings card opened by right-click or long press](./docs/images/quick-settings-en.png)
 
 `/enhance <text>`: rewrite any text from the slash menu; the result is copyable and never enters model history.
 
