@@ -9,7 +9,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { randomUUID } from 'node:crypto'
 import { effectiveSystemPrompt, type Config } from './config'
-import { DEFAULT_SYSTEM_PROMPT, withAttachmentRules, withContextRules, withMetaRules } from './prompts'
+import { DEFAULT_SYSTEM_PROMPT, CONTEXT_SYSTEM_ADDITION, withAttachmentRules, withMetaRules } from './prompts'
 import { buildConversationContextWithUsage } from './context'
 import { EnhanceFailure, enhanceText, resolveRoute, toEnhanceError, type RoutePair } from './enhancer'
 import type { ContextUsage, EnhanceResult } from './shared/protocol'
@@ -315,7 +315,7 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
     // and the attachment rules ONLY when the draft carries attachments. The
     // meta rules are appended to every call, last, so "these instructions"
     // covers whatever came before them.
-    const baseSystem = effectiveSystemPrompt(config, context === undefined ? DEFAULT_SYSTEM_PROMPT : withContextRules(DEFAULT_SYSTEM_PROMPT))
+    const baseSystem = effectiveSystemPrompt(config, DEFAULT_SYSTEM_PROMPT, context === undefined ? '' : CONTEXT_SYSTEM_ADDITION)
     const withAttachments = attachmentCount > 0 ? withAttachmentRules(baseSystem) : baseSystem
     const system = withMetaRules(withAttachments)
     const result = await enhanceText(llm, {

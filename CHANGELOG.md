@@ -11,6 +11,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Fixed
 
+- Keep the context rules when a custom strategy uses `replace-default`: they were merged into the built-in prompt, so replacing it dropped them; they now apply in every strategy mode.
 - Show the effective default as the placeholder of an empty numeric settings row, so a blank field says "leave blank to use the default" instead of looking like a silent clear.
 - Validate every numeric settings row against its real bounds before saving: an out-of-range value (for example output tokens = 1) now shows the inline error with the actual range and is never written, instead of appearing saved while the default keeps running.
 - Stop the result card's Regenerate button from swallowing a click when the draft is empty: it now greys out, explains why in the stale warning and its tooltip (attachments are not enhanced on their own), and re-enables as soon as text returns.
@@ -20,6 +21,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Changed
 
+- Rework the README prompt-system and settings sections: document nine hard rules, the custom-only invariant contract, the every-call meta rules, context/attachment rules, basic/advanced settings, the quick settings card, truncation/regenerate behaviour, and message-based context counts.
 - Show a truncated result in a red banner instead of the yellow stale banner: truncation is only shown while the draft still matches the result, the stale warning wins once the draft changes, and the collapsed marker follows the same priority.
 - Clarify the truncation notice: name the exact output-token setting in both the cause and the fix, drop the nested parentheses, and keep the "may be incomplete" warning.
 - Unify the stale-warning copy: the changed/non-empty and changed/empty states share one sentence shape, button names use their exact labels in quotes, the collapsed marker gets short state-neutral titles for stale and truncated, and the regenerate tooltip no longer ends with a period.

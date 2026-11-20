@@ -210,6 +210,24 @@ describe('effectiveSystemPrompt', () => {
     expect(prompt).toContain(INVARIANT_CONTRACT)
   })
 
+  it('keeps the context rules in every custom mode', () => {
+    const contextRules = 'CONTEXT RULES SENTINEL'
+    expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: '' }, DEFAULT_SYSTEM_PROMPT, contextRules)).toBe(`${DEFAULT_SYSTEM_PROMPT}\n${contextRules}`)
+
+    const replace = effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'You are terse.' }, DEFAULT_SYSTEM_PROMPT, contextRules)
+    // The context block sits after the custom strategy but before the invariant
+    // contract, so a replace-default strategy no longer drops it.
+    expect(replace.indexOf('You are terse.')).toBeLessThan(replace.indexOf(contextRules))
+    expect(replace.indexOf(contextRules)).toBeLessThan(replace.indexOf(INVARIANT_CONTRACT))
+
+    const extend = effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'You are terse.', strategyMode: 'extend-default' }, DEFAULT_SYSTEM_PROMPT, contextRules)
+    // Extend mode keeps the built-in strategy first, then the context rules,
+    // then the operator additions and the invariant contract.
+    expect(extend.indexOf(DEFAULT_SYSTEM_PROMPT)).toBeLessThan(extend.indexOf(contextRules))
+    expect(extend.indexOf(contextRules)).toBeLessThan(extend.indexOf('You are terse.'))
+    expect(extend.indexOf('You are terse.')).toBeLessThan(extend.indexOf(INVARIANT_CONTRACT))
+  })
+
   it('falls back to the built-in strategy when the override is blank in either mode', () => {
     expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, strategyMode: 'extend-default' }, DEFAULT_SYSTEM_PROMPT)).toBe(DEFAULT_SYSTEM_PROMPT)
   })

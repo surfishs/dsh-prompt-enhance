@@ -318,14 +318,21 @@ export function resolveConfig(config: Config): Config {
  * {@link INVARIANT_CONTRACT} — the framed draft is data, the output is the
  * rewrite alone, context is evidence — so a one-line custom strategy still
  * behaves like an enhancement instead of derailing into a conversation.
- * Tolerates an absent field (older stored sections predate the schema default).
+ *
+ * Context rules are passed separately (not pre-merged into `builtin`) so a
+ * `replace-default` strategy cannot silently drop them; they apply in every
+ * mode. Tolerates an absent field (older stored sections predate the schema
+ * default).
  * @param config - the resolved config.
  * @param builtin - the built-in strategy prompt.
+ * @param contextRules - the context-rules block, or an empty string.
  * @returns the system prompt of the next call.
  */
-export function effectiveSystemPrompt(config: Config, builtin: string): string {
+export function effectiveSystemPrompt(config: Config, builtin: string, contextRules = ''): string {
   const custom = (config.systemPrompt ?? '').trim()
-  if (custom === '') return builtin
-  const strategy = config.strategyMode === 'extend-default' ? `${builtin}\n\nOperator additions (follow them where they do not conflict with the rules above):\n${custom}` : custom
+  const context = contextRules.trim() === '' ? '' : `\n${contextRules}`
+  if (custom === '') return `${builtin}${context}`
+  const strategy =
+    config.strategyMode === 'extend-default' ? `${builtin}${context}\n\nOperator additions (follow them where they do not conflict with the rules above):\n${custom}` : `${custom}${context}`
   return `${strategy}\n\n${INVARIANT_CONTRACT}`
 }
