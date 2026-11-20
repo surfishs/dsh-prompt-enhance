@@ -2,7 +2,8 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/surfishs/dsh-prompt-enhance/ci.yml?branch=main&style=flat&label=CI&logo=github)](https://github.com/surfishs/dsh-prompt-enhance/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@surfishs/dsh-prompt-enhance.svg)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
-[![npm 月下载量](https://img.shields.io/npm/dm/@surfishs/dsh-prompt-enhance.svg)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
+[![npm 月下载量](https://img.shields.io/npm/dm/@surfishs/dsh-prompt-enhance.svg?label=npm)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
+[![npm 总下载量](https://img.shields.io/npm/d18m/@surfishs/dsh-prompt-enhance.svg?label=npm%20total)](https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/surfishs/dsh-prompt-enhance/blob/main/LICENSE)
 [![平台：DSH 桌面版 + Web 版](https://img.shields.io/badge/Platform-DSH%20Desktop%20%2B%20Web-2F81F7?style=flat)](https://github.com/surfishs/dsh-prompt-enhance/blob/main/README.md#安装)
 [![支持的 DSH 版本：0.1.1–0.2.x](https://img.shields.io/badge/DSH-0.1.1%E2%80%930.2.x-8A2BE2?style=flat)](https://github.com/surfishs/dsh-prompt-enhance/blob/main/README.md#环境要求)
