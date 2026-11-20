@@ -12,6 +12,7 @@
 import { SettingsFormModel, settingsNumberField, settingsTextField } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsFieldDescriptor } from '@deepseek-ai/dsh-client-ui-primitives'
 import { DEFAULT_VALUES } from '../shared/defaults'
+import { FIELD_LIMITS, TEMPERATURE, type NumericRange } from '../shared/limits'
 import { parseShortcut } from './shortcut'
 import type { PromptEnhanceKey } from './locales'
 import type { RowCopy, Translate } from './settings-page-copy'
@@ -130,8 +131,33 @@ export interface Row {
    * Absent means "anything the descriptor stages is writable".
    */
   readonly validate?: (text: string) => boolean
+  /** Inclusive bounds a number row enforces; `integer` defaults to true. */
+  readonly range?: NumericRange & { readonly integer?: boolean }
   /** Offer the press-a-combination recorder next to the input (the shortcut row). */
   readonly recordable?: boolean
+}
+
+/** Whether one staged numeric text is writable: empty clears, otherwise an in-range number. */
+function validateNumber(text: string, range: NumericRange, integer: boolean): boolean {
+  const trimmed = text.trim()
+  // Empty means "clear" in the form model, so it is valid for every row.
+  if (trimmed === '') return true
+  const value = Number(trimmed)
+  if (!Number.isFinite(value)) return false
+  if (integer && !Number.isInteger(value)) return false
+  return value >= range.min && value <= range.max
+}
+
+/** One numeric row: its real bounds plus the staged-text validation the red-box path reads. */
+function numberRow(key: string, label: PromptEnhanceKey, hint: PromptEnhanceKey, range: NumericRange, integer = true): Row {
+  return {
+    key,
+    kind: 'number',
+    label,
+    hint,
+    range: { ...range, integer },
+    validate: (text: string) => validateNumber(text, range, integer),
+  }
 }
 
 /**
@@ -144,7 +170,7 @@ export const BASIC_ROWS: readonly Row[] = [
   { key: 'provider', kind: 'provider', label: 'settings.row.provider.label', hint: 'settings.row.provider.hint' },
   { key: 'model', kind: 'model', label: 'settings.row.model.label', hint: 'settings.row.model.hint' },
   { key: 'reasoningEffort', kind: 'reasoning', label: 'settings.row.reasoningEffort.label', hint: 'settings.row.reasoningEffort.hint' },
-  { key: 'temperature', kind: 'number', label: 'settings.row.temperature.label', hint: 'settings.row.temperature.hint' },
+  numberRow('temperature', 'settings.row.temperature.label', 'settings.row.temperature.hint', TEMPERATURE, false),
   { key: 'contextAware', kind: 'boolean', label: 'settings.row.contextAware.label', hint: 'settings.row.contextAware.hint' },
   { key: 'streaming', kind: 'boolean', label: 'settings.row.streaming.label', hint: 'settings.row.streaming.hint' },
   { key: 'systemPrompt', kind: 'text', label: 'settings.row.systemPrompt.label', hint: 'settings.row.systemPrompt.hint', placeholder: 'settings.row.systemPrompt.placeholder' },
@@ -165,13 +191,13 @@ export const ADVANCED_ROWS: readonly Row[] = [
   { key: 'foldAnimation', kind: 'boolean', label: 'settings.row.foldAnimation.label', hint: 'settings.row.foldAnimation.hint' },
   { key: 'autoFold', kind: 'boolean', label: 'settings.row.autoFold.label', hint: 'settings.row.autoFold.hint' },
   { key: 'strategyMode', kind: 'strategy', label: 'settings.row.strategyMode.label', hint: 'settings.row.strategyMode.hint' },
-  { key: 'maxInputChars', kind: 'number', label: 'settings.row.maxInputChars.label', hint: 'settings.row.maxInputChars.hint' },
-  { key: 'maxOutputTokens', kind: 'number', label: 'settings.row.maxOutputTokens.label', hint: 'settings.row.maxOutputTokens.hint' },
-  { key: 'timeoutMs', kind: 'number', label: 'settings.row.timeoutMs.label', hint: 'settings.row.timeoutMs.hint' },
-  { key: 'contextMaxMessages', kind: 'number', label: 'settings.row.contextMaxMessages.label', hint: 'settings.row.contextMaxMessages.hint' },
-  { key: 'contextMaxChars', kind: 'number', label: 'settings.row.contextMaxChars.label', hint: 'settings.row.contextMaxChars.hint' },
-  { key: 'maxConcurrent', kind: 'number', label: 'settings.row.maxConcurrent.label', hint: 'settings.row.maxConcurrent.hint' },
-  { key: 'rateLimitPerMinute', kind: 'number', label: 'settings.row.rateLimitPerMinute.label', hint: 'settings.row.rateLimitPerMinute.hint' },
+  numberRow('maxInputChars', 'settings.row.maxInputChars.label', 'settings.row.maxInputChars.hint', FIELD_LIMITS.maxInputChars),
+  numberRow('maxOutputTokens', 'settings.row.maxOutputTokens.label', 'settings.row.maxOutputTokens.hint', FIELD_LIMITS.maxOutputTokens),
+  numberRow('timeoutMs', 'settings.row.timeoutMs.label', 'settings.row.timeoutMs.hint', FIELD_LIMITS.timeoutMs),
+  numberRow('contextMaxMessages', 'settings.row.contextMaxMessages.label', 'settings.row.contextMaxMessages.hint', FIELD_LIMITS.contextMaxMessages),
+  numberRow('contextMaxChars', 'settings.row.contextMaxChars.label', 'settings.row.contextMaxChars.hint', FIELD_LIMITS.contextMaxChars),
+  numberRow('maxConcurrent', 'settings.row.maxConcurrent.label', 'settings.row.maxConcurrent.hint', FIELD_LIMITS.maxConcurrent),
+  numberRow('rateLimitPerMinute', 'settings.row.rateLimitPerMinute.label', 'settings.row.rateLimitPerMinute.hint', FIELD_LIMITS.rateLimitPerMinute),
 ]
 
 /** Every row both pages edit; the renderer splits it at the Advanced boundary. */

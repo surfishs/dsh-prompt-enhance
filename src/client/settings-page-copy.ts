@@ -17,6 +17,22 @@ export type Translate = TranslateNS<typeof LOCALE_NS>
 export const ZH_COPY: Readonly<Record<string, string>> = zh
 
 /**
+ * Fill `{name}` placeholders from `params`, then hand the result to the seat.
+ * The seat's own parameter support is host-dependent; doing the substitution
+ * locally keeps a parameterized row message working on every host (and in the
+ * test double, whose `t` takes the key only).
+ * @param t - the locale-bound translate seat.
+ * @param key - the dictionary key.
+ * @param params - placeholder values.
+ * @returns the interpolated copy.
+ */
+function interpolate(t: Translate, key: PromptEnhanceKey, params: Record<string, string>): string {
+  let text = t(key)
+  for (const [name, value] of Object.entries(params)) text = text.split(`{${name}}`).join(value)
+  return text
+}
+
+/**
  * Resolve the Plugins-page copy reader: the injected `t` when present, the
  * shipped Chinese dictionary otherwise. Falling back keeps an older host (or a
  * test) from rendering dictionary keys instead of copy.
@@ -84,7 +100,7 @@ export function sectionCopy(t: Translate, chinese: boolean): RowCopy {
     hint: (row) => t(row.hint),
     placeholder: (row) => (row.placeholder === undefined ? undefined : t(row.placeholder)),
     choice: (key) => t(key),
-    interpolate: (key, params) => t(key, params),
+    interpolate: (key, params) => interpolate(t, key, params),
   }
 }
 
@@ -117,6 +133,6 @@ export function pageCopy(t: Translate): RowCopy {
     hint: (row) => t(row.hint),
     placeholder: (row) => (row.placeholder === undefined ? undefined : t(row.placeholder)),
     choice: (key) => t(key),
-    interpolate: (key, params) => t(key, params),
+    interpolate: (key, params) => interpolate(t, key, params),
   }
 }

@@ -26,6 +26,7 @@ import { useSyncExternalStore } from 'react'
 import { clearCatalogCache } from '../src/client/llm-catalog'
 import { forgetReasoningCapabilities } from '../src/client/settings-page-controls'
 import { SettingsPage, SettingsSection, createSettingsForm } from '../src/client/settings-page'
+import { ROWS } from '../src/client/settings-page-spec'
 import { en, zh } from '../src/client/locales'
 
 /** Interpolate one dictionary entry, as the locale service would. */
@@ -199,7 +200,7 @@ function renderSection(options: { user?: Record<string, unknown>; values?: Recor
  * @param options - stored user layer, writability, and the view asked for.
  * @returns the write spy and the staged model.
  */
-function renderRowPage(options: { user?: Record<string, unknown>; writable?: boolean; view?: 'page' | 'summary' } = {}): {
+function renderRowPage(options: { user?: Record<string, unknown>; writable?: boolean; view?: 'page' | 'summary'; values?: Record<string, unknown> } = {}): {
   mutate: ReturnType<typeof vi.fn>
   model: ReturnType<typeof createSettingsForm>
 } {
@@ -651,6 +652,60 @@ describe('plugins page entry', () => {
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(screen.queryByText(zhCopy('settings.recordPrompt'))).toBeNull()
     expect(screen.queryByText(zhCopy('settings.recordNeedsModifier'))).toBeNull()
+  })
+
+  it('validates every numeric row against its real range', () => {
+    const numeric = ROWS.filter((row) => row.kind === 'number')
+    expect(numeric.length).toBeGreaterThan(0)
+    for (const row of numeric) {
+      const range = row.range
+      if (range === undefined) throw new Error(`${row.key} has no range`)
+      expect(row.validate?.(''), row.key).toBe(true)
+      expect(row.validate?.(String(range.min)), row.key).toBe(true)
+      expect(row.validate?.(String(range.max)), row.key).toBe(true)
+      expect(row.validate?.(String(range.min - 1)), row.key).toBe(false)
+      expect(row.validate?.(String(range.max + 1)), row.key).toBe(false)
+      if (range.integer !== false) expect(row.validate?.(String(range.min + 0.5)), row.key).toBe(false)
+    }
+  })
+
+  it('refuses an out-of-range number and shows the real range', async () => {
+    const { mutate } = renderRowPage()
+    const input = screen.getByLabelText(zhCopy('settings.row.maxOutputTokens.label'))
+    fireEvent.change(input, { target: { value: '1' } })
+    fireEvent.blur(input)
+    expect(await screen.findByText(zhCopy('settings.row.invalidInteger', { min: 256, max: 32768 }))).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.save') }))
+    await waitFor(() => expect(mutate).not.toHaveBeenCalled())
+
+    fireEvent.change(input, { target: { value: '256' } })
+    fireEvent.blur(input)
+    await waitFor(() => expect(screen.queryByText(zhCopy('settings.row.invalidInteger', { min: 256, max: 32768 }))).toBeNull())
+    fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.save') }))
+    await waitFor(() => expect(mutate).toHaveBeenCalled())
+  })
+
+  it('uses the numeric message for the fractional temperature row', async () => {
+    renderRowPage()
+    const input = screen.getByLabelText(zhCopy('settings.row.temperature.label'))
+    fireEvent.change(input, { target: { value: '1.5' } })
+    fireEvent.blur(input)
+    expect(await screen.findByText(zhCopy('settings.row.invalidNumber', { min: 0, max: 1 }))).toBeTruthy()
+
+    fireEvent.change(input, { target: { value: '0.5' } })
+    fireEvent.blur(input)
+    await waitFor(() => expect(screen.queryByText(zhCopy('settings.row.invalidNumber', { min: 0, max: 1 }))).toBeNull())
+  })
+
+  it('shows the effective default as the placeholder of an empty numeric row', () => {
+    renderRowPage({ values: { contextMaxMessages: '' } })
+    const empty = screen.getByLabelText(new RegExp(zhCopy('settings.row.contextMaxMessages.label'))) as HTMLInputElement
+    expect(empty.value).toBe('')
+    expect(empty.placeholder).toBe(zhCopy('settings.row.blankDefault', { value: '8' }))
+
+    const filled = screen.getByLabelText(new RegExp(zhCopy('settings.row.contextMaxChars.label'))) as HTMLInputElement
+    expect(filled.placeholder).toBe('')
   })
 
   it('refuses to write an invalid shortcut and explains why', async () => {

@@ -105,6 +105,37 @@ function PageHeader(props: { title: string; description: string; version: string
 }
 
 /**
+ * The red-box reason for a staged row, or undefined when the text is writable.
+ * @param row - the row being rendered.
+ * @param text - its staged text.
+ * @param copy - the page copy, for the row-specific message.
+ * @returns the message to show inline, or undefined.
+ */
+function invalidMessageOf(row: Row, text: string, copy: RowCopy): string | undefined {
+  if (row.validate === undefined || row.validate(text)) return undefined
+  if (row.range !== undefined) {
+    const key = row.range.integer === false ? 'settings.row.invalidNumber' : 'settings.row.invalidInteger'
+    return copy.interpolate(key, { min: String(row.range.min), max: String(row.range.max) })
+  }
+  return copy.labels.invalidShortcut
+}
+
+/**
+ * The input placeholder for one row. A numeric row that is empty shows the
+ * effective default, so "blank" visibly means "use the default" instead of
+ * looking like a silent clear.
+ * @param row - the row being rendered.
+ * @param view - its staged state.
+ * @param copy - the page copy, for the placeholder text.
+ * @returns the placeholder, or undefined.
+ */
+function placeholderOf(row: Row, view: FieldView, copy: RowCopy): string | undefined {
+  if (row.kind !== 'number' || view.text.trim() !== '') return copy.placeholder(row)
+  const fallback = defaultTextOf(row.key)
+  return fallback === '' ? copy.placeholder(row) : copy.interpolate('settings.row.blankDefault', { value: fallback })
+}
+
+/**
  * One row, rendered as the control its kind asks for.
  * @param props - the row, its copy, its state, its actions, and the pinned pair.
  * @returns the row element.
@@ -148,8 +179,8 @@ function SettingsRow(props: {
         <ValueRow
           {...shared}
           numeric={props.row.kind === 'number'}
-          placeholder={props.copy.placeholder(props.row)}
-          invalidMessage={props.row.validate !== undefined && !props.row.validate(props.view.text) ? props.copy.labels.invalidShortcut : undefined}
+          placeholder={placeholderOf(props.row, props.view, props.copy)}
+          invalidMessage={invalidMessageOf(props.row, props.view.text, props.copy)}
           recordable={props.row.recordable === true}
         />
       )

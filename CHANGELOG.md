@@ -11,6 +11,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Fixed
 
+- Show the effective default as the placeholder of an empty numeric settings row, so a blank field says "leave blank to use the default" instead of looking like a silent clear.
+- Validate every numeric settings row against its real bounds before saving: an out-of-range value (for example output tokens = 1) now shows the inline error with the actual range and is never written, instead of appearing saved while the default keeps running.
 - Stop the result card's Regenerate button from swallowing a click when the draft is empty: it now greys out, explains why in the stale warning and its tooltip (attachments are not enhanced on their own), and re-enables as soon as text returns.
 - Name the real reason a command-chip draft is refused: `claimed` (a `/plan`-style command waiting for its arguments) now says command blocks are unsupported, instead of the misleading "busy (submitting)" copy. Adjudicating/submitting/sending keep the busy message.
 - Stop attributing commands to the reference-chip guard: `error.occurrences` now names file and session references only, because a command chip is caught by its own message.
