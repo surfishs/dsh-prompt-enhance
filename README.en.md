@@ -7,7 +7,7 @@
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/surfishs/dsh-prompt-enhance/blob/main/LICENSE)
 [![Platform: DSH Desktop + Web](https://img.shields.io/badge/Platform-DSH%20Desktop%20%2B%20Web-2F81F7?style=flat)](https://github.com/surfishs/dsh-prompt-enhance/blob/main/README.en.md#install)
 [![Supported DSH versions: 0.1.1–0.2.x](https://img.shields.io/badge/DSH-0.1.1%E2%80%930.2.x-8A2BE2?style=flat)](https://github.com/surfishs/dsh-prompt-enhance/blob/main/README.en.md#requirements)
-[![GitHub stars](https://img.shields.io/github/stars/surfishs/dsh-prompt-enhance.svg)](https://github.com/surfishs/dsh-prompt-enhance/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/surfishs/dsh-prompt-enhance.svg?style=flat)](https://github.com/surfishs/dsh-prompt-enhance/stargazers)
 
 [简体中文](./README.md) | English
 
