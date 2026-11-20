@@ -5,30 +5,28 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-11-20
+
 ### Added
 
-- Tell the enhancement model that the draft carries attachments: the request forwards the composer's attachment count, the prompt announces it in an `<attachments>` block with rules against describing, guessing or inferring the contents, and the result card's context tooltip reports the count. Attachment contents are never sent.
-
-### Fixed
-
-- Keep the context rules when a custom strategy uses `replace-default`: they were merged into the built-in prompt, so replacing it dropped them; they now apply in every strategy mode.
-- Show the effective default as the placeholder of an empty numeric settings row, so a blank field says "leave blank to use the default" instead of looking like a silent clear.
-- Validate every numeric settings row against its real bounds before saving: an out-of-range value (for example output tokens = 1) now shows the inline error with the actual range and is never written, instead of appearing saved while the default keeps running.
-- Stop the result card's Regenerate button from swallowing a click when the draft is empty: it now greys out, explains why in the stale warning and its tooltip (attachments are not enhanced on their own), and re-enables as soon as text returns.
-- Name the real reason a command-chip draft is refused: `claimed` (a `/plan`-style command waiting for its arguments) now says command blocks are unsupported, instead of the misleading "busy (submitting)" copy. Adjudicating/submitting/sending keep the busy message.
-- Stop attributing commands to the reference-chip guard: `error.occurrences` now names file and session references only, because a command chip is caught by its own message.
-- Say what the busy guard actually covers: `error.phase` reads "submitting or checking", since it spans adjudicating, submitting and sending.
+- Announce the draft's attachment count in the enhancement prompt and the result card; attachment contents are never sent.
+- Append meta rules to every system prompt: only `<raw_prompt>` is draft data, and the model must not restate instructions, context or attachment facts.
 
 ### Changed
 
-- Rework the README prompt-system and settings sections: document nine hard rules, the custom-only invariant contract, the every-call meta rules, context/attachment rules, basic/advanced settings, the quick settings card, truncation/regenerate behaviour, and message-based context counts.
-- Show a truncated result in a red banner instead of the yellow stale banner: truncation is only shown while the draft still matches the result, the stale warning wins once the draft changes, and the collapsed marker follows the same priority.
-- Clarify the truncation notice: name the exact output-token setting in both the cause and the fix, drop the nested parentheses, and keep the "may be incomplete" warning.
-- Unify the stale-warning copy: the changed/non-empty and changed/empty states share one sentence shape, button names use their exact labels in quotes, the collapsed marker gets short state-neutral titles for stale and truncated, and the regenerate tooltip no longer ends with a period.
-- Clarify the greeting wording without changing its behaviour: the rules now name the assistant's role and drop the ambiguous "respond to it", in both the default strategy and the invariant contract.
-- Rewrite the attachment rules for downstream readers: the model may point at an attachment as an input ("见附件", "the attached screenshot") and use its count inside the task description, while it still cannot describe the contents or report the count/availability as background.
-- Append meta rules to every system prompt: only `<raw_prompt>` is draft material; the output must be a task prompt for the downstream assistant rather than a note about the rewriting step; and the system instructions, context block and attachment meta-facts must never be restated in the output.
-- Rewrite the local-guard and call-failure copy around one structure: what happened, the exact next step, and — where nothing was applied — a consistent "your input was not changed". "宿主服务 / host service" became "DSH 服务 / the DSH service"; timeout, size and limit messages now name the setting or the wait that resolves them; the command-plane copy for `/enhance` mirrors the same wording.
+- Show a truncated result in a red banner that yields to the stale-draft warning once the draft changes.
+- Rewrite the attachment rules for downstream readers: allow a task-level pointer and the count in the task description, but never describe or guess the contents.
+- Unify stale-warning, truncation, guard and call-failure copy around one structure and exact button names.
+- Rework the README prompt-system and settings sections: nine hard rules, the custom-only invariant contract, meta/context/attachment rules, basic/advanced settings, the quick settings card, and message-based context counts.
+
+### Fixed
+
+- Keep the context rules when `replace-default` replaces the built-in prompt; they now apply in every strategy mode.
+- Validate numeric settings rows against their real bounds, show the effective default as the placeholder, and never save an out-of-range value.
+- Disable the result card's Regenerate button on an empty draft and explain why.
+- Name command-chip, reference-chip and busy-guard refusal reasons accurately.
+
+[0.1.4]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.3...v0.1.4
 
 ## [0.1.3] - 2026-11-19
 
