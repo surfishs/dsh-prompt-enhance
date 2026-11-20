@@ -40,6 +40,9 @@ export const CSS = `
      from the other scheme. */
   --pe-warn-border: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #e8c07d) 35%, transparent);
   --pe-warn-bg: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #e8c07d) 12%, transparent);
+  /* Same tint recipe for the truncation banner: red is a state, not a theme. */
+  --pe-danger-border: color-mix(in srgb, var(--dsw-alias-state-error-primary, #ffb4a8) 35%, transparent);
+  --pe-danger-bg: color-mix(in srgb, var(--dsw-alias-state-error-primary, #ffb4a8) 12%, transparent);
 }
 /* Quick-settings menu, copied from the shell's own menu primitives:
    - the card surface is MenuSurface.module.css (radius-lg, elevation stroke,
@@ -362,6 +365,7 @@ html[data-platform='darwin'] .dsh-pe-menu {
 /* Collapsed, the warning banners live in the hidden body; this marker stands in
    for them so a stale or truncated result never folds away silently. */
 .dsh-pe-warn-dot { font-size: 15px; line-height: 1; color: var(--pe-warn-fg); }
+.dsh-pe-warn-dot.is-danger { color: var(--pe-danger); }
 .dsh-pe-result { padding: 2px 10px 6px; }
 .dsh-pe-result-text {
   margin: 0;
@@ -600,6 +604,13 @@ html[data-platform='darwin'] .dsh-pe-menu {
   border-top: 1px solid var(--pe-warn-border);
   background: var(--pe-warn-bg);
   color: var(--pe-warn-fg);
+}
+/* Truncation is a result-quality problem, not a stale-draft warning: red says
+   the result itself is incomplete, while the stale banner keeps the amber. */
+.dsh-pe-stale.dsh-pe-truncated {
+  border-top-color: var(--pe-danger-border);
+  background: var(--pe-danger-bg);
+  color: var(--pe-danger);
 }
 
 .dsh-pe-btn {

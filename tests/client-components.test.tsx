@@ -565,6 +565,62 @@ describe('enhance → apply → undo loop', () => {
     // not the banner — is what tells the user a warning is folded away.
     expect(document.querySelector('.dsh-pe-panel.is-collapsed')).not.toBeNull()
     expect(document.querySelector('.dsh-pe-warn-dot')).not.toBeNull()
+    // The marker carries the short state title, never the full banner copy.
+    expect(document.querySelector('.dsh-pe-warn-dot')?.getAttribute('title')).toBe(zh['panel.stale.dot'])
+  }, 10000)
+
+  it('uses the short stale title on the collapsed marker even when the draft is empty', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    act(() => {
+      input.set({ draft: '   ' })
+    })
+    expect(await screen.findByText(`⚠ ${zh['panel.stale.empty']}`)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.collapse'] }))
+    // The old title promised a regenerate that cannot run; the short marker
+    // title is state-neutral and stays true for the empty draft too.
+    expect(document.querySelector('.dsh-pe-warn-dot')?.getAttribute('title')).toBe(zh['panel.stale.dot'])
+  }, 10000)
+
+  it('uses the short truncated title on the collapsed marker', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5, truncated: true })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    expect(await screen.findByText(`⚠ ${zh['panel.truncated']}`)).toBeTruthy()
+    expect(document.querySelector('.dsh-pe-truncated')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.collapse'] }))
+    expect(document.querySelector('.dsh-pe-warn-dot')?.getAttribute('title')).toBe(zh['panel.truncated.dot'])
+    expect(document.querySelector('.dsh-pe-warn-dot')?.classList.contains('is-danger')).toBe(true)
+  }, 10000)
+
+  it('hides the truncation banner once the draft changes, leaving only the stale banner', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5, truncated: true })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    expect(await screen.findByText(`⚠ ${zh['panel.truncated']}`)).toBeTruthy()
+
+    act(() => {
+      input.set({ draft: '改了草稿' })
+    })
+    expect(await screen.findByText(`⚠ ${zh['panel.stale.warn']}`)).toBeTruthy()
+    expect(screen.queryByText(`⚠ ${zh['panel.truncated']}`)).toBeNull()
+    expect(document.querySelector('.dsh-pe-truncated')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.collapse'] }))
+    const dot = document.querySelector('.dsh-pe-warn-dot')
+    expect(dot?.getAttribute('title')).toBe(zh['panel.stale.dot'])
+    expect(dot?.classList.contains('is-danger')).toBe(false)
   }, 10000)
 
   it('folds the card after applying the result', async () => {

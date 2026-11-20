@@ -332,7 +332,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
           {/* Collapsed, the body — and with it the warnings — is hidden, so the
               header carries a marker instead of silently swallowing one. */}
           {collapsed && (state.stale === true || state.result?.truncated === true) ? (
-            <span className="dsh-pe-warn-dot" title={state.stale === true ? t('panel.stale.warn') : t('panel.truncated')} aria-hidden="true">
+            <span className={`dsh-pe-warn-dot${state.stale === true ? '' : ' is-danger'}`} title={state.stale === true ? t('panel.stale.dot') : t('panel.truncated.dot')} aria-hidden="true">
               ⚠
             </span>
           ) : null}
@@ -390,7 +390,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
             </div>
           )}
 
-          {state.phase === 'result' && state.result?.truncated === true && <div className="dsh-pe-stale">⚠ {t('panel.truncated')}</div>}
+          {state.phase === 'result' && state.result?.truncated === true && !state.stale && <div className="dsh-pe-stale dsh-pe-truncated">⚠ {t('panel.truncated')}</div>}
 
           {state.phase === 'result' && state.stale && <div className="dsh-pe-stale">⚠ {t(draftEmpty ? 'panel.stale.empty' : 'panel.stale.warn')}</div>}
         </div>

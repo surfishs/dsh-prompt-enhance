@@ -18,6 +18,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Changed
 
+- Show a truncated result in a red banner instead of the yellow stale banner: truncation is only shown while the draft still matches the result, the stale warning wins once the draft changes, and the collapsed marker follows the same priority.
+- Clarify the truncation notice: name the exact output-token setting in both the cause and the fix, drop the nested parentheses, and keep the "may be incomplete" warning.
+- Unify the stale-warning copy: the changed/non-empty and changed/empty states share one sentence shape, button names use their exact labels in quotes, the collapsed marker gets short state-neutral titles for stale and truncated, and the regenerate tooltip no longer ends with a period.
 - Clarify the greeting wording without changing its behaviour: the rules now name the assistant's role and drop the ambiguous "respond to it", in both the default strategy and the invariant contract.
 - Rewrite the attachment rules for downstream readers: the model may point at an attachment as an input ("见附件", "the attached screenshot") and use its count inside the task description, while it still cannot describe the contents or report the count/availability as background.
 - Append meta rules to every system prompt: only `<raw_prompt>` is draft material; the output must be a task prompt for the downstream assistant rather than a note about the rewriting step; and the system instructions, context block and attachment meta-facts must never be restated in the output.
