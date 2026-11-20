@@ -40,6 +40,9 @@ export function ResultDock(props: ResultDockProps): ReactNode {
     const value = (state as { draft?: unknown }).draft
     return typeof value === 'string' ? value : ''
   })
+  // Same emptiness rule as the composer button: an attachment-only draft has
+  // no text to re-run, so regenerate is unavailable (the card explains why).
+  const draftEmpty = draft.trim() === ''
   const phase = useInput((state) => {
     const value = (state as { phase?: unknown }).phase
     return typeof value === 'string' ? value : ''
@@ -162,6 +165,9 @@ export function ResultDock(props: ResultDockProps): ReactNode {
 
   const regenerate = (): void => {
     if (panel.phase !== 'result') return
+    // An empty draft cannot be re-run; the disabled card already says so, and
+    // clicking must not leave a pending label behind.
+    if (draftEmpty) return
     // A click during the notice window starts a fresh round: drop the label now
     // so the button shows its normal text before it disappears, and remember
     // which result this round has to replace.
@@ -178,6 +184,7 @@ export function ResultDock(props: ResultDockProps): ReactNode {
         t={t}
         applied={applied}
         regenerated={regeneratedNotice}
+        draftEmpty={draftEmpty}
         collapsed={panel.collapsed === true}
         onToggleCollapsed={() => ui.setCollapsed(uiKey, panel.collapsed !== true)}
         foldAnimation={settings.foldAnimation}

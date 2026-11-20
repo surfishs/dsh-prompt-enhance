@@ -580,6 +580,10 @@ html[data-platform='darwin'] .dsh-pe-menu {
    (retry, cancel) the same size as the rest. */
 .dsh-pe-btn-floor { min-width: 96px; }
 .dsh-pe-btn-action:disabled { opacity: 0.45; cursor: default; }
+/* aria-disabled, not the native attribute: the button keeps focus and its
+   click handler so the reason stays reachable (the handler refuses to run). */
+.dsh-pe-btn-action[aria-disabled='true'] { opacity: 0.45; cursor: not-allowed; }
+.dsh-pe-btn-action[aria-disabled='true']:hover { background: transparent; }
 
 /* Both labels of the regenerate button share one cell, so the button is as wide
    as the longer label of the active language and a label swap can never move

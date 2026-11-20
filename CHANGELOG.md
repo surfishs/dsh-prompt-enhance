@@ -11,6 +11,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Fixed
 
+- Stop the result card's Regenerate button from swallowing a click when the draft is empty: it now greys out, explains why in the stale warning and its tooltip (attachments are not enhanced on their own), and re-enables as soon as text returns.
 - Name the real reason a command-chip draft is refused: `claimed` (a `/plan`-style command waiting for its arguments) now says command blocks are unsupported, instead of the misleading "busy (submitting)" copy. Adjudicating/submitting/sending keep the busy message.
 - Stop attributing commands to the reference-chip guard: `error.occurrences` now names file and session references only, because a command chip is caught by its own message.
 - Say what the busy guard actually covers: `error.phase` reads "submitting or checking", since it spans adjudicating, submitting and sending.

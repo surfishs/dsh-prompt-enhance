@@ -374,6 +374,32 @@ describe('enhance → apply → undo loop', () => {
     expect(screen.queryByText(`⚠ ${zh['panel.stale.warn']}`)).toBeNull()
   })
 
+  it('disables regenerate when the draft is empty and explains why', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    act(() => {
+      input.set({ draft: '   ' })
+    })
+
+    const regenerate = screen.getByRole('button', { name: zh['panel.regenerate'] })
+    expect(regenerate.getAttribute('aria-disabled')).toBe('true')
+    expect(await screen.findByText(`⚠ ${zh['panel.stale.empty']}`)).toBeTruthy()
+    // The click is refused: no second model call, no pending label.
+    fireEvent.click(regenerate)
+    expect(requestEnhance).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: zh['panel.regenerate'] })).toBeTruthy()
+
+    // Typing again re-enables the same button.
+    act(() => {
+      input.set({ draft: '新文本' })
+    })
+    await waitFor(() => expect(screen.getByRole('button', { name: zh['panel.regenerate'] }).getAttribute('aria-disabled')).toBeNull())
+  })
+
   it('applying over a diverged draft pushes the CURRENT draft as undo original', async () => {
     const input = makeFakeInput({ draft: '旧原文' })
     const setDraft = vi.fn((text: string) => input.set({ draft: text }))

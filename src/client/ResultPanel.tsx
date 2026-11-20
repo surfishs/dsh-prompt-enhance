@@ -30,6 +30,8 @@ export interface ResultPanelProps {
   onUndo?: () => void
   /** Run the same source prompt through the model again. */
   onRegenerate?: () => void
+  /** The composer draft is empty: regenerate cannot run, so the button reports why. */
+  draftEmpty?: boolean
   /** Show the transient "regenerated" label on that button instead of its normal text. */
   regenerated?: boolean
   /** Hide the body, keeping the header and the footer rows (and their actions). */
@@ -236,7 +238,7 @@ function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: 
 
 /** One enhancement result card. */
 export function ResultPanel(props: ResultPanelProps): ReactNode {
-  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, regenerated = false, collapsed = false, onToggleCollapsed, foldAnimation = true } = props
+  const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, draftEmpty = false, regenerated = false, collapsed = false, onToggleCollapsed, foldAnimation = true } = props
   const [copied, setCopied] = useState<'idle' | 'ok' | 'failed'>('idle')
   /** Pending reset of the copy label; one timer only, so a second copy cannot be cut short by the first. */
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -390,7 +392,7 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
 
           {state.phase === 'result' && state.result?.truncated === true && <div className="dsh-pe-stale">⚠ {t('panel.truncated')}</div>}
 
-          {state.phase === 'result' && state.stale && <div className="dsh-pe-stale">⚠ {t('panel.stale.warn')}</div>}
+          {state.phase === 'result' && state.stale && <div className="dsh-pe-stale">⚠ {t(draftEmpty ? 'panel.stale.empty' : 'panel.stale.warn')}</div>}
         </div>
       </div>
 
@@ -398,7 +400,14 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
         {state.phase === 'result' && <ContextUsageInfo usage={state.result?.context} attachments={state.attachments} t={t} />}
         <span className="dsh-pe-grow" />
         {state.phase === 'result' && (
-          <button type="button" className="dsh-pe-btn-action plain dsh-pe-btn-floor" onClick={onRegenerate} disabled={onRegenerate === undefined}>
+          <button
+            type="button"
+            className="dsh-pe-btn-action plain dsh-pe-btn-floor"
+            onClick={onRegenerate}
+            disabled={onRegenerate === undefined}
+            aria-disabled={draftEmpty || undefined}
+            title={draftEmpty ? t('panel.regenerate.empty') : undefined}
+          >
             <RegenerateIcon />
             <span className="dsh-pe-swap">
               {swapLabel(!regenerated, t('panel.regenerate'))}
