@@ -23,6 +23,8 @@ The draft is the source of truth: intent unchanged, no invented requirements, a 
 
 Users tend to open with a pleading "So… could you help me out?" — and that alone often sends the model off-course: it drifts from what you meant and fills in the gaps itself. That is not the user's fault: what is hard is rarely the thinking, it is turning what you have thought through into a form the model can follow.
 
+![“So… could you help me out?” — the kind of pleading request the plugin rewrites](./docs/images/promo-enhance-en.png)
+
 A good prompt spells out six things: who the model acts as and what it delivers, the context and constraints it works under, which steps it takes, in what format, what counts as correct, and where the boundaries are.
 
 The plugin adds a Prompt enhancement button to the composer toolbar: one click sends the draft to DSH's model service, which rewrites it around those six things as a structured prompt.
