@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { isLoopbackRequest, isTrustedRequest } from '../src/loopback'
+import { isLoopbackRequest, isTrustedRequest, isTrustedTransport } from '../src/loopback'
 
-const req = (fields: { remoteAddress?: string; host?: string; forwarded?: boolean; origin?: string } = {}) =>
+const req = (fields: { remoteAddress?: string; host?: string; forwarded?: boolean; origin?: string; method?: string; site?: string } = {}) =>
   ({
+    method: fields.method ?? 'GET',
     socket: { remoteAddress: fields.remoteAddress ?? '127.0.0.1' },
     headers: {
       ...(fields.host === undefined ? {} : { host: fields.host }),
       ...(fields.forwarded === true ? { 'x-forwarded-for': '203.0.113.7' } : {}),
       ...(fields.origin === undefined ? {} : { origin: fields.origin }),
+      ...(fields.site === undefined ? {} : { 'sec-fetch-site': fields.site }),
     },
   }) as never
 
@@ -20,6 +22,18 @@ describe('isLoopbackRequest', () => {
   })
 })
 
+describe('isTrustedTransport (structural half)', () => {
+  it('admits a desktop-shaped POST (no Origin, no Sec-Fetch-*) on loopback', () => {
+    expect(isTrustedTransport(req({ host: '127.0.0.1:57095', method: 'POST' }))).toBe(true)
+  })
+
+  it('still refuses non-loopback sockets, missing Host and proxy headers', () => {
+    expect(isTrustedTransport(req({ host: '127.0.0.1', remoteAddress: '192.168.1.7' }))).toBe(false)
+    expect(isTrustedTransport(req({ host: '127.0.0.1', forwarded: true }))).toBe(false)
+    expect(isTrustedTransport(req({}))).toBe(false)
+  })
+})
+
 describe('isTrustedRequest (DNS-rebinding fence)', () => {
   it('accepts loopback sockets with trusted Host headers', () => {
     expect(isTrustedRequest(req({ host: 'localhost' }))).toBe(true)
@@ -29,8 +43,23 @@ describe('isTrustedRequest (DNS-rebinding fence)', () => {
     expect(isTrustedRequest(req({ host: 'LOCALHOST' }))).toBe(true)
   })
 
-  it('accepts a missing Host header (HTTP/1.0) on a loopback socket', () => {
-    expect(isTrustedRequest(req({}))).toBe(true)
+  it('refuses a missing Host header', () => {
+    // Every browser and HTTP/1.1 client sends Host; its absence marks a raw
+    // client this fence does not need to admit.
+    expect(isTrustedRequest(req({}))).toBe(false)
+  })
+
+  it('refuses a non-GET request that carries no Origin', () => {
+    expect(isTrustedRequest(req({ host: '127.0.0.1:3080', method: 'POST' }))).toBe(false)
+    expect(isTrustedRequest(req({ host: '127.0.0.1:3080', method: 'POST', origin: 'http://127.0.0.1:3080' }))).toBe(true)
+    // GET may omit it: browser image/script loads do, and GET routes are read-only.
+    expect(isTrustedRequest(req({ host: '127.0.0.1:3080', method: 'GET' }))).toBe(true)
+  })
+
+  it('refuses a request the browser declares cross-site', () => {
+    expect(isTrustedRequest(req({ host: '127.0.0.1:3080', method: 'GET', site: 'cross-site' }))).toBe(false)
+    expect(isTrustedRequest(req({ host: '127.0.0.1:3080', method: 'GET', site: 'same-origin' }))).toBe(true)
+    expect(isTrustedRequest(req({ host: '127.0.0.1:3080', method: 'GET', site: 'none' }))).toBe(true)
   })
 
   it('refuses rebound attacker hostnames even from a loopback socket', () => {

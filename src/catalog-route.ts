@@ -10,7 +10,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import { LLM_MODELS_ENDPOINT, LLM_PROVIDERS_ENDPOINT, LLM_ROUTE_CHECK_ENDPOINT } from './shared/catalog'
 import { checkRoute, listModelCatalog, listProviderCatalog } from './provider-catalog'
-import { isTrustedRequest } from './loopback'
+import { trustRejection } from './trust'
 import { writeJson } from './http'
 
 /** Read one required query parameter, treating whitespace as absent. */
@@ -27,8 +27,12 @@ function requiredParam(url: URL, name: string): string | undefined {
  * @param pathname - the already-parsed request path.
  */
 export async function serveCatalog(ctx: Context, req: IncomingMessage, res: ServerResponse, pathname: string): Promise<void> {
-  if (!isTrustedRequest(req)) {
-    writeJson(res, 403, { ok: false, error: { code: 'internal', message: 'forbidden: loopback-only' } })
+  const rejection = trustRejection(ctx, req)
+  if (rejection !== undefined) {
+    writeJson(res, rejection, {
+      ok: false,
+      error: { code: 'internal', message: rejection === 401 ? 'unauthorized' : 'forbidden: loopback-only' },
+    })
     return
   }
   if (req.method !== 'GET') {

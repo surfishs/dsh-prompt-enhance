@@ -76,27 +76,46 @@ function isTrustedOrigin(origin: string, expectedPort: string | null): boolean {
   }
 }
 
+/** Methods whose browser form must carry an `Origin`. */
+const MUTATING_METHODS: ReadonlySet<string> = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
+
 /**
- * Full trust check for the plugin's host routes: the socket must be loopback,
- * the Host header must name a loopback host, and no proxy-forwarding headers
- * may be present. The Host check defeats DNS rebinding — a rebound attacker
- * domain keeps the loopback socket address but carries the attacker's
- * hostname, which is refused here. A missing Host header (HTTP/1.0 style)
- * stays allowed: the socket check already bounds it to local processes.
- * Requests carrying `X-Forwarded-For` / `Forwarded` are refused outright:
- * those headers only exist when a proxy is in the path, which this route's
- * trust model does not cover. A browser-supplied `Origin` must be a same-app
- * local page on the very port this request was addressed to — this defeats
- * cross-site fire-and-forget POSTs, which always carry an `Origin` that will
- * not be trusted, and also shuts out pages served by other local servers.
+ * Structural half of the fence: the socket must be loopback, the Host header
+ * must name a loopback host, and no proxy-forwarding headers may be present.
+ *
+ * This is the half that applies even when the host's own Connection gate has
+ * already approved the request: it costs nothing and it keeps the route off a
+ * non-loopback interface. The browser-shaped checks live in
+ * {@link isTrustedRequest}, because a desktop shell's bridged fetch carries no
+ * Origin and no `Sec-Fetch-*` at all.
  */
-export function isTrustedRequest(req: IncomingMessage): boolean {
+export function isTrustedTransport(req: IncomingMessage): boolean {
   if (req.headers['x-forwarded-for'] !== undefined || req.headers.forwarded !== undefined) return false
   if (!isLoopbackRequest(req)) return false
   const host = req.headers.host
-  if (typeof host !== 'string' || host.trim() === '') return true
-  if (!TRUSTED_HOSTNAMES.has(hostnameOf(host))) return false
+  if (typeof host !== 'string' || host.trim() === '') return false
+  return TRUSTED_HOSTNAMES.has(hostnameOf(host))
+}
+
+/**
+ * Full fence for hosts without a Connection service: the structural checks
+ * plus the browser-shaped default-deny rules.
+ *
+ * A request that declares `Sec-Fetch-Site: cross-site` is refused, and a
+ * non-GET request without an `Origin` is refused (browsers send one for every
+ * non-GET request, so its absence marks a non-browser caller that skipped the
+ * header). GET/HEAD may omit `Origin`: a browser image/script load does, and
+ * those routes are read-only.
+ */
+export function isTrustedRequest(req: IncomingMessage): boolean {
+  if (!isTrustedTransport(req)) return false
+  // Declared cross-site is refused even when a Host/Origin pair would pass:
+  // `Sec-Fetch-Site` is the browser's own statement about the initiator.
+  const site = req.headers['sec-fetch-site']
+  if (typeof site === 'string' && site.trim().toLowerCase() === 'cross-site') return false
+  const host = req.headers.host as string
   const origin = req.headers.origin
-  if (typeof origin === 'string' && origin.trim() !== '' && !isTrustedOrigin(origin, portOf(host))) return false
-  return true
+  const method = (req.method ?? 'GET').toUpperCase()
+  if (typeof origin !== 'string' || origin.trim() === '') return !MUTATING_METHODS.has(method)
+  return isTrustedOrigin(origin, portOf(host))
 }

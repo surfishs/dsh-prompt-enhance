@@ -16,8 +16,8 @@ import { checkInputText } from './shared/validate'
 import { type Config } from './config'
 import { toEnhanceError } from './enhancer'
 import { runEnhance, sessionRouteOf } from './orchestrate'
-import { isTrustedRequest } from './loopback'
-import { BodyTooLargeError, readBoundedJson, writeJson, endResponse } from './http'
+import { trustRejection } from './trust'
+import { BodyTooLargeError, UnsupportedMediaTypeError, readBoundedJson, writeJson, endResponse } from './http'
 import { REASONING_EFFORTS_ENDPOINT } from './shared/reasoning'
 import { serveReasoningEfforts } from './reasoning-route'
 import { LLM_MODELS_ENDPOINT, LLM_PROVIDERS_ENDPOINT, LLM_ROUTE_CHECK_ENDPOINT } from './shared/catalog'
@@ -58,8 +58,12 @@ function attachmentCountOf(value: unknown): number | undefined {
  *   only the response shape differs.
  */
 async function serveEnhance(ctx: Context, readConfig: () => Config, gate: AdmissionGate, pathname: string, req: IncomingMessage, res: ServerResponse, stream: boolean): Promise<void> {
-  if (!isTrustedRequest(req)) {
-    writeJson(res, 403, { ok: false, error: { code: 'internal', message: 'forbidden: loopback-only' } })
+  const rejection = trustRejection(ctx, req)
+  if (rejection !== undefined) {
+    writeJson(res, rejection, {
+      ok: false,
+      error: { code: 'internal', message: rejection === 401 ? 'unauthorized' : 'forbidden: loopback-only' },
+    })
     return
   }
   // One route, two exact endpoints (one-shot JSON / incremental SSE):
@@ -70,11 +74,6 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
   }
   if (req.method !== 'POST') {
     writeJson(res, 405, { ok: false, error: { code: 'internal', message: 'only POST is allowed' } })
-    return
-  }
-  const contentType = req.headers['content-type']
-  if (contentType !== undefined && !String(contentType).toLowerCase().startsWith('application/json')) {
-    writeJson(res, 415, { ok: false, error: { code: 'rejected', message: '仅支持 application/json 请求体。' } })
     return
   }
   let config: Config
@@ -114,16 +113,17 @@ async function serveEnhance(ctx: Context, readConfig: () => Config, gate: Admiss
     body = await readBoundedJson(req, cap)
   } catch (error) {
     const tooLarge = error instanceof BodyTooLargeError
+    const badType = error instanceof UnsupportedMediaTypeError
     // The overflow case left the body unread, so this connection can never carry
     // another request — and measured on node v24.21.0, Node keeps it open with
     // no FIN unless the response says otherwise. Declare it non-reusable exactly
     // like the declared-length fast reject above: the 413 still has to travel,
     // but the socket must not linger after it.
-    // Only the 413 closes: the 422 path consumed the body, so it stays reusable.
+    // Only the 413 closes: the 415/422 paths consumed nothing, so they stay reusable.
     if (tooLarge) res.setHeader('connection', 'close')
-    writeJson(res, tooLarge ? 413 : 422, {
+    writeJson(res, badType ? 415 : tooLarge ? 413 : 422, {
       ok: false,
-      error: { code: 'rejected', message: tooLarge ? '请求体超过大小上限。' : '请求体不是有效的 JSON。' },
+      error: { code: 'rejected', message: badType ? '仅支持 application/json 请求体。' : tooLarge ? '请求体超过大小上限。' : '请求体不是有效的 JSON。' },
     })
     return
   }

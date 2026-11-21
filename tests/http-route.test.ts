@@ -52,8 +52,40 @@ interface StubContext {
   routeDisposals: () => number
 }
 
+/**
+ * Stand-in for the host Connection gate: admits requests with no Origin (the
+ * desktop bridge shape) and loopback Origins addressed to the same port, and
+ * refuses everything else — the two refusals the real gate applies.
+ */
+function hostGateStub(): unknown {
+  return {
+    requestRejection({ headers }: { headers: Record<string, string | string[] | undefined> }): 401 | 403 | undefined {
+      const origin = headers.origin
+      if (typeof origin !== 'string' || origin.trim() === '') return undefined
+      let url: URL
+      try {
+        url = new URL(origin)
+      } catch {
+        return 403
+      }
+      const host = String(headers.host ?? '')
+      const port = host.includes(':') ? host.slice(host.lastIndexOf(':') + 1) : ''
+      const hostname = (host.startsWith('[') ? host.slice(1, host.indexOf(']')) : (host.split(':')[0] ?? '')).toLowerCase()
+      const originHostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '')
+      if (!['127.0.0.1', 'localhost', '::1'].includes(originHostname)) return 403
+      if (port !== '' && url.port !== port) return 403
+      if (!['localhost', '127.0.0.1', '::1'].includes(hostname)) return 403
+      return undefined
+    },
+  }
+}
+
 /** Build a stub context exposing the services the plugin half reads. */
-function stubContext(llm: ReturnType<typeof makeLlm>, selection: { provider: string; model: string } | null = { provider: 'zhipu', model: 'glm-5.3' }): StubContext {
+function stubContext(
+  llm: ReturnType<typeof makeLlm>,
+  selection: { provider: string; model: string } | null = { provider: 'zhipu', model: 'glm-5.3' },
+  connection: unknown = hostGateStub(),
+): StubContext {
   const captured: CapturedRoute[] = []
   const cleanups: (() => void)[] = []
   let routeDisposals = 0
@@ -78,6 +110,7 @@ function stubContext(llm: ReturnType<typeof makeLlm>, selection: { provider: str
       if (key === 'llm') return llm
       if (key === 'sessions') return { get: (): undefined => undefined }
       if (key === 'settings') return { get: (): unknown => selection ?? {} }
+      if (key === 'connection') return connection
       return undefined
     },
     // cordis runs the callback in a child fiber once the deps resolve; the
@@ -101,8 +134,13 @@ function stubContext(llm: ReturnType<typeof makeLlm>, selection: { provider: str
 }
 
 /** Mount apply() against a stub context and expose the route over real HTTP. */
-function mount(llm: ReturnType<typeof makeLlm>, config = CONFIG, selection: { provider: string; model: string } | null = { provider: 'zhipu', model: 'glm-5.3' }): Server {
-  const { ctx, captured } = stubContext(llm, selection)
+function mount(
+  llm: ReturnType<typeof makeLlm>,
+  config = CONFIG,
+  selection: { provider: string; model: string } | null = { provider: 'zhipu', model: 'glm-5.3' },
+  connection: unknown = hostGateStub(),
+): Server {
+  const { ctx, captured } = stubContext(llm, selection, connection)
   apply(ctx as never, config)
   const route = captured[0]
   if (route === undefined) throw new Error('route was not registered')
@@ -121,9 +159,10 @@ async function call(
   extraHeaders: Record<string, string> = {},
 ): Promise<{ status: number; json: unknown; headers: Headers }> {
   const { port } = server.address() as AddressInfo
+  const origin = `http://127.0.0.1:${port}`
   const response = await fetch(`http://127.0.0.1:${port}${path}`, {
     method,
-    ...(body !== undefined ? { headers: { 'content-type': 'application/json', ...extraHeaders }, body } : { headers: { ...extraHeaders } }),
+    ...(body !== undefined ? { headers: { 'content-type': 'application/json', origin, ...extraHeaders }, body } : { headers: { origin, ...extraHeaders } }),
   })
   return { status: response.status, json: (await response.json()) as unknown, headers: response.headers }
 }
@@ -198,17 +237,26 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     const { port } = server.address() as AddressInfo
     const response = await fetch(`http://127.0.0.1:${port}/dsh-prompt-enhance/enhance`, {
       method: 'POST',
-      headers: { 'content-type': 'text/plain' },
+      headers: { 'content-type': 'text/plain', origin: `http://127.0.0.1:${port}` },
       body: JSON.stringify({ text: '写' }),
     })
     expect(response.status).toBe(415)
   })
 
-  it('serves a local caller that sends no Origin header', async () => {
-    // Deliberate, not a gap: a local process sending no Origin IS served. The
-    // loopback socket plus the Host allowlist are the trust boundary; Origin
-    // only defeats cross-site browser POSTs, which always carry one. Any local
-    // process is inside this route's trust model by design.
+  it('answers 415 when the body carries no Content-Type at all', async () => {
+    const { port } = server.address() as AddressInfo
+    const response = await fetch(`http://127.0.0.1:${port}/dsh-prompt-enhance/enhance`, {
+      method: 'POST',
+      headers: { origin: `http://127.0.0.1:${port}` },
+      body: JSON.stringify({ text: '写' }),
+    })
+    expect(response.status).toBe(415)
+  })
+
+  it('admits a host-approved POST that carries no Origin (desktop bridge)', async () => {
+    // The desktop shell's bridged fetch sends neither Origin nor Sec-Fetch-*:
+    // the host gate already admitted it, so the plugin must not re-judge the
+    // browser-shaped headers it never received.
     const server = mount(makeLlm(() => streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])))
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     try {
@@ -224,12 +272,64 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     }
   })
 
+  it('refuses an Origin-less POST when no Connection service exists', async () => {
+    // Without the host gate the fence is the only check, so the browser-shaped
+    // default-deny rule applies.
+    const server = mount(
+      makeLlm(() => streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])),
+      CONFIG,
+      { provider: 'zhipu', model: 'glm-5.3' },
+      null,
+    )
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      const { port } = server.address() as AddressInfo
+      const response = await fetch(`http://127.0.0.1:${port}/dsh-prompt-enhance/enhance`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ text: '写' }),
+      })
+      expect(response.status).toBe(403)
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
+  it('answers with the Host gate status before the body is read', async () => {
+    for (const status of [401, 403] as const) {
+      const guarded = mount(
+        makeLlm(() => streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])),
+        CONFIG,
+        { provider: 'zhipu', model: 'glm-5.3' },
+        { requestRejection: () => status },
+      )
+      await new Promise<void>((resolve) => guarded.listen(0, '127.0.0.1', resolve))
+      try {
+        const { port } = guarded.address() as AddressInfo
+        const response = await fetch(`http://127.0.0.1:${port}/dsh-prompt-enhance/enhance`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` },
+          body: JSON.stringify({ text: '写' }),
+        })
+        expect(response.status).toBe(status)
+      } finally {
+        await new Promise<void>((resolve) => guarded.close(() => resolve()))
+      }
+    }
+  })
+
   it('fast-rejects an oversized Content-Length with 413 before reading', async () => {
     const http = await import('node:http')
     const { port } = server.address() as AddressInfo
     const status = await new Promise<number>((resolve) => {
       const request = http.request(
-        { host: '127.0.0.1', port, method: 'POST', path: '/dsh-prompt-enhance/enhance', headers: { 'content-type': 'application/json', 'content-length': '99999999' } },
+        {
+          host: '127.0.0.1',
+          port,
+          method: 'POST',
+          path: '/dsh-prompt-enhance/enhance',
+          headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}`, 'content-length': '99999999' },
+        },
         (response) => {
           response.resume()
           resolve(response.statusCode ?? 0)
@@ -271,7 +371,7 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
           resolve(received)
         }
         const socket = net.connect({ port, host: '127.0.0.1' }, () => {
-          socket.write('POST /dsh-prompt-enhance/enhance HTTP/1.1\r\nhost: 127.0.0.1\r\ncontent-type: application/json\r\ntransfer-encoding: chunked\r\n\r\n')
+          socket.write('POST /dsh-prompt-enhance/enhance HTTP/1.1\r\nhost: 127.0.0.1\r\norigin: http://127.0.0.1\r\ncontent-type: application/json\r\ntransfer-encoding: chunked\r\n\r\n')
           const piece = 'x'.repeat(1024)
           for (let sent = 0; sent <= maxInputChars * 6 + 8192; sent += piece.length) {
             socket.write(`${piece.length.toString(16)}\r\n${piece}\r\n`)
@@ -468,7 +568,9 @@ describe('POST /dsh-prompt-enhance/enhance disconnect handling (real sockets)', 
     const net = await import('node:net')
     const socket = net.connect({ port, host: '127.0.0.1' }, () => {
       const body = JSON.stringify({ text: '写个脚本' })
-      socket.write(`POST /dsh-prompt-enhance/enhance HTTP/1.1\r\nHost: 127.0.0.1\r\ncontent-type: application/json\r\ncontent-length: ${Buffer.byteLength(body)}\r\n\r\n${body}`)
+      socket.write(
+        `POST /dsh-prompt-enhance/enhance HTTP/1.1\r\nHost: 127.0.0.1\r\norigin: http://127.0.0.1\r\ncontent-type: application/json\r\ncontent-length: ${Buffer.byteLength(body)}\r\n\r\n${body}`,
+      )
       setTimeout(() => socket.destroy(), 80)
     })
     socket.on('error', () => {})
@@ -504,7 +606,9 @@ describe('POST /dsh-prompt-enhance/enhance disconnect handling (real sockets)', 
     const body = JSON.stringify({ text: '占用者' })
     await new Promise<void>((resolve) => {
       const socket = net.connect({ port, host: '127.0.0.1' }, () => {
-        socket.write(`POST /dsh-prompt-enhance/enhance HTTP/1.1\r\nHost: 127.0.0.1\r\ncontent-type: application/json\r\ncontent-length: ${Buffer.byteLength(body)}\r\n\r\n${body}`)
+        socket.write(
+          `POST /dsh-prompt-enhance/enhance HTTP/1.1\r\nHost: 127.0.0.1\r\norigin: http://127.0.0.1\r\ncontent-type: application/json\r\ncontent-length: ${Buffer.byteLength(body)}\r\n\r\n${body}`,
+        )
         setTimeout(() => {
           socket.destroy()
           resolve()
@@ -743,7 +847,7 @@ describe('POST /dsh-prompt-enhance/enhance-stream (real http, SSE)', () => {
     const { port } = server.address() as AddressInfo
     const response = await fetch(`http://127.0.0.1:${port}/dsh-prompt-enhance/enhance-stream`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'text/event-stream', ...extraHeaders },
+      headers: { 'content-type': 'application/json', accept: 'text/event-stream', origin: `http://127.0.0.1:${port}`, ...extraHeaders },
       body: JSON.stringify({ text }),
       // Fail fast instead of eating vitest's whole 5 s budget if the stream
       // ever stops progressing: a hang here is a route bug, not a slow test.

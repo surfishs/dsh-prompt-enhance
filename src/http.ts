@@ -39,6 +39,24 @@ export class BodyTooLargeError extends Error {
 }
 
 /**
+ * The request body was not declared as JSON.
+ *
+ * A class rather than a status constant: the route maps this one to 415, and
+ * every other read/parse failure to 422. Missing `Content-Type` counts as a
+ * mismatch, not an omission — a browser form POST is exactly the request that
+ * omits the JSON type while still carrying a body.
+ */
+export class UnsupportedMediaTypeError extends Error {
+  /** Stable discriminant for `instanceof`-free checks across realms. */
+  readonly code = 'unsupported-media-type'
+
+  constructor() {
+    super('unsupported media type')
+    this.name = 'UnsupportedMediaTypeError'
+  }
+}
+
+/**
  * Read a JSON request body, refusing anything past `maxBytes`.
  * @param req - the incoming request.
  * @param maxBytes - the cap in bytes.
@@ -46,6 +64,12 @@ export class BodyTooLargeError extends Error {
  * @throws {@link BodyTooLargeError} past the cap, or the JSON.parse error otherwise.
  */
 export async function readBoundedJson(req: IncomingMessage, maxBytes: number): Promise<unknown> {
+  // JSON only, declared or not: a request without the header is a form or a
+  // raw client, and both are shapes this route does not serve.
+  const contentType = req.headers['content-type']
+  if (typeof contentType !== 'string' || !/^application\/(?:[a-z0-9!#$&^_.+-]+\+)?json\b/i.test(contentType.trim())) {
+    throw new UnsupportedMediaTypeError()
+  }
   const chunks: Buffer[] = []
   let size = 0
   for await (const chunk of req) {

@@ -13,7 +13,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import { REASONING_EFFORTS_ENDPOINT } from './shared/reasoning'
 import { resolveReasoningCapabilities } from './reasoning-efforts'
-import { isTrustedRequest } from './loopback'
+import { trustRejection } from './trust'
 import { writeJson } from './http'
 
 /** Read one optional query parameter, treating whitespace as absent. */
@@ -29,8 +29,12 @@ function queryParam(url: URL, name: string): string | undefined {
  * @param res - the outgoing response.
  */
 export async function serveReasoningEfforts(ctx: Context, req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (!isTrustedRequest(req)) {
-    writeJson(res, 403, { ok: false, error: { code: 'internal', message: 'forbidden: loopback-only' } })
+  const rejection = trustRejection(ctx, req)
+  if (rejection !== undefined) {
+    writeJson(res, rejection, {
+      ok: false,
+      error: { code: 'internal', message: rejection === 401 ? 'unauthorized' : 'forbidden: loopback-only' },
+    })
     return
   }
   const url = new URL(req.url ?? '/', 'http://x')

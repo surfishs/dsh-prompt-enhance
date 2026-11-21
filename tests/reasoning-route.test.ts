@@ -138,7 +138,7 @@ describe('resolveReasoningCapabilities', () => {
 })
 
 describe('serveReasoningEfforts', () => {
-  const trusted = { headers: {}, socket: { remoteAddress: '127.0.0.1' } }
+  const trusted = { headers: { host: '127.0.0.1' }, socket: { remoteAddress: '127.0.0.1' } }
 
   it('rejects a partial pair instead of describing a route that cannot be called', async () => {
     const res = fakeRes()
@@ -148,7 +148,11 @@ describe('serveReasoningEfforts', () => {
 
   it('rejects a non-GET method', async () => {
     const res = fakeRes()
-    await serveReasoningEfforts(ctxOf({}), { ...trusted, method: 'POST', url: '/dsh-prompt-enhance/reasoning-efforts' } as never, res as never)
+    await serveReasoningEfforts(
+      ctxOf({}),
+      { ...trusted, method: 'POST', headers: { host: '127.0.0.1', origin: 'http://127.0.0.1' }, url: '/dsh-prompt-enhance/reasoning-efforts' } as never,
+      res as never,
+    )
     expect(res.status).toBe(405)
   })
 

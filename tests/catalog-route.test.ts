@@ -109,7 +109,8 @@ describe('checkRoute', () => {
 })
 
 describe('serveCatalog', () => {
-  const trusted = { method: 'GET', headers: {}, socket: { remoteAddress: '127.0.0.1' } }
+  const trusted = { method: 'GET', headers: { host: '127.0.0.1' }, socket: { remoteAddress: '127.0.0.1' } }
+  const mutating = { method: 'POST', headers: { host: '127.0.0.1', origin: 'http://127.0.0.1' }, socket: { remoteAddress: '127.0.0.1' } }
 
   it('serves the provider catalog', async () => {
     const res = fakeRes()
@@ -138,7 +139,21 @@ describe('serveCatalog', () => {
 
   it('rejects a non-GET method', async () => {
     const res = fakeRes()
-    await serveCatalog(ctxOf({}), { ...trusted, method: 'POST', url: LLM_PROVIDERS_ENDPOINT } as never, res as never, LLM_PROVIDERS_ENDPOINT)
+    await serveCatalog(ctxOf({}), { ...mutating, url: LLM_PROVIDERS_ENDPOINT } as never, res as never, LLM_PROVIDERS_ENDPOINT)
     expect(res.status).toBe(405)
+  })
+
+  it('answers with the Host gate status before any route logic', async () => {
+    const rejected = (status: 401 | 403): Context =>
+      ({
+        get(name: string) {
+          return name === 'connection' ? { requestRejection: () => status } : undefined
+        },
+      }) as unknown as Context
+    for (const status of [401, 403] as const) {
+      const res = fakeRes()
+      await serveCatalog(rejected(status), { ...trusted, url: LLM_PROVIDERS_ENDPOINT } as never, res as never, LLM_PROVIDERS_ENDPOINT)
+      expect(res.status).toBe(status)
+    }
   })
 })

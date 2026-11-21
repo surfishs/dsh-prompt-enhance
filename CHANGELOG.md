@@ -5,6 +5,11 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Security
+
+- Gate every host route through the host's own Connection check (`ctx.connection.requestRejection`) before any route logic runs; a host without that service falls back to the plugin's loopback fence, which now defaults to deny for browser-shaped requests (missing `Host`, `Sec-Fetch-Site: cross-site`, a non-GET request without `Origin`).
+- Require the enhancement body to be declared `application/json` (including `+json` media types); a missing or foreign `Content-Type` answers 415 instead of being read as a body.
+
 ## [0.1.4] - 2026-11-20
 
 ### Added
