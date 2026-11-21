@@ -23,7 +23,9 @@ The draft is the source of truth: intent unchanged, no invented requirements, a 
 
 Users tend to open with a pleading "So… could you help me out?" — like a patient who says only "I don't feel well" and expects a prescription. The model gets nothing but that plea, so it has to guess; the guesses look plausible, but they are often not what you meant.
 
-![“So… could you help me out?” — the kind of pleading request the plugin rewrites](./docs/images/promo-enhance-en.png)
+![A photo captioned “So… could you help me out?”, with the plugin icon in the top-right corner](./docs/images/promo-enhance-en.png)
+
+*“So… could you help me out?” — the kind of pleading request the plugin rewrites*
 
 A good prompt spells out six things: who the model acts as and what it delivers, the context and constraints it works under, which steps it takes, in what format, what counts as correct, and where the boundaries are.
 
