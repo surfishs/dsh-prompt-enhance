@@ -5,7 +5,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
-### Security
+## [0.1.5] - 2026-11-21
+
+### Changed
 
 - Gate every host route through the host's own Connection check (`ctx.connection.requestRejection`) before any route logic runs; a host without that service falls back to the plugin's loopback fence, which now defaults to deny for browser-shaped requests (missing `Host`, `Sec-Fetch-Site: cross-site`, a non-GET request without `Origin`).
 - Require the enhancement body to be declared `application/json` (including `+json` media types); a missing or foreign `Content-Type` answers 415 instead of being read as a body.
@@ -305,4 +307,6 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.0.1]: https://github.com/surfishs/dsh-prompt-enhance/commits/v0.0.1
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.3...HEAD
+[0.1.5]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.4...v0.1.5
+
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.4...HEAD
