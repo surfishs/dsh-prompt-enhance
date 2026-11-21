@@ -5,6 +5,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-11-21
+
+### Added
+
+- Accept `f13`-`f24` as shortcut keys, including a bare press without ctrl/alt/meta; the settings recorder records them directly. `f1`-`f12` still require a modifier.
+
+### Changed
+
+- Document that a GUI opened through remote access or a relay cannot use the enhancement route: the structural fence rejects the forwarded headers and the non-loopback `Host`, answering `403 forbidden: loopback-only`.
+
 ## [0.1.5] - 2026-11-21
 
 ### Changed
@@ -307,6 +317,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.0.1]: https://github.com/surfishs/dsh-prompt-enhance/commits/v0.0.1
 
+[0.1.6]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.5...v0.1.6
+
 [0.1.5]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.4...v0.1.5
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.5...HEAD
