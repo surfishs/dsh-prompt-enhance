@@ -5,6 +5,14 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-11-21
+
+### Fixed
+
+- Stop the docked undo row from flashing when a send closes the result card: it now waits for an idle composer (`phase` `plain`, or a host that publishes no phase) before offering the restore.
+
+[0.1.7]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.6...v0.1.7
+
 ## [0.1.6] - 2026-11-21
 
 ### Added
@@ -321,4 +329,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.1.5]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.4...v0.1.5
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.7...HEAD
