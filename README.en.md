@@ -21,7 +21,7 @@ The draft is the source of truth: intent unchanged, no invented requirements, a 
 
 ## Why you need it
 
-Users tend to open with a pleading "So… could you help me out?" — like a patient who says only "I don't feel well" and expects a prescription. The model gets nothing but that plea, so it has to guess; the guesses look plausible, but they are often not what you meant. That is not the user's fault: what is hard is rarely the thinking, it is turning what you have thought through into a form the model can follow.
+Users tend to open with a pleading "So… could you help me out?" — like a patient who says only "I don't feel well" and expects a prescription. The model gets nothing but that plea, so it has to guess; the guesses look plausible, but they are often not what you meant.
 
 ![“So… could you help me out?” — the kind of pleading request the plugin rewrites](./docs/images/promo-enhance-en.png)
 
