@@ -19,9 +19,11 @@
 
 ## Why you need it
 
-A good prompt spells out four things: who the model acts as, what it hands over, in what format, and what counts as correct — most drafts say none of this.
+Users tend to open with a pleading "So… could you help me out?" — and that alone often sends the model off-course: it drifts from what you meant and fills in the gaps itself. That is not the user's fault: what is hard is rarely the thinking, it is turning what you have thought through into a form the model can follow.
 
-The plugin adds a Prompt enhancement button to the composer toolbar: one click sends the draft to DSH's model service, which rewrites it around those four things as a structured prompt.
+A good prompt spells out five things: who the model acts as, what it hands over, in what format, what counts as correct, and which constraints it must respect.
+
+The plugin adds a Prompt enhancement button to the composer toolbar: one click sends the draft to DSH's model service, which rewrites it around those five things as a structured prompt.
 
 The result appears in a card docked above the composer without covering the conversation; your draft is never replaced — apply it, copy it, regenerate it, or undo, and the original text can always be restored.
 
