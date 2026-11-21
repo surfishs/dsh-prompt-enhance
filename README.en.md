@@ -11,7 +11,9 @@
 
 [简体中文](./README.md) | English
 
-**Prompt enhancement for the DeepSeek Harness web GUI** — turn a composer draft into a structured prompt in one click: role and goal, context and constraints, executable steps, output format, acceptance criteria, edge cases. It keeps your intent unchanged, invents no requirements, and writes a placeholder instead of guessing; the composer draft is never modified.
+**Prompt enhancement for the DeepSeek Harness web GUI** — turn a composer draft into a structured prompt in one click: role and goal, context and constraints, executable steps, output format, acceptance criteria, edge cases.
+
+The draft is the source of truth: intent unchanged, no invented requirements, a placeholder wherever information is missing — and it is never modified, not even when a call fails. The result appears in a card above the composer, is written back only when you apply it, and one click undoes that.
 
 ![Prompt Enhance: the docked result card above the composer](./docs/images/panel-en.png)
 
