@@ -145,7 +145,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `contextAware` | `true` | 读取最近几条消息以消解指代；含敏感内容的会话建议关闭 |
 | `streaming` | `true` | 边写边显示；仅影响显示节奏，最终结果不变 |
 | `systemPrompt` | 空 | 自定义系统提示词；留空使用内置增强策略 |
-| `shortcut` | 空（禁用） | 触发增强的快捷键；例如 `ctrl+alt+shift+e`。须包含 ctrl/alt/meta 中至少一个修饰键，shift 可选；设置页可点「录制」直接按键录入 |
+| `shortcut` | 空（禁用） | 触发增强的快捷键；例如 `ctrl+alt+shift+e`。须包含 ctrl/alt/meta 中至少一个修饰键，shift 可选；F13–F24 这类物理键盘上通常没有、由宏键盘或改键工具发出的键可单独使用（无修饰键）；设置页可点「录制」直接按键录入 |
 
 ### 高级设置
 

@@ -20,6 +20,19 @@ describe('parseShortcut', () => {
     expect(parseShortcut('ctrl+f9')?.code).toBe('F9')
   })
 
+  it('accepts F13-F24, including a bare one', () => {
+    expect(parseShortcut('ctrl+f13')).toEqual({ ctrl: true, alt: false, shift: false, meta: false, key: 'f13', code: 'F13' })
+    expect(parseShortcut('f13')).toEqual({ ctrl: false, alt: false, shift: false, meta: false, key: 'f13', code: 'F13' })
+    expect(parseShortcut('f24')?.code).toBe('F24')
+    expect(parseShortcut('shift+f24')).toEqual({ ctrl: false, alt: false, shift: true, meta: false, key: 'f24', code: 'F24' })
+  })
+
+  it('rejects function keys beyond the whitelist', () => {
+    expect(parseShortcut('f0')).toBeNull()
+    expect(parseShortcut('f25')).toBeNull()
+    expect(parseShortcut('ctrl+f25')).toBeNull()
+  })
+
   it('rejects shift-only combos (they fire while typing capital letters)', () => {
     expect(parseShortcut('shift+e')).toBeNull()
     expect(parseShortcut('shift+a')).toBeNull()
@@ -74,6 +87,12 @@ describe('matchesShortcut', () => {
   it('never matches a null combo (disabled)', () => {
     expect(matchesShortcut(keydown({ key: 'e', code: 'KeyE', ctrlKey: true, altKey: true }), null)).toBe(false)
   })
+
+  it('matches a bare F13 combo by event.code', () => {
+    const f13 = parseShortcut('f13')
+    expect(matchesShortcut(keydown({ key: 'F13', code: 'F13' }), f13)).toBe(true)
+    expect(matchesShortcut(keydown({ key: 'F13', code: 'F13', ctrlKey: true }), f13)).toBe(false)
+  })
 })
 
 describe('shortcutSpecOf', () => {
@@ -99,6 +118,12 @@ describe('shortcutSpecOf', () => {
     expect(shortcutSpecOf(press({ key: 'E', code: 'KeyE', shiftKey: true }))).toBeNull()
     expect(shortcutSpecOf(press({ key: ' ', code: 'Space', ctrlKey: true }))).toBeNull()
     expect(shortcutSpecOf(press({ key: 'ArrowUp', code: 'ArrowUp', ctrlKey: true }))).toBeNull()
+  })
+
+  it('records a bare F13-F24 press and refuses F25', () => {
+    expect(shortcutSpecOf(press({ key: 'F13', code: 'F13' }))).toBe('f13')
+    expect(shortcutSpecOf(press({ key: 'F24', code: 'F24' }))).toBe('f24')
+    expect(shortcutSpecOf(press({ key: 'F25', code: 'F25' }))).toBeNull()
   })
 
   it('round-trips through parseShortcut', () => {

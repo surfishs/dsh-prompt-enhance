@@ -170,7 +170,7 @@ export const Config = z.object({
   shortcut: z
     .string()
     .default(DEFAULT_CONFIG.shortcut)
-    .description('触发快捷键，默认留空即禁用；如需启用，填如 ctrl+alt+e（须包含 ctrl/alt/meta 中至少一个修饰键，shift 仅可作附加，纯字母/数字或 shift+字母会被忽略）')
+    .description('触发快捷键，默认留空即禁用；如需启用，填如 ctrl+alt+e（须包含 ctrl/alt/meta 中至少一个修饰键，shift 仅可作附加，纯字母/数字或 shift+字母会被忽略；F13–F24 可单独使用）')
     .volatile(),
   maxConcurrent: z
     .number()
