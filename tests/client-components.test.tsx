@@ -354,6 +354,50 @@ describe('enhance → apply → undo loop', () => {
     expect(screen.getByRole('button', { name: zh['panel.apply'] })).toBeTruthy()
   })
 
+  it('never flashes the dock undo bar when the card is dismissed by sending', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    const setDraft = vi.fn((text: string) => input.set({ draft: text }))
+    renderComposer(input, { setDraft } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
+
+    // Send: the host publishes `sending` while the applied text is still in the
+    // composer. ResultDock's auto-close effect drops the card on that commit,
+    // which used to hand the dock row one frame in which all three visibility
+    // conditions held — the flash this test locks down.
+    act(() => {
+      input.set({ phase: 'sending' })
+    })
+    expect(document.querySelector('.dsh-pe-panel')).toBeNull()
+    expect(document.querySelector('.dsh-pe-undo')).toBeNull()
+
+    // The host consumes the draft when the turn is accepted; the row must stay
+    // out even though the undo entry itself is still on the stack.
+    act(() => {
+      input.set({ phase: 'plain', draft: '' })
+    })
+    expect(document.querySelector('.dsh-pe-undo')).toBeNull()
+  })
+
+  it('still raises the dock undo bar when the card is closed by hand', async () => {
+    const input = makeFakeInput({ draft: '旧原文' })
+    const setDraft = vi.fn((text: string) => input.set({ draft: text }))
+    renderComposer(input, { setDraft } as never, 's1')
+    vi.mocked(requestEnhance).mockResolvedValue({ text: '增强文本', provider: 'p', model: 'm', elapsedMs: 5 })
+
+    fireEvent.click(enhanceButton())
+    await screen.findByText('增强文本')
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.apply'] }))
+    fireEvent.click(screen.getByRole('button', { name: zh['panel.close'] }))
+
+    // Closing by hand is the case the row exists for: same draft, same entry,
+    // but the composer is idle, so the affordance must be offered.
+    expect(document.querySelector('.dsh-pe-undo')).toBeTruthy()
+  })
+
   it('marks the result stale (both ways) when the draft changes after the request started', async () => {
     const input = makeFakeInput({ draft: '旧原文' })
     renderComposer(input, { setDraft: vi.fn() } as never, 's1')

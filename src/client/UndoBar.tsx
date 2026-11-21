@@ -39,10 +39,23 @@ export function UndoBar(props: UndoBarProps): ReactNode {
     if (entry !== undefined && entry.applied !== draft) ui.popUndo(uiKey)
   }, [draft, entry, uiKey])
 
+  // The composer's own phase decides whether an undo makes sense. While it is
+  // mid-submit (sending / submitting / adjudicating) the draft is about to be
+  // consumed, so restoring the pre-apply text is not what the user asked for —
+  // and the single commit between "card closed" and "draft cleared" used to
+  // flash the bar for exactly that moment. A host that publishes no phase reads
+  // as idle here, keeping the shipped behaviour on those versions.
+  const phase = useInput((state) => {
+    const value = (state as { phase?: unknown }).phase
+    return typeof value === 'string' ? value : ''
+  })
+  const composerIdle = phase === '' || phase === 'plain'
+
   // The result card owns the undo affordance while it is open; the standalone
   // row takes over only after the card is closed.
   const panel = ui.getPanel()
-  const visible = (panel === undefined || panel.sessionId !== uiKey) && entry !== undefined && entry.applied === draft
+  const cardGone = panel === undefined || panel.sessionId !== uiKey
+  const visible = cardGone && composerIdle && entry !== undefined && entry.applied === draft
   const rootRef = useDockAlignment(visible, uiKey)
   if (!visible) return null
 
