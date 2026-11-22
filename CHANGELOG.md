@@ -5,6 +5,25 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-11-22
+
+### Added
+
+- Add a feedback chip to the settings header that opens the issue tracker.
+
+### Changed
+
+- Rewrite the settings description to name all six rewrite dimensions, including context and constraints.
+- Move `temperature` from the basic rows into the advanced disclosure.
+- Rewrite the plugin listing title and description in `locale/zh.json` and `locale/en.json`.
+- Document the default `off` reasoning tier and the unsupported reference-preservation and attachment-reading cases in both READMEs, and declare the market screenshots.
+
+### Fixed
+
+- Restore hover and keyboard-focus feedback on the settings header links.
+
+[0.1.8]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.7...v0.1.8
+
 ## [0.1.7] - 2026-11-21
 
 ### Fixed
@@ -329,4 +348,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.1.5]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.4...v0.1.5
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.8...HEAD
