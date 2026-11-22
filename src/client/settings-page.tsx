@@ -99,7 +99,7 @@ function PageHeader(props: { title: string; description: string; issue: string; 
         </a>
         <a href={ISSUE_URL} target="_blank" rel="noreferrer" className="dsh-pe-header-link">
           <svg width={11} height={11} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-            <path fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round" d="M4 1.75h5l3.25 3.25v9.25H4zM9 1.75V5h3.25M6 8.25h4M6 10.75h4" />
+            <path fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" d="M2.8 2h7l3.4 3.4V14H2.8zM9.8 2v3.4h3.4M5.2 8.6h5.6M5.2 11.2h5.6" />
           </svg>
           {props.issue}
         </a>

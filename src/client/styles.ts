@@ -829,8 +829,12 @@ html[data-platform='darwin'] .dsh-pe-menu {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  height: 18px;
-  padding: 0 7px;
+  /* Explicit border-box: the 20px keeps the pill the size it was measured at,
+     and the 2px top padding nudges the glyph ink down to the optical centre
+     (a fixed height alone centres the line box, which reads 1-2px high). */
+  box-sizing: border-box;
+  height: 20px;
+  padding: 2px 7px 0;
   border: 1px solid var(--dsw-alias-border-l4, rgba(128, 128, 128, 0.35));
   border-radius: 999px;
   background: var(--dsw-alias-bg-layer-3, transparent);
