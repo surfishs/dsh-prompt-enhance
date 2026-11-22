@@ -25,7 +25,7 @@ Users tend to open with a plea: "So… could you help me out?" — like a patien
 
 ![A photo captioned “So… could you help me out?”, with the plugin icon in the top-right corner](./docs/images/promo-enhance-en.png)
 
-*“So… could you help me out?” — the kind of pleading request this plugin rewrites*
+*“So… could you help me out?” — a pleading request like this is exactly what this plugin rewrites*
 
 A good prompt spells out six things: who the model acts as and what it delivers, the context and constraints it works under, which steps it takes, in what format, what counts as correct, and where the boundaries are.
 
