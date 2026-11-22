@@ -273,6 +273,19 @@ describe('settings dialog page', () => {
     expect(screen.getByText('提示词增强')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'GitHub' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'npm' })).toBeTruthy()
+    // The chips are styled from the stylesheet, never inline: a style object
+    // cannot express :hover, which is why both links had no hover state.
+    const githubLink = screen.getByRole('link', { name: 'GitHub' })
+    const npmLink = screen.getByRole('link', { name: 'npm' })
+    expect(githubLink.getAttribute('class')).toBe('dsh-pe-header-link')
+    expect(npmLink.getAttribute('class')).toBe('dsh-pe-header-link')
+    expect(githubLink.getAttribute('style')).toBeNull()
+    // The feedback chip opens the tracker the package declares in `bugs.url`,
+    // and it shares the header chip styling so it gets the same hover state.
+    const issueLink = screen.getByRole('link', { name: '问题反馈' })
+    expect(issueLink.getAttribute('href')).toBe('https://github.com/surfishs/dsh-prompt-enhance/issues')
+    expect(issueLink.getAttribute('class')).toBe('dsh-pe-header-link')
+    expect(issueLink.getAttribute('style')).toBeNull()
     expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy()
     expect(screen.getByText(/把输入框草稿改写成结构化提示词/)).toBeTruthy()
     // Routing rows are selects fed by the registration catalog; their first

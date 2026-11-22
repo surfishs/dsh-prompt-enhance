@@ -155,6 +155,9 @@ export const REPOSITORY_URL = 'https://github.com/surfishs/dsh-prompt-enhance'
 /** Public npm package page, linked from the page header next to the repository. */
 export const NPM_URL = 'https://www.npmjs.com/package/@surfishs/dsh-prompt-enhance'
 
+/** The tracker declared in `package.json` (`bugs.url`), so the chip cannot drift from it. */
+export const ISSUE_URL = 'https://github.com/surfishs/dsh-prompt-enhance/issues'
+
 /** The GitHub mark (16×16), painted with the current text color. */
 export const GITHUB_MARK =
   'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z'
@@ -175,21 +178,6 @@ export const HEADER_TITLE_STYLE: CSSProperties = {
   letterSpacing: '-0.012em',
   lineHeight: 1.3,
   color: 'var(--dsw-alias-label-primary, inherit)',
-}
-export const HEADER_LINK_STYLE: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 3,
-  height: 18,
-  padding: '0 7px',
-  border: '1px solid var(--dsw-alias-border-l4, rgba(128, 128, 128, 0.35))',
-  borderRadius: 999,
-  background: 'var(--dsw-alias-bg-layer-3, transparent)',
-  fontSize: 10.5,
-  fontWeight: 500,
-  lineHeight: 1,
-  color: 'var(--dsw-alias-label-secondary, inherit)',
-  textDecoration: 'none',
 }
 export const HEADER_VERSION_STYLE: CSSProperties = {
   display: 'inline-flex',

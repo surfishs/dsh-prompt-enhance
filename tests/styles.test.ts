@@ -57,4 +57,12 @@ describe('panel stylesheet', () => {
     // hover state there.
     expect(CSS).toMatch(/\.dsh-pe-btn-action\.primary:hover\s*\{[^}]*var\(--dsw-alias-bg-layer-1/)
   })
+
+  it('gives the settings header links a hover and a keyboard-focus state', () => {
+    // Inline style objects cannot express pseudo-classes, so both chips shipped
+    // with no feedback at all; the state has to live in the stylesheet.
+    expect(CSS).toMatch(/\.dsh-pe-header-link:hover/)
+    expect(CSS).toMatch(/\.dsh-pe-header-link:focus-visible/)
+    expect(CSS).toMatch(/\.dsh-pe-header-link\s*\{[^}]*transition:\s*background-color/)
+  })
 })

@@ -821,6 +821,36 @@ html[data-platform='darwin'] .dsh-pe-menu {
 }
 .dsh-pe-save-button:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12)); }
 .dsh-pe-save-button:disabled { opacity: 0.5; cursor: default; }
+
+/* The settings header's GitHub / npm chips: the only links on that page, and
+   the only place a <style> rule beats an inline object — :hover cannot be
+   expressed inline, which is why these two had no feedback at all. */
+.dsh-pe-header-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 7px;
+  border: 1px solid var(--dsw-alias-border-l4, rgba(128, 128, 128, 0.35));
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-3, transparent);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--dsw-alias-label-secondary, inherit);
+  text-decoration: none;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.dsh-pe-header-link:hover,
+.dsh-pe-header-link:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12));
+  border-color: var(--dsw-alias-border-l3, rgba(128, 128, 128, 0.55));
+  color: var(--dsw-alias-label-primary, inherit);
+}
+.dsh-pe-header-link:focus-visible { outline: 2px solid var(--dsw-alias-border-l3, rgba(128, 128, 128, 0.55)); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .dsh-pe-header-link { transition: none; }
+}
 `
 
 /**

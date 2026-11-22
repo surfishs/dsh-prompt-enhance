@@ -41,11 +41,11 @@ import type { RowCopy } from './settings-page-copy'
 import { BooleanRow, ChoiceRow, ModelRow, ProviderRow, ReasoningRow, ValueRow } from './settings-page-controls'
 import {
   HEADER_DESCRIPTION_STYLE,
-  HEADER_LINK_STYLE,
   HEADER_ROW_STYLE,
   HEADER_STYLE,
   HEADER_TITLE_STYLE,
   HEADER_VERSION_STYLE,
+  ISSUE_URL,
   NPM_MARK,
   NPM_URL,
   PLUGIN_VERSION,
@@ -80,22 +80,28 @@ function sectionTitle(getLocale: (() => LocaleFaceLike | undefined) | undefined)
  * @param props - the localized title and description, plus the version.
  * @returns the header element.
  */
-function PageHeader(props: { title: string; description: string; version: string }): ReactElement {
+function PageHeader(props: { title: string; description: string; issue: string; version: string }): ReactElement {
   return (
     <div style={HEADER_STYLE}>
       <div style={HEADER_ROW_STYLE}>
         <span style={HEADER_TITLE_STYLE}>{props.title}</span>
-        <a href={REPOSITORY_URL} target="_blank" rel="noreferrer" style={HEADER_LINK_STYLE}>
+        <a href={REPOSITORY_URL} target="_blank" rel="noreferrer" className="dsh-pe-header-link">
           <svg width={11} height={11} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
             <path fill="currentColor" d={GITHUB_MARK} />
           </svg>
           GitHub
         </a>
-        <a href={NPM_URL} target="_blank" rel="noreferrer" style={HEADER_LINK_STYLE}>
+        <a href={NPM_URL} target="_blank" rel="noreferrer" className="dsh-pe-header-link">
           <svg width={11} height={11} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path fill="currentColor" d={NPM_MARK} />
           </svg>
           npm
+        </a>
+        <a href={ISSUE_URL} target="_blank" rel="noreferrer" className="dsh-pe-header-link">
+          <svg width={11} height={11} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round" d="M4 1.75h5l3.25 3.25v9.25H4zM9 1.75V5h3.25M6 8.25h4M6 10.75h4" />
+          </svg>
+          {props.issue}
         </a>
         <span style={HEADER_VERSION_STYLE}>v{props.version}</span>
       </div>
@@ -481,7 +487,7 @@ export function SettingsSection(props: SectionProps): unknown {
   const resetField = props.resetField ?? ((): void => {})
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <PageHeader title={t('settings.title')} description={t('settings.description')} version={PLUGIN_VERSION} />
+      <PageHeader title={t('settings.title')} description={t('settings.description')} issue={t('settings.issue')} version={PLUGIN_VERSION} />
       <SettingsRows copy={sectionCopy(t, chinese)} state={state} edit={edit} resetField={resetField} save={props.save} discard={props.discard} writeField={props.writeField} />
     </div>
   )
