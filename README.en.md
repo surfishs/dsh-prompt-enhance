@@ -277,6 +277,34 @@ The table is organized by what you see; parameter meanings and defaults are in C
 | Message says no model is configured for the enhancement (no model route) | No pinned `provider`/`model` pair and no session model route | Set both `provider` and `model` in settings, or send a message in the current session so the plugin can follow the session model |
 | `/enhance` shows only the first line and cannot be expanded | A rendering limit of the DSH chat UI, not this plugin | Put the same text in the composer and use the enhance button; its card wraps and scrolls |
 
+## Known issues
+
+The items below are known issues. Anything marked (no support planned) is a capability we do not currently provide, not a defect awaiting a fix.
+
+### Reference preservation (no support planned)
+
+This plugin **does not preserve references**. It does not offer "chip-preserving fill-back" or any equivalent that writes `@file` references, links, or commands back into the composer intact. A draft containing such references is rejected locally, before any request is sent. The plugin enhances the text you typed — turning a rough draft into a fuller, clearer prompt — and does not carry or rebuild reference structures.
+
+#### Why it is out of scope
+
+A rewrite has to reorganise the text. Once reference markers are allowed into that text, they restrict how much can be rewritten and pull the model's attention onto the markers themselves, at the cost of the body's completeness and readability. **Reference markers damaging the body text is an error we are not willing to accept**, so the draft is refused instead.
+
+#### Breakage observed in testing
+
+Evaluating the "chip-preserving fill-back" approach used by a comparable plugin reproduced three failure modes:
+
+- **References lost**: the chip disappears, or degrades into ordinary text that merely looks like a reference;
+- **References misplaced**: the chip survives but its position or target no longer matches the text;
+- **Body text absorbed into a reference**: wording that belongs to the body ends up inside the reference range.
+
+All three are visible in the result: the formatting is already broken by the time you read the enhanced prompt — a reference is gone, has turned into plain text, or no longer lines up with the body.
+
+#### What to do with such a draft
+
+- Drafts containing `@file` references, links, or commands are blocked locally and no request is sent (see "How it works");
+- When a draft carries attachments, the model is told only how many there are — contents are never read or sent, and no attachment markers are inserted into the result;
+- To enhance such a draft, remove the references first, put the necessary details in plain text, then insert the references back manually.
+
 ## Development
 
 **Common commands**
