@@ -279,9 +279,9 @@ The table is organized by what you see; parameter meanings and defaults are in C
 
 ## Known issues
 
-The items below are known issues. Anything marked (no support planned) is a capability we do not currently provide, not a defect awaiting a fix.
+The items below are known issues, numbered. Anything marked (no support planned) is a capability we do not currently provide, not a defect awaiting a fix.
 
-### Reference preservation (no support planned)
+### 1. Reference preservation (no support planned)
 
 This plugin **does not preserve references**. It does not offer "chip-preserving fill-back" or any equivalent that writes `@file` references, links, or commands back into the composer intact. A draft containing such references is rejected locally, before any request is sent. The plugin enhances the text you typed — turning a rough draft into a fuller, clearer prompt — and does not carry or rebuild reference structures.
 
@@ -304,6 +304,20 @@ All three are visible in the result: the formatting is already broken by the tim
 - Drafts containing `@file` references, links, or commands are blocked locally and no request is sent (see "How it works");
 - When a draft carries attachments, the model is told only how many there are — contents are never read or sent, and no attachment markers are inserted into the result;
 - To enhance such a draft, remove the references first, put the necessary details in plain text, then insert the references back manually.
+
+### 2. Reading images and attachment contents (no support planned)
+
+This plugin **does not read images, and does not read attachment contents**. When a draft carries attachments, it knows only how many there are, and the model is told it cannot see them: it may write a pointer such as "see the attachment", but must not describe, guess, or transcribe what is inside. The originals travel with your message to the downstream model, which reads them itself.
+
+#### Why it is out of scope
+
+What the enhancement delivers is better **text**. Let the enhancement model read an image or a document, and what it read becomes a transcription inside that text: a transcription can be wrong, while the originals reach the downstream model too — and which one wins when they disagree is not guaranteed. Images are the worst case: small print and chart values are costly to get wrong, and they are exactly what the downstream model reads most reliably from the original and what the enhancement model is most likely to misread.
+
+The cost does not add up either: the same content is read twice, once during enhancement and once during execution, and images make that most obvious in tokens. Binary attachments (PDF, DOCX, and so on) add a further limit: on the host side their contents are never handed to the model — only a file handle is — so reading them would mean parsing them in the plugin, which is a different scale of work.
+
+#### What to do instead
+
+Put the details you actually need into the draft: the exact error, the numbers, the field names, the steps. That is what the enhancement can genuinely improve; leave the rest of the attachment to the downstream model, which has the original.
 
 ## Development
 
