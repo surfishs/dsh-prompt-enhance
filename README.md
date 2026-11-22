@@ -136,7 +136,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 `/enhance <文本>`：从斜杠面板改写任意文本，结果可复制，不进入模型历史。
 
-结果卡页脚的 ⓘ 显示本次增强实际引用的对话消息条数与字符数，例如 `3/8 条 · 3,140/4,000 字（79%）`：8 来自 `contextMaxMessages`，百分比按 `contextMaxChars` 计算；DSH 注入的环境/技能/时间等消息不计入。
+结果卡页脚的 ⓘ 显示本次增强实际引用的对话消息条数与字符数，例如 `3/8 条 · 3,140/4,000 字（79%）`：8 来自 `contextMaxMessages`，百分比按 `contextMaxChars` 计算；DSH 注入的环境/技能/时间等消息不计入。草稿带附件时，还会显示 `附件：N 个`——只统计数量，附件内容不会发送。
 
 ## 配置
 
