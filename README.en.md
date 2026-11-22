@@ -48,13 +48,10 @@ The rewritten prompt appears in a card docked above the composer without coverin
 | 🔄 **Regenerate** | Request another version from the current text; an applied enhanced draft can be regenerated too |
 | 💬 **`/enhance` command** | Rewrite any text from the slash menu; the result never enters model history |
 | 🧭 **Model routing** | A pinned `provider` + `model` pair wins; otherwise it follows the session model, then the global default |
+| 🧩 **Context aware** | With `contextAware` on, recent messages between you and the assistant resolve references such as "it" or "that" and fill in task context the draft leaves out; you can turn it off at any time. The context window is limited: if the draft depends on earlier messages, add that background to the draft or the rewrite may drift from your intent |
 | 🔑 **Zero credentials** | Calls use DSH's model service and credential store; the plugin never reads or stores keys |
 | 🛡️ **Draft safety** | Empty, attachment-only, over-length and command-or-reference drafts are blocked locally; upstream failures get a readable message and never touch the draft |
 | ⚙️ **Live settings** | Fields save automatically, common rows first and the rest under Advanced; changes apply on the next call |
-
-**Context awareness**: with it on, the plugin passes the most recent messages between you and the assistant to the model, helping it resolve references such as "it" or "that" and fill in task context the draft leaves out, so the rewrite stays closer to what you meant.
-
-> **Note**: the context window is limited. If the draft depends on earlier messages, add the necessary background to the draft; otherwise the rewrite may drift from your intent.
 
 ## Requirements
 
