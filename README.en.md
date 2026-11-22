@@ -27,11 +27,15 @@ Users tend to open with a plea: "So… could you help me out?" — like a patien
 
 *“So… could you help me out?” — a pleading request like this is exactly what this plugin rewrites*
 
-A good prompt spells out six things: who the model acts as and what it delivers, the context and constraints it works under, which steps it takes, in what format, what counts as correct, and where the boundaries are.
+A good prompt spells out six things — who the model acts as and what it delivers, the context and constraints it works under, which steps it takes, in what format, what counts as correct, and where the boundaries are.
 
-The plugin adds a Prompt enhancement button to the composer toolbar: one click sends the draft to DSH's model service, which rewrites it around those six things as a structured prompt.
+That is what the plugin fills in for you.
 
-The result appears in a card docked above the composer without covering the conversation; your draft is never replaced — apply it, copy it, regenerate it, or undo, and the original text can always be restored.
+## Button and result card
+
+The plugin adds a Prompt enhancement button to the composer toolbar. One click sends your draft to DSH's model service, which rewrites it into a structured prompt.
+
+The rewritten prompt appears in a card docked above the composer without covering the conversation. Your draft is never replaced: you can apply it, copy it, regenerate it, or undo — the draft you started from can always be restored.
 
 With context awareness on, the plugin passes the most recent messages between you and the assistant to the model, helping it resolve references such as "it" or "that" and fill in task context the draft leaves out, so the rewrite stays closer to what you meant.
 
