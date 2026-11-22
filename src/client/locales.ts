@@ -94,7 +94,7 @@ export const zh = {
   'error.upstream.maxTokens': '结果达到了「输出 token 上限」。请调高该设置，或精简原文后重试。',
   'settings.summary': '模型、上下文与资源限制',
   'settings.title': '提示词增强',
-  'settings.description': '把输入框草稿改写为结构化提示词：角色与目标、可执行步骤、输出格式、验收标准、边界条件。原文保留，失败不改草稿；保存后下一次调用即生效。',
+  'settings.description': '把输入框草稿改写成结构化提示词，按需补齐角色与目标、上下文与约束、可执行步骤、输出格式、验收标准与边界条件。原文保留，失败时不改动草稿。',
   'settings.save': '保存',
   'settings.saving': '保存中…',
   'settings.saved': '已保存',
@@ -283,7 +283,7 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.summary': 'Model, context, and resource limits',
   'settings.title': 'Prompt enhance',
   'settings.description':
-    'Turns a composer draft into a structured prompt: role and goal, executable steps, output format, acceptance criteria, edge cases. The draft is preserved, failures never touch it, and saved values apply to the next call.',
+    'Turns a composer draft into a structured prompt, filling in role and goal, context and constraints, executable steps, output format, acceptance criteria, and edge cases as needed. The draft is preserved, and failures never touch it.',
   'settings.save': 'Save',
   'settings.saving': 'Saving…',
   'settings.saved': 'Saved',

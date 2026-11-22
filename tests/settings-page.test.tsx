@@ -274,7 +274,7 @@ describe('settings dialog page', () => {
     expect(screen.getByRole('link', { name: 'GitHub' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'npm' })).toBeTruthy()
     expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy()
-    expect(screen.getByText(/把输入框草稿改写为结构化提示词/)).toBeTruthy()
+    expect(screen.getByText(/把输入框草稿改写成结构化提示词/)).toBeTruthy()
     // Routing rows are selects fed by the registration catalog; their first
     // option is the empty "follow session" value.
     const providerSelect = screen.getByLabelText(sectionTitle('provider')) as HTMLSelectElement
