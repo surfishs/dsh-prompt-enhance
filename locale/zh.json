@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "dsh-prompt-enhance",
-    "description": "DeepSeek Harness Web GUI 的提示词增强插件：设置页与插件页双配置入口，支持上下文感知、流式展示与推理预算。"
+    "title": "提示词增强",
+    "description": "「那你能帮帮我吗？」你只管这么问，像病人说「我不舒服」，插件替你补全提示词。"
   }
 }
