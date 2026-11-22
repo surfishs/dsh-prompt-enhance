@@ -170,8 +170,6 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `maxConcurrent` | `2` | 同时进行的增强上限；达到上限时新请求会提示稍后再试 |
 | `rateLimitPerMinute` | `10` | 每分钟成功增强次数上限，按任意连续 60 秒计算；超限时提示稍后再试 |
 
-输入为空或只有附件时按钮变灰、不可点，不发起请求；结果被截断时调高 `maxOutputTokens`。
-
 ## 安全
 
 - **仅本机可访问**：增强路由由本机 DSH 宿主提供，信任判断分两层。宿主提供连接校验（`ctx.connection.requestRejection`）时以宿主为准：`Host` 必须是回环或可信主机、`Sec-Fetch-Site` 非 cross-site、`Origin` 与 `Host` 同源，并校验浏览器会话；返回 401/403 即拒绝。宿主放行后，插件只再做结构性检查（socket 回环、`Host` 允许列表、拒绝 `X-Forwarded-For` / `Forwarded`），不再自行判断 `Origin` / `Sec-Fetch-*`——桌面版（Electron 桥接）的请求不带这些头，判断由宿主完成。宿主不提供该服务时退回插件栅栏并记录一次警告，此时按完整规则默认拒绝：缺 `Host`、`Sec-Fetch-Site: cross-site`、非 GET 请求缺 `Origin` 均被拒。宿主提供连接校验时，本机脚本直接调用需要 DSH 会话，否则会收到 401；调试请用 DSH 界面里发起的请求。

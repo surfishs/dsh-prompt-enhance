@@ -169,8 +169,6 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | `maxConcurrent` | `2` | Concurrent enhancement limit; a new request past the limit is told to retry later |
 | `rateLimitPerMinute` | `10` | Successful enhancements per minute, counted over any rolling 60 seconds; past the limit the request is told to retry later |
 
-An empty or attachment-only draft dims the button and starts no request; raise `maxOutputTokens` when a result is truncated.
-
 ## Security
 
 - **Local access only**: the enhance route is served by the local DSH host; it accepts only requests from this machine (a loopback connection whose `Host` / `Origin` name the local host) and rejects external origins.
