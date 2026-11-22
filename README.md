@@ -149,7 +149,6 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `enabled` | `true` | 总开关；关闭后隐藏输入框按钮，并停用命令与快捷键 |
 | `provider` + `model` | 空 | 从 DSH 已注册的 LLM provider 及模型中选择；模型可选「自定义…」手填 ID；未配置的 provider 置灰、需先在 DSH 模型服务中配置；留空表示跟随当前会话模型（不固定路由）。只填一个时保存后按跟随会话处理；切换 provider 会清空已选 model，避免留下不匹配的旧值 |
 | `reasoningEffort` | `off` | 档位由当前 provider/model 的声明决定；DeepSeek 为 `off` / `low` / `high` / `max`。选「模型默认」时不发送该字段，由提供方使用默认档；切换到不声明当前档位的模型时，插件会自动改回「模型默认」 |
-| `temperature` | `0.3` | 采样温度 `0~1`（步进 0.05），越低越忠实原文 |
 | `contextAware` | `true` | 读取最近几条消息以消解指代；含敏感内容的会话建议关闭 |
 | `streaming` | `true` | 边写边显示；仅影响显示节奏，最终结果不变 |
 | `systemPrompt` | 空 | 自定义系统提示词；留空使用内置增强策略 |
@@ -162,6 +161,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `foldAnimation` | `true` | 结果卡折叠/展开时是否播放动画；系统开启「减少动态效果」时始终不播放 |
 | `autoFold` | `true` | 回填后自动折叠结果卡，撤销后自动展开 |
 | `strategyMode` | `replace-default` | `replace-default` 整体替换内置策略（仍保留最小输出契约）；`extend-default` 把自定义策略追加在内置策略之后 |
+| `temperature` | `0.3` | 采样温度 `0~1`（步进 0.05），越低越忠实原文 |
 | `maxInputChars` | `12000` | 输入字符上限；超限拒绝，不截断 |
 | `maxOutputTokens` | `8192` | 单次调用的输出 token 上限 |
 | `timeoutMs` | `60000` | 单次调用端到端超时（毫秒） |

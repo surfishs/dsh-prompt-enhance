@@ -148,7 +148,6 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | `enabled` | `true` | Master switch; off hides the composer button and disables the command and shortcut |
 | `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (no pinned route). With only one filled, the save falls back to follow-session; switching the provider clears the chosen model so a stale pair cannot remain |
 | `reasoningEffort` | `off` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`). "Model default" sends no field, so the provider applies its default; switching to a model that does not declare the stored tier rewrites it to "Model default" |
-| `temperature` | `0.3` | Sampling temperature `0~1` (step 0.05); lower stays closer to the original |
 | `contextAware` | `true` | Read recent messages to resolve references; turn it off for sensitive sessions |
 | `streaming` | `true` | Show the result as it is written; display only, the final result is unchanged |
 | `systemPrompt` | empty | Custom system prompt; empty uses the built-in strategy |
@@ -161,6 +160,7 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | `foldAnimation` | `true` | Whether the card animates when it folds or expands; never animates when the system asks for reduced motion |
 | `autoFold` | `true` | Fold the card after applying and expand it again after undoing |
 | `strategyMode` | `replace-default` | `replace-default` replaces the built-in strategy (the minimal output contract still applies); `extend-default` appends the custom strategy after the built-in one |
+| `temperature` | `0.3` | Sampling temperature `0~1` (step 0.05); lower stays closer to the original |
 | `maxInputChars` | `12000` | Input character cap; over-limit is rejected, never truncated |
 | `maxOutputTokens` | `8192` | Output token cap per call |
 | `timeoutMs` | `60000` | End-to-end timeout per call (ms) |

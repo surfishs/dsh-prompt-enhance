@@ -170,7 +170,6 @@ export const BASIC_ROWS: readonly Row[] = [
   { key: 'provider', kind: 'provider', label: 'settings.row.provider.label', hint: 'settings.row.provider.hint' },
   { key: 'model', kind: 'model', label: 'settings.row.model.label', hint: 'settings.row.model.hint' },
   { key: 'reasoningEffort', kind: 'reasoning', label: 'settings.row.reasoningEffort.label', hint: 'settings.row.reasoningEffort.hint' },
-  numberRow('temperature', 'settings.row.temperature.label', 'settings.row.temperature.hint', TEMPERATURE, false),
   { key: 'contextAware', kind: 'boolean', label: 'settings.row.contextAware.label', hint: 'settings.row.contextAware.hint' },
   { key: 'streaming', kind: 'boolean', label: 'settings.row.streaming.label', hint: 'settings.row.streaming.hint' },
   { key: 'systemPrompt', kind: 'text', label: 'settings.row.systemPrompt.label', hint: 'settings.row.systemPrompt.hint', placeholder: 'settings.row.systemPrompt.placeholder' },
@@ -191,6 +190,9 @@ export const ADVANCED_ROWS: readonly Row[] = [
   { key: 'foldAnimation', kind: 'boolean', label: 'settings.row.foldAnimation.label', hint: 'settings.row.foldAnimation.hint' },
   { key: 'autoFold', kind: 'boolean', label: 'settings.row.autoFold.label', hint: 'settings.row.autoFold.hint' },
   { key: 'strategyMode', kind: 'strategy', label: 'settings.row.strategyMode.label', hint: 'settings.row.strategyMode.hint' },
+  // Set-once tuning, not a per-use switch: it sits next to the strategy row
+  // because both shape how the rewrite is produced, not how often it runs.
+  numberRow('temperature', 'settings.row.temperature.label', 'settings.row.temperature.hint', TEMPERATURE, false),
   numberRow('maxInputChars', 'settings.row.maxInputChars.label', 'settings.row.maxInputChars.hint', FIELD_LIMITS.maxInputChars),
   numberRow('maxOutputTokens', 'settings.row.maxOutputTokens.label', 'settings.row.maxOutputTokens.hint', FIELD_LIMITS.maxOutputTokens),
   numberRow('timeoutMs', 'settings.row.timeoutMs.label', 'settings.row.timeoutMs.hint', FIELD_LIMITS.timeoutMs),

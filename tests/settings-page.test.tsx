@@ -26,7 +26,7 @@ import { useSyncExternalStore } from 'react'
 import { clearCatalogCache } from '../src/client/llm-catalog'
 import { forgetReasoningCapabilities } from '../src/client/settings-page-controls'
 import { SettingsPage, SettingsSection, createSettingsForm } from '../src/client/settings-page'
-import { ROWS } from '../src/client/settings-page-spec'
+import { ADVANCED_ROWS, BASIC_ROWS, ROWS } from '../src/client/settings-page-spec'
 import { en, zh } from '../src/client/locales'
 
 /** Interpolate one dictionary entry, as the locale service would. */
@@ -253,6 +253,19 @@ afterEach(() => {
 })
 
 describe('settings dialog page', () => {
+  it('keeps the temperature row inside the advanced disclosure, after the strategy row', () => {
+    // Sampling temperature is a set-once tuning knob, not a per-use switch: it
+    // belongs with the advanced rows, next to the row that also shapes the
+    // rewrite, and the basic list must not carry it any more.
+    const advancedKeys = ADVANCED_ROWS.map((row) => row.key)
+    expect(BASIC_ROWS.map((row) => row.key)).not.toContain('temperature')
+    expect(advancedKeys.indexOf('temperature')).toBe(advancedKeys.indexOf('strategyMode') + 1)
+
+    renderRowPage()
+    const input = screen.getByLabelText(zhCopy('settings.row.temperature.label'))
+    expect(document.querySelector('.dsh-pe-advanced')?.contains(input)).toBe(true)
+  })
+
   it('renders every config row with its raw key, Chinese name, and a Chinese-only hint', () => {
     renderSection()
     for (const key of ROW_KEYS) {
