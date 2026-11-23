@@ -65,6 +65,13 @@ describe('DEFAULT_SYSTEM_PROMPT', () => {
     // what replaces the answer — that half belongs to the strategy alone.
     expect(INVARIANT_CONTRACT).not.toContain('describe how the assistant should respond')
   })
+
+  it('never skips the acceptance criteria', () => {
+    // Both observed runs dropped it while keeping role, steps and format: it is
+    // the softest of the six items and the one that most improves what the
+    // downstream assistant produces, so "apply what it needs" does not cover it.
+    expect(DEFAULT_SYSTEM_PROMPT).toContain('never skipped')
+  })
 })
 
 describe('layer separation', () => {
