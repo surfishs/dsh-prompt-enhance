@@ -29,6 +29,7 @@ const REASON_EXPECTATIONS: readonly { reason: string; specific: string }[] = [
   { reason: 'context-window', specific: zh['error.upstream.contextWindow'] },
   { reason: 'tool-call', specific: zh['error.upstream.toolCall'] },
   { reason: 'max-tokens', specific: zh['error.upstream.maxTokens'] },
+  { reason: 'degenerate', specific: zh['error.upstream.degenerate'] },
 ]
 
 /** Minimal zh renderer matching the shell's `t` seat (placeholders + unknown keys). */

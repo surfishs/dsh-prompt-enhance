@@ -507,6 +507,47 @@ describe('POST /dsh-prompt-enhance/enhance failure mapping (real http)', () => {
     }
   })
 
+  it('maps an echoed draft to 502 instead of returning it as the result', async () => {
+    // A low reasoning tier plus context can make the model hand the framed
+    // draft back; the wrapper tags make that detectable, and it must never
+    // reach the composer as a "result".
+    const server = mount(makeLlm(() => streamOf(['<raw_prompt>\n写个脚本\n</raw_prompt>'], [{ type: 'finish', reason: { kind: 'stop' } }])))
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      const { status, json } = await call(server, 'POST', JSON.stringify({ text: '写个脚本' }))
+      expect(status).toBe(502)
+      expect(json).toMatchObject({ ok: false, error: { code: 'upstream', params: { reason: 'degenerate' } } })
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
+  it('maps a lazy "same text plus a full stop" answer to 502', async () => {
+    // The observed shape that slipped past the wrapper-only check: the model
+    // returns the draft with nothing but punctuation added.
+    const server = mount(makeLlm(() => streamOf(['修好了。'], [{ type: 'finish', reason: { kind: 'stop' } }])))
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      const { status, json } = await call(server, 'POST', JSON.stringify({ text: '修好了' }))
+      expect(status).toBe(502)
+      expect(json).toMatchObject({ ok: false, error: { code: 'upstream', params: { reason: 'degenerate' } } })
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
+  it('strips a raw_prompt wrapper around a real rewrite', async () => {
+    const server = mount(makeLlm(() => streamOf(['<raw_prompt>\n角色：Python 工程师。\n</raw_prompt>'], [{ type: 'finish', reason: { kind: 'stop' } }])))
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      const { status, json } = await call(server, 'POST', JSON.stringify({ text: '写个脚本' }))
+      expect(status).toBe(200)
+      expect(json).toMatchObject({ ok: true, value: { text: '角色：Python 工程师。' } })
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
   it('maps a timeout to 504', { timeout: 12000 }, async () => {
     const stall = (): AsyncIterable<StreamChunk> => ({
       [Symbol.asyncIterator]: () => ({ next: (): Promise<never> => new Promise(() => {}) }),

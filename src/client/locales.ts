@@ -92,6 +92,7 @@ export const zh = {
   'error.upstream.contextWindow': '内容超出模型的上下文窗口，请精简原文或换一个模型。',
   'error.upstream.toolCall': '模型尝试调用工具，而提示词增强只需要纯文本；请换一个模型后重试。',
   'error.upstream.maxTokens': '结果达到了「输出 token 上限」。请调高该设置，或精简原文后重试。',
+  'error.upstream.degenerate': '模型这次没有产生改写。请重试；若反复出现，把推理档调高一档，或临时关闭上下文感知。',
   'settings.summary': '模型、上下文与资源限制',
   'settings.title': '提示词增强',
   'settings.description': '把输入框草稿改写成结构化提示词，按需补齐角色与目标、上下文与约束、可执行步骤、输出格式、验收标准与边界条件。原文保留，失败时不改动草稿。',
@@ -281,6 +282,7 @@ export const en: Record<PromptEnhanceKey, string> = {
   'error.upstream.contextWindow': "The content exceeds the model's context window — shorten the draft or switch models.",
   'error.upstream.toolCall': 'The model tried to call a tool, but prompt enhancement only sends plain text — switch models and retry.',
   'error.upstream.maxTokens': 'The result hit the "Output token budget" limit. Raise that setting, or shorten the draft and retry.',
+  'error.upstream.degenerate': 'The model produced no rewrite this time. Retry; if it keeps happening, raise the reasoning tier one step or turn context awareness off.',
   'settings.summary': 'Model, context, and resource limits',
   'settings.title': 'Prompt enhance',
   'settings.description':

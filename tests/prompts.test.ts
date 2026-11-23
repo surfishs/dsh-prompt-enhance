@@ -57,10 +57,12 @@ describe('DEFAULT_SYSTEM_PROMPT', () => {
     expect(DEFAULT_SYSTEM_PROMPT).not.toContain('待补充')
   })
 
-  it('turns greetings and small talk into a rewrite instead of a reply', () => {
+  it('turns greetings and confirmations into a rewrite instead of a reply', () => {
     // A bare 早上好 used to come back as a conversational answer: with no rule
-    // for non-task input the model fell back to chat mode.
-    expect(DEFAULT_SYSTEM_PROMPT).toContain('greeting, small talk')
+    // for non-task input the model fell back to chat mode. A confirmation
+    // ("修好了") slipped through the same gap as "already well-formed".
+    expect(DEFAULT_SYSTEM_PROMPT).toContain('confirmation or status note')
+    expect(DEFAULT_SYSTEM_PROMPT).toContain('never hand the fragment back')
     // The framing contract forbids answering the draft but must not prescribe
     // what replaces the answer — that half belongs to the strategy alone.
     expect(INVARIANT_CONTRACT).not.toContain('describe how the assistant should respond')

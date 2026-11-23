@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeOutput } from '../src/shared/normalize'
+import { isDegenerateOutput, normalizeOutput } from '../src/shared/normalize'
 
 describe('normalizeOutput', () => {
   it('trims surrounding whitespace', () => {
@@ -46,5 +46,45 @@ describe('normalizeOutput', () => {
   it('returns empty string for whitespace-only or fence-only output', () => {
     expect(normalizeOutput('   ')).toBe('')
     expect(normalizeOutput('```\n```')).toBe('')
+  })
+})
+
+describe('draft wrapper handling', () => {
+  it('strips a raw_prompt wrapper around a real rewrite', () => {
+    expect(normalizeOutput('<raw_prompt>\n角色：翻译\n</raw_prompt>')).toBe('角色：翻译')
+    expect(normalizeOutput('<raw_prompt>角色：翻译</raw_prompt>')).toBe('角色：翻译')
+  })
+
+  it('strips a lone opening or closing tag', () => {
+    // A truncated answer can carry only one side; the tag is still scaffolding.
+    expect(normalizeOutput('<raw_prompt>\n角色：翻译')).toBe('角色：翻译')
+    expect(normalizeOutput('角色：翻译\n</raw_prompt>')).toBe('角色：翻译')
+  })
+
+  it('leaves an unwrapped answer untouched', () => {
+    expect(normalizeOutput('角色：翻译')).toBe('角色：翻译')
+  })
+
+  it('detects an echo whatever wrapper the model used', () => {
+    expect(isDegenerateOutput('<raw_prompt>\n写个爬虫\n</raw_prompt>', '写个爬虫')).toBe(true)
+    // The bare draft, and the draft with a full stop appended, are the same
+    // defect from the user's side: nothing was rewritten.
+    expect(isDegenerateOutput('写个爬虫', '写个爬虫')).toBe(true)
+    expect(isDegenerateOutput('写个爬虫。', '写个爬虫')).toBe(true)
+    // A real rewrite is not degenerate, even when it is short.
+    expect(isDegenerateOutput('<raw_prompt>\n角色：翻译\n</raw_prompt>', '写个爬虫')).toBe(false)
+    expect(isDegenerateOutput('角色：翻译', '写个爬虫')).toBe(false)
+  })
+
+  it('ignores whitespace and trailing punctuation when comparing', () => {
+    expect(isDegenerateOutput('<raw_prompt>\n  写个爬虫 \n</raw_prompt>', ' 写个爬虫 ')).toBe(true)
+    expect(isDegenerateOutput('修好了！', '修好了')).toBe(true)
+    expect(isDegenerateOutput('修好了\n\n', '修好了')).toBe(true)
+  })
+
+  it('does not fire when the answer adds anything to the draft', () => {
+    // The bare echo is caught, but a draft plus a note is left to the prompt
+    // rules: pattern-matching every way a model can waffle would never end.
+    expect(isDegenerateOutput('修好了。这条消息没有提出新的任务。', '修好了')).toBe(false)
   })
 })

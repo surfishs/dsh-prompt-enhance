@@ -68,6 +68,7 @@ export const UPSTREAM_ERROR_KEYS: Record<string, PromptEnhanceKey> = {
   'context-window': 'error.upstream.contextWindow',
   'tool-call': 'error.upstream.toolCall',
   'max-tokens': 'error.upstream.maxTokens',
+  degenerate: 'error.upstream.degenerate',
 }
 
 /**

@@ -8,7 +8,7 @@
 
 import type { BlockAssembler, FinishReason, GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { EnhanceError, EnhanceResult } from './shared/protocol'
-import { normalizeOutput } from './shared/normalize'
+import { isDegenerateOutput, normalizeOutput } from './shared/normalize'
 import { frameUserPrompt } from './prompts'
 import { DEFAULT_CONFIG, type ReasoningEffortChoice } from './config'
 
@@ -345,6 +345,14 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
       .filter((block) => block.type === 'text')
       .map((block) => block.text)
       .join('\n')
+    // A weak model on a low reasoning tier occasionally hands the framed draft
+    // back unchanged — bare, wrapped in its tags, or with a full stop appended.
+    // Stripping the tags is right for a wrapped answer, but an answer that says
+    // no more than the draft is not a result: fail it here, where both the raw
+    // output and the draft are in hand.
+    if (isDegenerateOutput(joined, options.text)) {
+      fail({ code: 'upstream', params: { reason: 'degenerate' } })
+    }
     const text = normalizeOutput(joined)
     if (text === '') {
       fail({ code: 'upstream', params: { reason: 'empty' } })
@@ -409,7 +417,7 @@ function finishToDetail(reason: FinishReason): EnhanceError | undefined {
 }
 
 /** Stable upstream reasons the dictionaries and formatEnhanceError both know. */
-export type UpstreamReason = 'auth' | 'invalid-credential' | 'rate-limit' | 'quota' | 'empty' | 'context-window' | 'tool-call' | 'max-tokens'
+export type UpstreamReason = 'auth' | 'invalid-credential' | 'rate-limit' | 'quota' | 'empty' | 'context-window' | 'tool-call' | 'max-tokens' | 'degenerate'
 
 /** Known provider failure codes with a dedicated fix hint; others stay generic. */
 const REASON_CODES: Record<string, UpstreamReason> = {
@@ -442,6 +450,7 @@ const REASON_HINTS: Record<UpstreamReason, string> = {
   'context-window': '输入超出模型上下文窗口，请精简原文或更换模型。',
   'tool-call': '模型请求了工具调用，提示词增强只需要纯文本；请更换模型后重试。',
   'max-tokens': '重写结果达到输出上限（maxOutputTokens），请在设置中调大上限或精简原文后重试。',
+  degenerate: '模型这次没有产生改写。请重试；若反复出现，把推理档调高一档，或临时关闭上下文感知。',
 }
 
 /**
