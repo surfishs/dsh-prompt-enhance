@@ -5,6 +5,21 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-11-23
+
+### Changed
+
+- Move the `streaming` switch into the advanced disclosure, next to the two fold switches it behaves like.
+- Require a complete, well-specified task before the well-formed exemption applies; a fragment or a vague one-liner no longer qualifies.
+- Name confirmations and status notes in the greeting rule, and forbid handing such a fragment back as the result.
+- Rewrite the reasoning-tier guidance around the "no rewrite" notice, and state that the plugin never retries on its own.
+
+### Fixed
+
+- Reject an answer that only restates the draft: the guard now compares fingerprints (tags stripped, whitespace collapsed, trailing punctuation removed) instead of requiring a tagged echo, so a bare copy, or a draft with a full stop added, no longer reaches the composer as a result.
+
+[0.1.10]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.9...v0.1.10
+
 ## [0.1.9] - 2026-11-23
 
 ### Changed
@@ -366,4 +381,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.1.5]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.4...v0.1.5
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.10...HEAD
