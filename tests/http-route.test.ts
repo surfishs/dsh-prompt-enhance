@@ -430,11 +430,11 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     try {
       const { status } = await call(announced, 'POST', JSON.stringify({ text: '把这张图整理成提示词', attachments: { count: 2 } }))
       expect(status).toBe(200)
-      expect(captured[0]?.system).toContain('Attachment rules')
-      expect(captured[0]?.system).toContain('Meta rules')
-      // The meta rules are appended last, so "these instructions" covers the
-      // attachment rules that came before them.
-      expect((captured[0]?.system ?? '').indexOf('Meta rules')).toBeGreaterThan((captured[0]?.system ?? '').indexOf('Attachment rules'))
+      expect(captured[0]?.system).toContain('Attachment block')
+      expect(captured[0]?.system).toContain('Framing that applies to every response')
+      // The framing contract is appended last, so "these instructions" covers
+      // the attachment block that came before it.
+      expect((captured[0]?.system ?? '').indexOf('Framing that applies to every response')).toBeGreaterThan((captured[0]?.system ?? '').indexOf('Attachment block'))
       const blocks = captured[0]?.messages[0]?.content ?? []
       // Metadata only: the call still carries exactly one text block, never
       // image or file parts.
@@ -448,7 +448,7 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     }
   })
 
-  it('appends the meta rules to an attachment-free system prompt', async () => {
+  it('appends the framing contract to an attachment-free system prompt', async () => {
     const captured: GenerateOptions[] = []
     const capturingLlm = {
       stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -461,8 +461,8 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     try {
       const { status } = await call(plain, 'POST', JSON.stringify({ text: '写个脚本' }))
       expect(status).toBe(200)
-      expect(captured[0]?.system).toContain('Meta rules')
-      expect(captured[0]?.system).not.toContain('Attachment rules')
+      expect(captured[0]?.system).toContain('Framing that applies to every response')
+      expect(captured[0]?.system).not.toContain('Attachment block')
     } finally {
       await new Promise<void>((resolve) => plain.close(() => resolve()))
     }

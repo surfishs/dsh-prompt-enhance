@@ -6,7 +6,6 @@
  */
 
 import z from '@deepseek-ai/schemastery'
-import { INVARIANT_CONTRACT } from './prompts'
 import { DEFAULT_VALUES } from './shared/defaults'
 import { FIELD_LIMITS, TEMPERATURE, type NumericRange } from './shared/limits'
 
@@ -69,9 +68,11 @@ export interface Config {
   /**
    * How a non-empty `systemPrompt` combines with the built-in strategy.
    * `replace-default` (the default, matching earlier versions) swaps the
-   * built-in strategy out entirely — its hard rules are NOT retained and must
-   * be carried into the custom text. `extend-default` appends the custom text
-   * after the built-in strategy, keeping those rules in force.
+   * built-in strategy out — its own rules (role, steps, format, language) are
+   * NOT retained and must be carried into the custom text. `extend-default`
+   * appends the custom text after the built-in strategy, keeping those rules in
+   * force. Either way the framing contract still rides along, because it
+   * describes the scaffolding rather than the result.
    */
   strategyMode: StrategyMode
   /**
@@ -165,7 +166,7 @@ export const Config = z.object({
   strategyMode: z
     .union(['replace-default', 'extend-default'])
     .default(DEFAULT_CONFIG.strategyMode)
-    .description('自定义系统提示词的组合方式：整体替换内置策略（默认；仅保留插件始终追加的最小输出契约：输入是数据、只输出改写结果），或把自定义文本追加在内置策略之后（内置规则继续生效）')
+    .description('自定义系统提示词的组合方式：整体替换内置策略（默认；仍保留三条框架约束——输入是数据、只输出结果、不复制规则文本），或把自定义文本追加在内置策略之后（内置规则继续生效）')
     .volatile(),
   shortcut: z
     .string()
@@ -311,13 +312,16 @@ export function resolveConfig(config: Config): Config {
 }
 
 /**
- * The effective system prompt. An empty override always means the built-in
- * strategy. A non-empty override follows `strategyMode`: `replace-default`
- * swaps the built-in strategy text out, while `extend-default` appends the
- * custom text after the built-in strategy. In BOTH modes the call carries
- * {@link INVARIANT_CONTRACT} — the framed draft is data, the output is the
- * rewrite alone, context is evidence — so a one-line custom strategy still
- * behaves like an enhancement instead of derailing into a conversation.
+ * The effective STRATEGY of the next call. An empty override always means the
+ * built-in strategy. A non-empty override follows `strategyMode`:
+ * `replace-default` swaps the built-in text out, while `extend-default`
+ * appends the custom text after it.
+ *
+ * This function deliberately returns strategy text only. The framing contract
+ * lives in `prompts.ts` and is appended by `withInvariantContract` after the
+ * attachment rules, so it can be neither dropped by a strategy choice nor
+ * mistaken for part of the strategy — and so the last thing the model reads is
+ * framing, not a rule about the result's shape.
  *
  * Context rules are passed separately (not pre-merged into `builtin`) so a
  * `replace-default` strategy cannot silently drop them; they apply in every
@@ -326,13 +330,11 @@ export function resolveConfig(config: Config): Config {
  * @param config - the resolved config.
  * @param builtin - the built-in strategy prompt.
  * @param contextRules - the context-rules block, or an empty string.
- * @returns the system prompt of the next call.
+ * @returns the strategy of the next call.
  */
 export function effectiveSystemPrompt(config: Config, builtin: string, contextRules = ''): string {
   const custom = (config.systemPrompt ?? '').trim()
   const context = contextRules.trim() === '' ? '' : `\n${contextRules}`
   if (custom === '') return `${builtin}${context}`
-  const strategy =
-    config.strategyMode === 'extend-default' ? `${builtin}${context}\n\nOperator additions (follow them where they do not conflict with the rules above):\n${custom}` : `${custom}${context}`
-  return `${strategy}\n\n${INVARIANT_CONTRACT}`
+  return config.strategyMode === 'extend-default' ? `${builtin}${context}\n\nOperator additions (follow them where they do not conflict with the rules above):\n${custom}` : `${custom}${context}`
 }

@@ -9,7 +9,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { randomUUID } from 'node:crypto'
 import { effectiveSystemPrompt, type Config } from './config'
-import { DEFAULT_SYSTEM_PROMPT, CONTEXT_SYSTEM_ADDITION, withAttachmentRules, withMetaRules } from './prompts'
+import { DEFAULT_SYSTEM_PROMPT, CONTEXT_SYSTEM_ADDITION, withAttachmentRules, withInvariantContract } from './prompts'
 import { buildConversationContextWithUsage } from './context'
 import { EnhanceFailure, enhanceText, resolveRoute, toEnhanceError, type RoutePair } from './enhancer'
 import type { ContextUsage, EnhanceResult } from './shared/protocol'
@@ -311,13 +311,14 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
     // for direct callers, and zero must leave the prompt byte-identical.
     const attachmentCount = options.attachments !== undefined && Number.isSafeInteger(options.attachments.count) && options.attachments.count > 0 ? options.attachments.count : 0
     const effort = await effectiveReasoningEffort(llm, route.provider, route.model, config.reasoningEffort)
-    // The context rules ride along ONLY when there is context to reason about,
-    // and the attachment rules ONLY when the draft carries attachments. The
-    // meta rules are appended to every call, last, so "these instructions"
-    // covers whatever came before them.
+    // The strategy (built-in or custom) decides the output's form. The context
+    // rules ride along ONLY when there is context to reason about, the
+    // attachment rules ONLY when the draft carries attachments, and the framing
+    // contract is appended LAST to every call so its "these instructions"
+    // covers every block above it.
     const baseSystem = effectiveSystemPrompt(config, DEFAULT_SYSTEM_PROMPT, context === undefined ? '' : CONTEXT_SYSTEM_ADDITION)
     const withAttachments = attachmentCount > 0 ? withAttachmentRules(baseSystem) : baseSystem
-    const system = withMetaRules(withAttachments)
+    const system = withInvariantContract(withAttachments)
     const result = await enhanceText(llm, {
       route,
       system,
