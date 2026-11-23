@@ -161,9 +161,10 @@ function numberRow(key: string, label: PromptEnhanceKey, hint: PromptEnhanceKey,
 }
 
 /**
- * Every row both pages edit, in display order: the master switch and the two
- * display/context switches first, then routing and generation, then the
- * context window, then the host-side resource caps, and the shortcut last.
+ * Every row both pages edit, in display order: the master switch, routing and
+ * reasoning, then the context switch, the custom prompt, and the shortcut last.
+ * Display-only switches live in {@link ADVANCED_ROWS}, with the rest of the
+ * set-once tuning.
  */
 export const BASIC_ROWS: readonly Row[] = [
   { key: 'enabled', kind: 'boolean', label: 'settings.row.enabled.label', hint: 'settings.row.enabled.hint' },
@@ -171,7 +172,6 @@ export const BASIC_ROWS: readonly Row[] = [
   { key: 'model', kind: 'model', label: 'settings.row.model.label', hint: 'settings.row.model.hint' },
   { key: 'reasoningEffort', kind: 'reasoning', label: 'settings.row.reasoningEffort.label', hint: 'settings.row.reasoningEffort.hint' },
   { key: 'contextAware', kind: 'boolean', label: 'settings.row.contextAware.label', hint: 'settings.row.contextAware.hint' },
-  { key: 'streaming', kind: 'boolean', label: 'settings.row.streaming.label', hint: 'settings.row.streaming.hint' },
   { key: 'systemPrompt', kind: 'text', label: 'settings.row.systemPrompt.label', hint: 'settings.row.systemPrompt.hint', placeholder: 'settings.row.systemPrompt.placeholder' },
   {
     key: 'shortcut',
@@ -185,10 +185,13 @@ export const BASIC_ROWS: readonly Row[] = [
   },
 ]
 
-/** Tuning and deployment limits, hidden behind the Advanced disclosure by default. */
+/** Display, tuning and deployment limits, hidden behind the Advanced disclosure by default. */
 export const ADVANCED_ROWS: readonly Row[] = [
   { key: 'foldAnimation', kind: 'boolean', label: 'settings.row.foldAnimation.label', hint: 'settings.row.foldAnimation.hint' },
   { key: 'autoFold', kind: 'boolean', label: 'settings.row.autoFold.label', hint: 'settings.row.autoFold.hint' },
+  // Display-only, set once: it shares the fold switches' fate — none of the
+  // three changes the text that gets applied — and does not earn a basic slot.
+  { key: 'streaming', kind: 'boolean', label: 'settings.row.streaming.label', hint: 'settings.row.streaming.hint' },
   { key: 'strategyMode', kind: 'strategy', label: 'settings.row.strategyMode.label', hint: 'settings.row.strategyMode.hint' },
   // Set-once tuning, not a per-use switch: it sits next to the strategy row
   // because both shape how the rewrite is produced, not how often it runs.

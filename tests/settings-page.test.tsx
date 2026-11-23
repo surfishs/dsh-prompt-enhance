@@ -266,6 +266,18 @@ describe('settings dialog page', () => {
     expect(document.querySelector('.dsh-pe-advanced')?.contains(input)).toBe(true)
   })
 
+  it('keeps the streaming switch inside the advanced disclosure, after the fold switches', () => {
+    // Display-only transport, set once rather than per use: it joins the two
+    // fold switches, and the basic list must not carry it any more.
+    const advancedKeys = ADVANCED_ROWS.map((row) => row.key)
+    expect(BASIC_ROWS.map((row) => row.key)).not.toContain('streaming')
+    expect(advancedKeys.indexOf('streaming')).toBe(advancedKeys.indexOf('autoFold') + 1)
+
+    renderSection()
+    const control = switchOf(sectionTitle('streaming'))
+    expect(document.querySelector('.dsh-pe-advanced')?.contains(control)).toBe(true)
+  })
+
   it('renders every config row with its raw key, Chinese name, and a Chinese-only hint', () => {
     renderSection()
     for (const key of ROW_KEYS) {
