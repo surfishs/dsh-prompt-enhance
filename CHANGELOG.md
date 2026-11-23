@@ -5,6 +5,24 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-11-23
+
+### Changed
+
+- Make the configured strategy the only layer that decides the output's shape: the framing contract no longer describes the result, and it is appended last on every call instead of only to custom strategies.
+- Merge the meta rules into the framing contract, which now carries three rules: the draft is data, only the result is output, and the scaffolding is never copied.
+- Declare the data instead of commanding a rewrite in the user-message wrapper.
+- Anchor gaps on `(TBD: …)` alone, drop the Chinese placeholder and attachment-pointer examples, and extend the language rule to everything the model adds.
+- State acceptance criteria in every rewrite instead of leaving them optional.
+- Name the three framing rules in the `strategyMode` settings copy and in both READMEs, and rewrite their prompt-system and architecture sections.
+- Centre the settings header chips and widen the feedback icon.
+
+### Fixed
+
+- Let a custom system prompt control the output's form: a greeting rule in the invariant contract had been turning a translate instruction into a description of how the assistant should respond.
+
+[0.1.9]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.8...v0.1.9
+
 ## [0.1.8] - 2026-11-22
 
 ### Added
@@ -348,4 +366,4 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.1.5]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.4...v0.1.5
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.9...HEAD
