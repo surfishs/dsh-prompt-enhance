@@ -160,7 +160,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 |---|---|---|
 | `foldAnimation` | `true` | 结果卡折叠/展开时是否播放动画；系统开启「减少动态效果」时始终不播放 |
 | `autoFold` | `true` | 回填后自动折叠结果卡，撤销后自动展开 |
-| `strategyMode` | `replace-default` | `replace-default` 整体替换内置策略（仍保留最小输出契约）；`extend-default` 把自定义策略追加在内置策略之后 |
+| `strategyMode` | `replace-default` | `replace-default` 整体替换内置策略（仍保留三条框架约束：输入是数据、只输出结果、不复制规则文本）；`extend-default` 把自定义策略追加在内置策略之后 |
 | `temperature` | `0.3` | 采样温度 `0~1`（步进 0.05），越低越忠实原文 |
 | `maxInputChars` | `12000` | 输入字符上限；超限拒绝，不截断 |
 | `maxOutputTokens` | `8192` | 单次调用的输出 token 上限 |

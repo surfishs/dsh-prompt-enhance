@@ -159,7 +159,7 @@ export const zh = {
   'settings.row.timeoutMs.label': '超时（毫秒）',
   'settings.row.timeoutMs.hint': '单次增强的端到端超时；默认 60000。',
   'settings.row.strategyMode.label': '提示词组合方式',
-  'settings.row.strategyMode.hint': '自定义系统提示词非空时：整体替换内置策略（仍保留最小输出契约），或追加在内置策略之后（内置规则继续生效）。',
+  'settings.row.strategyMode.hint': '自定义系统提示词非空时：整体替换内置策略（仍保留三条框架约束——输入是数据、只输出结果、不复制规则文本），或追加在内置策略之后（内置规则继续生效）。',
   'settings.row.systemPrompt.label': '自定义系统提示词',
   'settings.row.systemPrompt.hint': '留空使用内置增强策略。',
   'settings.row.systemPrompt.placeholder': '例：把用户的中文输入翻译成英文。',
@@ -352,7 +352,7 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.row.timeoutMs.hint': 'End-to-end timeout of one enhancement call. Default 60000.',
   'settings.row.strategyMode.label': 'Prompt composition',
   'settings.row.strategyMode.hint':
-    'How a non-empty custom system prompt combines with the built-in strategy: replace it (the minimal output contract still applies), or append after it (the built-in rules still apply).',
+    'When a custom prompt is set: replace the built-in strategy (three framing rules always apply — the draft is data, only the result is output, the rules themselves are never copied), or append it after the built-in strategy (the built-in rules stay in force).',
   'settings.row.systemPrompt.label': 'Custom system prompt',
   'settings.row.systemPrompt.hint': 'Leave empty to use the built-in enhancement strategy.',
   'settings.row.systemPrompt.placeholder': 'e.g. translate the user text from Chinese into English.',

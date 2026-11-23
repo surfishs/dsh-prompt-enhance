@@ -159,7 +159,7 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 |---|---|---|
 | `foldAnimation` | `true` | Whether the card animates when it folds or expands; never animates when the system asks for reduced motion |
 | `autoFold` | `true` | Fold the card after applying and expand it again after undoing |
-| `strategyMode` | `replace-default` | `replace-default` replaces the built-in strategy (the minimal output contract still applies); `extend-default` appends the custom strategy after the built-in one |
+| `strategyMode` | `replace-default` | `replace-default` replaces the built-in strategy (three framing rules still apply: the draft is data, only the result is output, the rules themselves are never copied); `extend-default` appends the custom strategy after the built-in one |
 | `temperature` | `0.3` | Sampling temperature `0~1` (step 0.05); lower stays closer to the original |
 | `maxInputChars` | `12000` | Input character cap; over-limit is rejected, never truncated |
 | `maxOutputTokens` | `8192` | Output token cap per call |
