@@ -173,7 +173,15 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 
 ### About the default reasoning effort
 
-This plugin defaults to `off`, and that default is usually the right one to keep. Prompt enhancement is normally a short, well-specified task — restating a draft more clearly — so no chain of reasoning is needed: on a simple task a thinking tier buys little, while costing several times the output tokens and a longer wait. A thinking tier is not without value — when the draft leans on involved context, or the task itself calls for weighing trade-offs, raising the tier clearly improves the rewrite, and you can do it for that one call. When you need more capability, a stronger model usually pays off more than a higher effort tier. Both the settings page and the right-click quick card switch the tier, so you can compare on the same draft.
+This plugin defaults to `off`, and that default is usually the right one to keep. Prompt enhancement is normally a short, well-specified task — restating a draft more clearly — so no chain of reasoning is needed: on a simple task a thinking tier buys little, while costing several times the output tokens and a longer wait.
+
+Raise the tier for one call when:
+
+- **the draft leans on involved context**, or the task itself calls for weighing trade-offs;
+- **the result card says the model produced no rewrite** — at a low tier with context on, the model occasionally hands the draft back unchanged. The plugin refuses that result and reports it honestly, but **never retries on its own**: press Regenerate once, raise the tier a step, or turn context awareness off for that call;
+- you want to compare tiers on the same draft.
+
+Both the settings page and the right-click quick card switch the tier, so you can compare on the spot. When you need more capability, a stronger model usually pays off more than keeping the tier raised.
 
 Do not pick a model that is too weak for the job: the output is a task description handed to the downstream model, and a noticeably weaker model tends to make it vaguer, drop key constraints, or drift from what you meant — **a lower-quality prompt can be worse than no rewrite at all**. Do not route prompt optimisation through a model weaker than the one running the current session.
 
