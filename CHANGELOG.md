@@ -22,6 +22,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - The persona is the WorkBuddy 5.11.3 enhance-prompt system half (role, analysis questions, craft list) with its fabrication licence (`Be realistic in the features to add`) removed. Restraint lives in `FIDELITY`, not in a persona maxim: the earlier "smallest change" maxim targeted the wrong failure — WorkBuddy inflated by inventing content, so the guard is "do not invent", not "change as little as possible".
 - The placeholder rule now applies to every mode and every persona: it is part of the task layer, so a custom persona can no longer opt out of preserving `{{…}}` slots. The lost-placeholder check follows — it runs whenever the draft has slots.
 - The framework-leak marker list names the new scaffolding (`CONTEXT RULES`, `FRAMING:`, `LANGUAGE LABEL CONTRAST`) instead of `Framing that applies`.
+- The model picker titles the follow-session row as its own `默认` / `Default` group. The shell's model pane has no ungrouped row — every option sits under a provider title — so the one row we add at the top reads as a stray entry without one.
+- The model picker's search field sits outside the scrolling list, like the shell's `.searchRow` outside `.groups`: typing and scrolling no longer move it off the top of the card.
+- Group titles in that list stick to its top edge and take `--dsw-alias-menu-group-header-fill` only while stuck, so a scrolled list still names the group under it without painting a band over the groups at rest.
 
 ### Fixed
 
@@ -29,6 +32,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 - The context-usage tooltip is no longer cut in half on a folded card, and no longer lands a sidebar-width to the right of its chip. It is portaled to the document body and placed in viewport coordinates from its trigger: the card clips its own overflow, and the composer seat declares `will-change: transform`, which makes it the containing block for fixed descendants. It also re-measures while open, so scrolling cannot strand it.
 - The result card follows the conversation column when the sidebar or a workspace panel opens or closes. The dock entry copies the composer card's width and left margin, and now re-measures when its own ancestors resize: the column narrows inside an unchanged viewport, so watching the window alone left the old width and margin applied and the card overflowed the column.
+- The model picker's search field matches the shell's own (ModelSelect `.searchRow`/`.search`): a chrome-less 5px/7px box with 12px text at `line-height: normal` instead of the 32px Input, so the row is 34px instead of 46px and the placeholder sits 11px from the card edge instead of 17px. The placeholder is `label-caption` (bluish-400), not `label-dimmed`, and item/group-label insets dropped to the same 7px, so the search text, group labels and model names line up.
 
 ## [0.1.10] - 2026-11-23
 

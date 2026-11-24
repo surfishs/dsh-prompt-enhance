@@ -72,6 +72,7 @@ export function QuickSettingsMenu(props: QuickSettingsMenuProps): ReactElement {
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement | null>(null)
   const paneRef = useRef<HTMLDivElement | null>(null)
+  const listRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -134,6 +135,29 @@ export function QuickSettingsMenu(props: QuickSettingsMenuProps): ReactElement {
   const pinned = data.provider !== '' && data.model !== ''
   const filteredGroups = useMemo(() => rankModelGroups(data.modelGroups, query), [data.modelGroups, query])
 
+  // Group titles stick to the list's top edge, like the shell's MenuGroup
+  // headings; the header fill is painted only once the title's own group has
+  // scrolled under it, so at rest the list still reads as one surface. The
+  // read pass collects every position before the write pass touches attributes,
+  // so one scroll cannot interleave layout reads with style invalidations.
+  useEffect(() => {
+    if (pane !== 'model') return
+    const list = listRef.current
+    if (list === null) return
+    const paint = (): void => {
+      const top = list.getBoundingClientRect().top
+      const states: Array<[HTMLElement, boolean]> = []
+      for (const heading of list.querySelectorAll<HTMLElement>('.dsh-pe-menu-group-label')) {
+        const group = heading.parentElement
+        states.push([heading, group !== null && group.getBoundingClientRect().top < top - 0.5])
+      }
+      for (const [heading, stuck] of states) heading.toggleAttribute('data-stuck', stuck)
+    }
+    paint()
+    list.addEventListener('scroll', paint, { passive: true })
+    return () => list.removeEventListener('scroll', paint)
+  }, [pane, filteredGroups])
+
   return (
     <div ref={ref} className="dsh-pe-menu" role="menu" aria-label={t('menu.title')} style={{ position: 'fixed', right, bottom }}>
       {pane === 'root' ? (
@@ -192,7 +216,7 @@ export function QuickSettingsMenu(props: QuickSettingsMenuProps): ReactElement {
               ref={searchRef}
               type="text"
               role="searchbox"
-              className="dsh-pe-menu-search-input"
+              className={query === '' ? 'dsh-pe-menu-search-input' : 'dsh-pe-menu-search-input is-filled'}
               placeholder={t('menu.searchPlaceholder')}
               aria-label={t('menu.searchPlaceholder')}
               value={query}
@@ -212,42 +236,53 @@ export function QuickSettingsMenu(props: QuickSettingsMenuProps): ReactElement {
               </button>
             )}
           </div>
-          <MenuRow role="menuitemradio" label={t('menu.followSession')} checked={following} highlight onSelect={() => onPickRoute(null)} />
-          {data.modelGroupsState === 'loading' ? (
-            <div className="dsh-pe-menu-note" role="status">
-              {t('menu.modelsLoading')}
+          {/* The shell keeps its search row outside the scrolling groups, so the
+              field stays put while the list moves; that list is also the
+              scrollport the group titles stick to. */}
+          <div ref={listRef} className="dsh-pe-menu-model-list">
+            {/* The shell's model pane has no ungrouped row: every option sits
+                under a group title. The follow-session row is our own top-level
+                entry, so it gets the title the provider groups give theirs. */}
+            <div className="dsh-pe-menu-model-group">
+              <div className="dsh-pe-menu-group-label">{t('menu.defaultGroup')}</div>
+              <MenuRow role="menuitemradio" label={t('menu.followSession')} checked={following} highlight onSelect={() => onPickRoute(null)} />
             </div>
-          ) : null}
-          {data.modelGroupsState === 'failed' ? (
-            <div className="dsh-pe-menu-note" role="status">
-              {t('menu.modelsFailed')}
-            </div>
-          ) : null}
-          {data.modelGroupsState === 'ready' && data.modelGroups.length === 0 ? (
-            <div className="dsh-pe-menu-note" role="status">
-              {t('menu.modelsEmpty')}
-            </div>
-          ) : null}
-          {data.modelGroupsState === 'ready' && data.modelGroups.length > 0 && filteredGroups.length === 0 ? (
-            <div className="dsh-pe-menu-note" role="status">
-              {t('menu.noMatch')}
-            </div>
-          ) : null}
-          {filteredGroups.map((group) => (
-            <div key={group.id} className="dsh-pe-menu-model-group">
-              <div className="dsh-pe-menu-group-label">{group.id === 'deepseek-account' ? t('menu.accountProvider') : group.name}</div>
-              {group.models.map((model) => (
-                <MenuRow
-                  key={`${group.id}/${model.id}`}
-                  role="menuitemradio"
-                  label={model.name}
-                  checked={pinned && data.provider === group.id && data.model === model.id}
-                  highlight
-                  onSelect={() => onPickRoute({ provider: group.id, model: model.id })}
-                />
-              ))}
-            </div>
-          ))}
+            {data.modelGroupsState === 'loading' ? (
+              <div className="dsh-pe-menu-note" role="status">
+                {t('menu.modelsLoading')}
+              </div>
+            ) : null}
+            {data.modelGroupsState === 'failed' ? (
+              <div className="dsh-pe-menu-note" role="status">
+                {t('menu.modelsFailed')}
+              </div>
+            ) : null}
+            {data.modelGroupsState === 'ready' && data.modelGroups.length === 0 ? (
+              <div className="dsh-pe-menu-note" role="status">
+                {t('menu.modelsEmpty')}
+              </div>
+            ) : null}
+            {data.modelGroupsState === 'ready' && data.modelGroups.length > 0 && filteredGroups.length === 0 ? (
+              <div className="dsh-pe-menu-note" role="status">
+                {t('menu.noMatch')}
+              </div>
+            ) : null}
+            {filteredGroups.map((group) => (
+              <div key={group.id} className="dsh-pe-menu-model-group">
+                <div className="dsh-pe-menu-group-label">{group.id === 'deepseek-account' ? t('menu.accountProvider') : group.name}</div>
+                {group.models.map((model) => (
+                  <MenuRow
+                    key={`${group.id}/${model.id}`}
+                    role="menuitemradio"
+                    label={model.name}
+                    checked={pinned && data.provider === group.id && data.model === model.id}
+                    highlight
+                    onSelect={() => onPickRoute({ provider: group.id, model: model.id })}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {error === undefined ? null : (

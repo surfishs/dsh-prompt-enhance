@@ -1038,6 +1038,63 @@ describe('quick settings menu', () => {
     }
   })
 
+  it('keeps the search field outside the scroller and fills a title only while stuck', async () => {
+    const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const href = String(input)
+        if (href.includes('/llm-providers')) {
+          return json({
+            ok: true,
+            value: {
+              providers: [
+                { id: 'deepseek-account', name: 'DeepSeek', registered: true },
+                { id: 'zhipu', name: 'Zhipu', registered: true },
+              ],
+            },
+          })
+        }
+        if (href.includes('provider=deepseek-account')) return json({ ok: true, value: { models: [{ id: 'deepseek-v4', name: 'DeepSeek-V4' }] } })
+        if (href.includes('provider=zhipu')) return json({ ok: true, value: { models: [{ id: 'glm-4.6', name: 'GLM-4.6' }] } })
+        return json({ ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } })
+      }),
+    )
+    try {
+      const { button } = setupMenu()
+      fireEvent.contextMenu(button)
+      await screen.findByRole('menu')
+      fireEvent.click(screen.getByRole('menuitem', { name: /^模型/ }))
+      expect(await screen.findByText('GLM-4.6')).toBeTruthy()
+
+      // The field is a sibling of the scroller, so scrolling cannot move it.
+      const list = document.querySelector<HTMLElement>('.dsh-pe-menu-model-list')
+      expect(list).not.toBeNull()
+      expect(list?.querySelector('.dsh-pe-menu-search')).toBeNull()
+      expect(screen.getByRole('searchbox').closest('.dsh-pe-menu-model-list')).toBeNull()
+
+      const headings = Array.from(document.querySelectorAll<HTMLElement>('.dsh-pe-menu-group-label'))
+      const groups = Array.from(document.querySelectorAll<HTMLElement>('.dsh-pe-menu-model-group'))
+      expect(groups.length).toBe(3)
+      expect(headings.length).toBe(3)
+      // At rest every title sits on the surface: no fill before anything scrolls.
+      expect(headings.every((heading) => !heading.hasAttribute('data-stuck'))).toBe(true)
+
+      // The default group has scrolled under the top edge; the two provider
+      // groups below are still in place.
+      vi.spyOn(list as HTMLElement, 'getBoundingClientRect').mockReturnValue({ top: 100 } as unknown as DOMRect)
+      vi.spyOn(groups[0], 'getBoundingClientRect').mockReturnValue({ top: 60 } as unknown as DOMRect)
+      vi.spyOn(groups[1], 'getBoundingClientRect').mockReturnValue({ top: 120 } as unknown as DOMRect)
+      vi.spyOn(groups[2], 'getBoundingClientRect').mockReturnValue({ top: 200 } as unknown as DOMRect)
+      fireEvent.scroll(list as HTMLElement)
+      expect(headings[0].hasAttribute('data-stuck')).toBe(true)
+      expect(headings[1].hasAttribute('data-stuck')).toBe(false)
+      expect(headings[2].hasAttribute('data-stuck')).toBe(false)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('explains an empty tier list for a pinned model instead of showing DeepSeek tiers', async () => {
     const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
     vi.stubGlobal(

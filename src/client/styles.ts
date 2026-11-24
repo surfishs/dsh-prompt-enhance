@@ -102,7 +102,7 @@ html[data-platform='darwin'] .dsh-pe-menu {
   gap: 6px;
   width: 100%;
   min-height: 34px;
-  padding: 6px 8px;
+  padding: 5px 7px;
   border: none;
   border-radius: var(--dsw-radius-md, 8px);
   background: transparent;
@@ -263,30 +263,47 @@ html[data-platform='darwin'] .dsh-pe-menu {
   font-size: 12px;
   line-height: 16px;
 }
-/* Model picker: a search field above provider-grouped rows. The selected row
-   keeps a quiet filled background, the way the shell's model list marks it. */
-.dsh-pe-menu-model-pane { max-height: 320px; overflow-y: auto; }
-.dsh-pe-menu-search { position: relative; padding: 4px 6px 6px; }
-/* The shell's Input recipe (dsh-web-frontend/index-*.css, ._wrap_14sgc_1):
-   32px tall, 0.5px border-l4, radius-md, bg-layer-1, 14/22 text. */
+/* Model picker: a search field pinned above a scrolling list, the way the
+   shell's model pane keeps .searchRow outside .groups. The list is the only
+   scroller, so its group titles can stick to its top edge; the selected row
+   keeps a quiet filled background, as the shell's model list marks it. */
+.dsh-pe-menu-model-pane { max-height: 320px; min-height: 0; }
+.dsh-pe-menu-model-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.dsh-pe-menu-model-group + .dsh-pe-menu-model-group { margin-top: 3px; }
+/* The shell's model search, matched metric for metric (ModelSelect.module.css
+   .searchRow / .search / .search input): 2px/3px margins around a chrome-less
+   5px/7px field whose text is 12px at line-height normal. It is not the 32px
+   Input recipe — that one makes the row read as a boxed control and pushes the
+   text 6px right and 8px down of where the shell puts it. */
+.dsh-pe-menu-search { position: relative; flex-shrink: 0; margin: 2px 0 3px; }
 .dsh-pe-menu-search-input {
   box-sizing: border-box;
   width: 100%;
-  height: 32px;
-  padding: 0 34px 0 7px;
-  border: 0;
+  height: auto;
+  padding: 5px 7px;
+  border: 0 solid transparent;
   border-radius: var(--dsw-radius-md, 8px);
   background: transparent;
   color: var(--dsw-alias-label-primary, inherit);
   font: inherit;
-  font-size: 14px;
-  line-height: 22px;
+  font-size: 12px;
+  line-height: normal;
   outline: none;
 }
-.dsh-pe-menu-search-input::placeholder { color: var(--dsw-alias-label-dimmed, var(--dsw-alias-label-tertiary, inherit)); }
-/* The native model search is chrome-less: the searchRow/search override zeroes
-   the border and background, so the text sits on the menu surface. This field
-   is auto-focused on drill-in, so no focus border either. */
+/* A typed query keeps the 24px clear button's gutter free (native
+   .searchWithQuery: padding-right 34px). */
+.dsh-pe-menu-search-input.is-filled { padding-right: 34px; }
+/* label-caption, not label-dimmed: the shell's placeholder is bluish-400
+   (173,178,184), two steps darker than the dimmed 200 (225,229,238). */
+.dsh-pe-menu-search-input::placeholder {
+  color: var(--dsw-alias-label-caption, var(--dsw-alias-label-dimmed, var(--dsw-alias-label-tertiary, inherit)));
+}
+/* The field is auto-focused on drill-in, so it never takes a focus border. */
 .dsh-pe-menu-search-input:focus,
 .dsh-pe-menu-search-input:focus-visible { outline: none; }
 .dsh-pe-menu-search-clear {
@@ -299,23 +316,37 @@ html[data-platform='darwin'] .dsh-pe-menu {
   justify-content: center;
   width: 24px;
   height: 24px;
-  margin-top: -1px;
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: var(--dsw-alias-label-tertiary, inherit);
+  color: var(--dsw-alias-label-secondary, var(--dsw-alias-label-tertiary, inherit));
   font: inherit;
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
 }
 .dsh-pe-menu-search-clear:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12)); }
+/* The shell's MenuGroup heading (Menu.module.css .heading): sticky at the
+   list's top edge, 11/16 at weight 500 in label-tertiary, transparent until its
+   group scrolls under it — then the header fill keeps the rows behind it from
+   showing through. */
 .dsh-pe-menu-group-label {
-  padding: 6px 8px 2px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 4px 7px 2px;
+  background: transparent;
   color: var(--dsw-alias-label-tertiary, inherit);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 16px;
+  font-weight: 500;
 }
+.dsh-pe-menu-group-label[data-stuck] {
+  background: var(--dsw-alias-menu-group-header-fill, var(--dsw-menu-surface-fill, rgba(248, 249, 250, 0.94)));
+}
+/* The shell rounds the stuck header everywhere except macOS, where the fill
+   meets the vibrancy edge. */
+html:not([data-platform='darwin']) .dsh-pe-menu-group-label { border-radius: var(--dsw-radius-md, 8px); }
 .dsh-pe-menu-item.is-selected { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12)); }
 .dsh-pe-panel {
   box-sizing: border-box;
