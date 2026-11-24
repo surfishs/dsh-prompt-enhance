@@ -23,6 +23,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Compress the conditional blocks: context rules 6 → 4, attachment rules 9 → 5, and the placeholder block now refers to the strategy's marker instead of redefining it.
 - Framing states four rules in plainer sentences and no longer names the context and attachment blocks, which most calls do not carry.
 - The context and attachment headers locate their tag ("the `<conversation_context>` / `<attachments>` block before the draft") instead of stating when the block is appended: that condition is wiring the model never sees, and it was the only surplus in headers the bullets depend on for their antecedent.
+- The framing header is a bare label: "applies to every call, whatever strategy is configured" described how the block is wired, not what the model must do. Whether the framing outranks a custom strategy is deliberately left unstated until an actual conflict is observed.
 
 ### Fixed
 
