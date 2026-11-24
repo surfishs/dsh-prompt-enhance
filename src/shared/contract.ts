@@ -23,9 +23,23 @@ import { isDegenerateOutput } from './normalize'
  * Markers that only exist in the scaffolding, never in a rewritten prompt.
  * `<raw_prompt>` may survive mid-text when the model pasted the whole framed
  * user message; `normalizeOutput` strips only the outer wrapper, so this list
- * catches the leftovers.
+ * catches the leftovers. The section headers are part of the same net: a model
+ * that echoes `TASK:` or `CONTEXT RULES` is copying the scaffolding, not
+ * rewriting.
  */
-const FRAMEWORK_MARKERS: readonly string[] = ['<raw_prompt>', '</raw_prompt>', '<conversation_context>', '</conversation_context>', '<attachments', 'Framing that applies', 'Operator additions']
+const FRAMEWORK_MARKERS: readonly string[] = [
+  '<raw_prompt>',
+  '</raw_prompt>',
+  '<conversation_context>',
+  '</conversation_context>',
+  '<attachments',
+  'CONTEXT RULES',
+  'ATTACHMENT RULES',
+  'PLACEHOLDER RULES',
+  'FRAMING:',
+  'LANGUAGE LABEL CONTRAST',
+  'Operator additions',
+]
 
 /** One user-authored template slot, e.g. `{{topic}}` or `{{ name }}`. */
 const PLACEHOLDER = /\{\{\s*([^{}\n]+?)\s*\}\}/g

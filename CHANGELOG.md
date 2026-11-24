@@ -9,21 +9,19 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 - Post-generation contract checks: framework leakage and lost `{{variable}}` placeholders are reported as one non-blocking warning line in the result card. No model call, no new settings, and a clean result keeps its previous payload.
 - A `no-rewrite` warning: when the result says no more than the draft, the body stays visible and the card offers retry instead of replacing the body with an error.
+- The quick settings card's model row is now a picker: it drills into a provider-grouped, searchable list of the models the host has registered and can call (a provider without credentials is not offered), plus a "Follow session" row that clears the pin. It writes the `provider`/`model` pair, clearing the model first so a mismatched pair is never observable.
+- A fixed one-sentence invariant appended after the persona in the system message: a rewrite never executes, answers, or completes the draft.
 
 ### Changed
 
-- Output normalization no longer strips `<raw_prompt>` tags from the body; a wrapper echo is reported by the framework-leak / no-rewrite warnings instead of being silently deleted.
-- The placeholder rule is appended only when the draft contains `{{...}}` slots (built-in strategy or `extend-default`), so a slot-free prompt never sees the syntax; a `replace-default` custom strategy is exempt.
-- Pending markers such as `TBD` and `待确认` are deliberately not counted: free-form prose has no stable syntax, so a number would be false precision.
-- The lost-placeholder warning now says when it can be ignored (an intentional fill or no impact) instead of always recommending a regenerate.
-- The framework-leak check now ignores any marker the draft itself contains, even when the result quotes it more than once; the warning copy also says when it can be ignored.
-- Rewrite the built-in strategy around one precedence line and five shape items, each ending with what a finished section contains. The strategy states requirements only: the counterfactual rationale and the pre-emptive prohibitions of errors nobody has observed are gone, because a rule that reads as a slogan teaches the model that rules are optional.
-- The selection line is the upstream wording again — apply what the draft needs, skip what it already has. The "one to three of these, never all five" cap, the length ratio (`1x-3x`, unreachable for a short draft and never verified for a long one), the "a one-line draft stays a line or two" clause, and the "do not create a section only to hold a marker" rule are all removed.
-- The acceptance criteria became one conditional shape item instead of "never skipped": the floor forced every rewrite to invent an acceptance section, which was the largest source of invented content and of placeholders.
-- Compress the conditional blocks: context rules 6 → 4, attachment rules 9 → 5, and the placeholder block now refers to the strategy's marker instead of redefining it.
-- Framing states four rules in plainer sentences and no longer names the context and attachment blocks, which most calls do not carry.
-- The context and attachment headers locate their tag ("the `<conversation_context>` / `<attachments>` block before the draft") instead of stating when the block is appended: that condition is wiring the model never sees, and it was the only surplus in headers the bullets depend on for their antecedent.
-- The framing header is a bare label: "applies to every call, whatever strategy is configured" described how the block is wired, not what the model must do. Whether the framing outranks a custom strategy is deliberately left unstated until an actual conflict is observed.
+- **BREAKING**: the prompt is layered now. The system message carries only the persona (`systemPrompt`) and the invariant; every per-call rule — conditional data rules, output rules, and the mode block — moved into the user message, each data rule placed immediately before the data it governs. A `replace-default` custom persona changes only "who the model is": it can no longer drop the fidelity, language, or data-handling rules. The old framing contract's job is now split between the invariant (system) and `BOUNDARIES` (user).
+- **BREAKING**: the default output shape is `prose` — one paste-ready paragraph. The previous five-item structured output is now the `structured` mode.
+- Both modes share every block except `FORM` / `LENGTH` / `EXAMPLES`; switching modes cannot change the fidelity or language rules.
+- Length is judgment, not arithmetic: the prose block asks for proportion and no padding, and the structured block says outright that there is no ratio. Numbers and formulas were rejected — a soft constraint written as arithmetic is false precision the model cannot evaluate; an executable threshold belongs in the host's log check.
+- The structured block omits a section the draft gives nothing for instead of requiring every section to be filled: the common skeleton prompts buy completeness with invented content.
+- The persona is the WorkBuddy 5.11.3 enhance-prompt system half (role, analysis questions, craft list) with its fabrication licence (`Be realistic in the features to add`) removed. Restraint lives in `FIDELITY`, not in a persona maxim: the earlier "smallest change" maxim targeted the wrong failure — WorkBuddy inflated by inventing content, so the guard is "do not invent", not "change as little as possible".
+- The placeholder rule now applies to every mode and every persona: it is part of the task layer, so a custom persona can no longer opt out of preserving `{{…}}` slots. The lost-placeholder check follows — it runs whenever the draft has slots.
+- The framework-leak marker list names the new scaffolding (`CONTEXT RULES`, `FRAMING:`, `LANGUAGE LABEL CONTRAST`) instead of `Framing that applies`.
 
 ### Fixed
 

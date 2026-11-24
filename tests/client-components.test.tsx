@@ -20,6 +20,7 @@ import { zh } from '../src/client/locales'
 import * as ui from '../src/client/ui-state'
 import { DEFAULT_CLIENT_SETTINGS, setClientSettings } from '../src/client/settings'
 import { clearCatalogCache } from '../src/client/llm-catalog'
+import { clearQuickModelCache } from '../src/client/quick-settings'
 import { setSettingsWriter } from '../src/client/settings-writer'
 
 /**
@@ -915,6 +916,7 @@ describe('quick settings menu', () => {
     cleanup()
     setSettingsWriter(undefined)
     clearCatalogCache()
+    clearQuickModelCache()
   })
 
   /** Install a writer double and render one composer. */
@@ -926,7 +928,7 @@ describe('quick settings menu', () => {
     return { set, button: enhanceButton() }
   }
 
-  it('opens on right-click and writes the picked tier', async () => {
+  it('writes the picked tier and the picked output shape', async () => {
     const { set, button } = setupMenu()
     fireEvent.contextMenu(button)
     expect(await screen.findByRole('menu')).toBeTruthy()
@@ -936,16 +938,81 @@ describe('quick settings menu', () => {
     fireEvent.click(screen.getByRole('menuitemradio', { name: zh['menu.effortDefault'] }))
     await waitFor(() => expect(set).toHaveBeenCalledWith('reasoningEffort', 'inherit'))
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+
+    // The output shape is a second drilled cell on the same card.
+    fireEvent.contextMenu(button)
+    await screen.findByRole('menu')
+    fireEvent.click(screen.getByRole('menuitem', { name: /输出形态/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: zh['settings.mode.structured'] }))
+    await waitFor(() => expect(set).toHaveBeenCalledWith('mode', 'structured'))
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
   })
 
-  it('shows the pinned provider/model as a read-only route row', async () => {
+  it('turns the route row into a model picker with a search field', async () => {
     setClientSettings({ ...DEFAULT_CLIENT_SETTINGS, provider: 'zhipu', model: 'glm-4.6' })
     const { button } = setupMenu()
     fireEvent.contextMenu(button)
     const row = await screen.findByText(zh['menu.model'])
-    // The value is the route it would call, and the row is not a control.
+    // The value is the route it would call, and the row is now a control.
     expect(row.parentElement?.textContent).toContain('zhipu / glm-4.6')
-    expect(row.closest('button')).toBeNull()
+    const cell = row.closest('button')
+    expect(cell).not.toBeNull()
+    fireEvent.click(cell as HTMLElement)
+    expect(await screen.findByRole('searchbox')).toBeTruthy()
+    expect(screen.getByRole('menuitemradio', { name: zh['menu.followSession'] })).toBeTruthy()
+  })
+
+  it('lists registered models by provider and pins the picked one', async () => {
+    const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const href = String(input)
+        if (href.includes('/llm-providers')) {
+          return json({
+            ok: true,
+            value: {
+              providers: [
+                { id: 'deepseek-account', name: 'DeepSeek', registered: true },
+                { id: 'zhipu', name: 'Zhipu', registered: true },
+                { id: 'dormant', name: 'Dormant', registered: false },
+              ],
+            },
+          })
+        }
+        if (href.includes('provider=deepseek-account')) return json({ ok: true, value: { models: [{ id: 'deepseek-v4', name: 'DeepSeek-V4' }] } })
+        if (href.includes('provider=zhipu')) return json({ ok: true, value: { models: [{ id: 'glm-4.6', name: 'GLM-4.6' }] } })
+        return json({ ok: false })
+      }),
+    )
+    try {
+      const unset = vi.fn(async () => true)
+      const set = vi.fn(async () => true)
+      setSettingsWriter({ set, unset })
+      const input = makeFakeInput({ draft: '写个爬虫' })
+      renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+      const button = enhanceButton()
+      fireEvent.contextMenu(button)
+      await screen.findByRole('menu')
+      fireEvent.click(screen.getByRole('menuitem', { name: /^模型/ }))
+      expect(await screen.findByText(zh['menu.accountProvider'])).toBeTruthy()
+      expect(await screen.findByText('GLM-4.6')).toBeTruthy()
+      // The dormant provider is not offered at all.
+      expect(screen.queryByText('Dormant')).toBeNull()
+
+      // Search filters within the groups (ordered subsequence, shell rule).
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'qwen' } })
+      expect(screen.queryByText('GLM-4.6')).toBeNull()
+      expect(screen.getByText(zh['menu.noMatch'])).toBeTruthy()
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'glm' } })
+      fireEvent.click(await screen.findByRole('menuitemradio', { name: 'GLM-4.6' }))
+      await waitFor(() => expect(unset).toHaveBeenCalledWith('model'))
+      await waitFor(() => expect(set).toHaveBeenCalledWith('provider', 'zhipu'))
+      await waitFor(() => expect(set).toHaveBeenCalledWith('model', 'glm-4.6'))
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('shows the catalog names for a pinned route when the host advertises them', async () => {

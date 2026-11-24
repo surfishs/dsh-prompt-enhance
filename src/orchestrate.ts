@@ -9,7 +9,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { randomUUID } from 'node:crypto'
 import { effectiveSystemPrompt, type Config } from './config'
-import { DEFAULT_SYSTEM_PROMPT, CONTEXT_SYSTEM_ADDITION, withAttachmentRules, withInvariantContract, withPlaceholderRules } from './prompts'
+import { DEFAULT_SYSTEM_PROMPT, withInvariantTail } from './prompts'
 import { buildConversationContextWithUsage } from './context'
 import { EnhanceFailure, enhanceText, resolveRoute, toEnhanceError, type RoutePair } from './enhancer'
 import type { ContextUsage, ContractCheck, EnhanceResult } from './shared/protocol'
@@ -320,15 +320,16 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
     // contract is appended LAST to every call so its "these instructions"
     // covers every block above it.
     const draftHasSlots = placeholderNames(options.text).length > 0
-    const builtinRules = config.systemPrompt.trim() === '' || config.strategyMode === 'extend-default'
-    const baseSystem = effectiveSystemPrompt(config, DEFAULT_SYSTEM_PROMPT, context === undefined ? '' : CONTEXT_SYSTEM_ADDITION)
-    const withPlaceholders = draftHasSlots && builtinRules ? withPlaceholderRules(baseSystem) : baseSystem
-    const withAttachments = attachmentCount > 0 ? withAttachmentRules(withPlaceholders) : withPlaceholders
-    const system = withInvariantContract(withAttachments)
+    // Two layers, no more: the persona (replaceable) and the invariant that
+    // follows it (ours). Everything about this call rides in the user message,
+    // assembled by `frameUserPrompt` next to the draft.
+    const system = withInvariantTail(effectiveSystemPrompt(config, DEFAULT_SYSTEM_PROMPT))
     const result = await enhanceText(llm, {
       route,
       system,
       text: options.text,
+      mode: config.mode,
+      hasSlots: draftHasSlots,
       temperature: config.temperature,
       reasoningEffort: effort,
       maxTokens: config.maxOutputTokens,
@@ -347,7 +348,7 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
     // would be wrong.
     let checks: ContractCheck[] = []
     try {
-      checks = checkContract(options.text, result.text, { placeholders: draftHasSlots && builtinRules })
+      checks = checkContract(options.text, result.text, { placeholders: draftHasSlots })
     } catch {
       checks = []
     }

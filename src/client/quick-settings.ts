@@ -21,6 +21,19 @@ export interface QuickEffort {
   readonly name: string
 }
 
+/** One available model of one provider. */
+export interface QuickModel {
+  readonly id: string
+  readonly name: string
+}
+
+/** Available models of one provider, in the order the catalog returns them. */
+export interface QuickModelGroup {
+  readonly id: string
+  readonly name: string
+  readonly models: readonly QuickModel[]
+}
+
 /** The host services this menu reads (structural, so tests can pass stubs). */
 export interface QuickContext {
   modelDirectories?: {
@@ -36,6 +49,12 @@ export interface QuickSettingsData {
   readonly effort: string
   /** The context switch the plugin config currently holds. */
   readonly contextAware: boolean
+  /** Output shape the plugin config currently holds: `prose` or `structured`. */
+  readonly mode: string
+  /** Available models grouped by provider; empty until the read settles. */
+  readonly modelGroups: readonly QuickModelGroup[]
+  /** Lifecycle of the model-group read behind the model picker. */
+  readonly modelGroupsState: 'idle' | 'loading' | 'ready' | 'failed'
   /** The pinned provider override (empty follows the session). */
   readonly provider: string
   /** The pinned model override (empty follows the session). */
@@ -196,6 +215,7 @@ export async function resolveQuickSettings(input: QuickSettingsInput): Promise<Q
   const stored = typeof input.settings.reasoningEffort === 'string' ? input.settings.reasoningEffort.trim() : ''
   const effort = stored === '' ? 'off' : stored
   const contextAware = input.settings.contextAware === true
+  const mode = input.settings.mode === 'structured' ? 'structured' : 'prose'
   const provider = input.settings.provider?.trim() ?? ''
   const model = input.settings.model?.trim() ?? ''
   // Start the catalog read with the capability read so the card opens once, not
@@ -208,27 +228,41 @@ export async function resolveQuickSettings(input: QuickSettingsInput): Promise<Q
     // A pinned route owns the list: when it declares no tiers (or the lookup
     // fails) the menu must say so instead of borrowing the session's tiers or
     // the shipped DeepSeek catalog, which would offer tiers this model rejects.
-    if (efforts.length > 0) return { efforts, effort, contextAware, provider, model, ...(await labelsPromise), source: 'override' }
-    return { efforts: [], effort, contextAware, provider, model, ...(await labelsPromise), source: 'override', effortReason: capabilities.reason ?? 'resolve-failed' }
+    if (efforts.length > 0) return { efforts, effort, contextAware, mode, provider, model, modelGroups: [], modelGroupsState: 'idle', ...(await labelsPromise), source: 'override' }
+    return {
+      efforts: [],
+      effort,
+      contextAware,
+      mode,
+      provider,
+      model,
+      modelGroups: [],
+      modelGroupsState: 'idle',
+      ...(await labelsPromise),
+      source: 'override',
+      effortReason: capabilities.reason ?? 'resolve-failed',
+    }
   }
 
   const directory = modelDirectoryOf(input.ctx, input.sessionId)
   if (directory !== undefined) {
     const first = readDirectory(directory)
-    if (first !== undefined && first.efforts.length > 0) return { efforts: first.efforts, effort, contextAware, provider, model, ...(await labelsPromise), source: 'session' }
+    if (first !== undefined && first.efforts.length > 0)
+      return { efforts: first.efforts, effort, contextAware, mode, provider, model, modelGroups: [], modelGroupsState: 'idle', ...(await labelsPromise), source: 'session' }
     // A snapshot that has not loaded yet is normal on a cold composer; nudge it
     // and read once more before settling for the static catalog.
     await kickLoad(directory)
     const second = readDirectory(directory)
-    if (second !== undefined && second.efforts.length > 0) return { efforts: second.efforts, effort, contextAware, provider, model, ...(await labelsPromise), source: 'session' }
+    if (second !== undefined && second.efforts.length > 0)
+      return { efforts: second.efforts, effort, contextAware, mode, provider, model, modelGroups: [], modelGroupsState: 'idle', ...(await labelsPromise), source: 'session' }
     if (second?.provider !== undefined && !isDeepSeekProvider(second.provider)) {
       // A non-DeepSeek route declares its own tiers; guessing them would offer
       // options the model rejects, so the menu shows the stored value only.
-      return { efforts: [], effort, contextAware, provider, model, ...(await labelsPromise), source: 'session', effortReason: 'no-efforts' }
+      return { efforts: [], effort, contextAware, mode, provider, model, modelGroups: [], modelGroupsState: 'idle', ...(await labelsPromise), source: 'session', effortReason: 'no-efforts' }
     }
   }
 
-  return { efforts: staticEfforts(), effort, contextAware, provider, model, ...(await labelsPromise), source: 'static' }
+  return { efforts: staticEfforts(), effort, contextAware, mode, provider, model, modelGroups: [], modelGroupsState: 'idle', ...(await labelsPromise), source: 'static' }
 }
 
 /**
@@ -257,4 +291,143 @@ export async function writeQuickContext(writer: SettingsWriter, next: boolean): 
   } catch {
     return false
   }
+}
+
+/**
+ * Write the output shape.
+ * @param writer - the installed settings writer.
+ * @param mode - `prose` or `structured`.
+ * @returns true when the host accepted the write.
+ */
+export async function writeQuickMode(writer: SettingsWriter, mode: string): Promise<boolean> {
+  try {
+    return await writer.set('mode', mode)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Write one pinned route, or clear it back to "follow the session".
+ *
+ * The model is cleared before the provider changes, so the host never observes
+ * a provider paired with a model it no longer serves: an incomplete pair is a
+ * normal state that means "follow the session", while a mismatched pair would
+ * fail the next enhancement. The cost is a millisecond-scale window in which
+ * the plugin follows the session — never an error.
+ * @param writer - the installed settings writer.
+ * @param route - the provider/model pair, or null to follow the session.
+ * @returns true when every write was accepted.
+ */
+export async function writeQuickRoute(writer: SettingsWriter, route: { provider: string; model: string } | null): Promise<boolean> {
+  const attempt = async (write: () => Promise<boolean>): Promise<boolean> => {
+    try {
+      return await write()
+    } catch {
+      return false
+    }
+  }
+  if (!(await attempt(() => writer.unset('model')))) return false
+  if (route === null) return attempt(() => writer.unset('provider'))
+  if (!(await attempt(() => writer.set('provider', route.provider)))) return false
+  return attempt(() => writer.set('model', route.model))
+}
+
+/** How long one model-group answer stays usable (mirrors the catalog memo). */
+export const MODEL_GROUPS_TTL_MS = 60_000
+
+let modelGroupsMemo: { value: QuickModelGroup[]; at: number } | undefined
+
+/** Drop the memoized model groups (tests and registry swaps). */
+export function clearQuickModelCache(): void {
+  modelGroupsMemo = undefined
+}
+
+/** Shell order: the account provider, then the official one, then catalog order. */
+function orderRank(id: string): number {
+  return id === 'deepseek-account' ? 0 : id === 'deepseek-official' ? 1 : 2
+}
+
+/**
+ * Read every model the host actually serves: registered providers only.
+ *
+ * A provider the user never configured is `registered: false` and is dropped
+ * here — offering it would list models the enhancement call cannot reach.
+ * Providers whose model list fails or times out contribute no group.
+ * @param signal - cancels the reads.
+ * @param options - `refresh` bypasses the short-lived memo.
+ * @returns the groups, or undefined when the provider list itself failed.
+ */
+export async function loadQuickModelGroups(signal?: AbortSignal, options: { refresh?: boolean } = {}): Promise<QuickModelGroup[] | undefined> {
+  const cached = modelGroupsMemo
+  if (options.refresh !== true && cached !== undefined && Date.now() - cached.at <= MODEL_GROUPS_TTL_MS) return cached.value
+  const providers = await fetchProviders(signal)
+  if (providers === undefined) return undefined
+  const groups = await Promise.all(
+    providers
+      .filter((provider) => provider.registered)
+      .map(async (provider): Promise<QuickModelGroup> => {
+        const catalog = await fetchModels(provider.id, signal)
+        return {
+          id: provider.id,
+          name: provider.name,
+          models: (catalog?.models ?? []).map((model) => ({ id: model.id, name: model.name })),
+        }
+      }),
+  )
+  const available = groups.filter((group) => group.models.length > 0).sort((left, right) => orderRank(left.id) - orderRank(right.id))
+  // An empty answer is what a transient adapter failure looks like; caching it
+  // would keep the picker empty for the whole window.
+  if (available.length > 0) modelGroupsMemo = { value: available, at: Date.now() }
+  return available
+}
+
+/**
+ * Score one model name against one lowercase query, or undefined for no match.
+ *
+ * Case-insensitive ordered subsequence, mirroring the shell selector: a prefix
+ * match wins, then the match that starts earlier and spans less.
+ * @param name - the model's display name, already lowercased.
+ * @param query - the lowercased query.
+ * @returns the sort score, or undefined when the name does not match.
+ */
+function subsequenceScore(name: string, query: string): number | undefined {
+  if (query === '') return 0
+  if (name.startsWith(query)) return 0
+  let matched = 0
+  let first = -1
+  let last = -1
+  for (let index = 0; index < name.length; index++) {
+    if (matched < query.length && name[index] === query[matched]) {
+      if (first === -1) first = index
+      last = index
+      matched += 1
+    }
+  }
+  if (matched !== query.length) return undefined
+  // Earlier start wins first, then the tighter span.
+  return 1 + (last - first) + first * 0.001
+}
+
+/**
+ * Filter and rank one provider group's models for a search query.
+ * @param groups - the loaded groups.
+ * @param query - the raw search box value.
+ * @returns the groups that still have matches, models ranked best first.
+ */
+export function rankModelGroups(groups: readonly QuickModelGroup[], query: string): QuickModelGroup[] {
+  const needle = query.trim().toLowerCase()
+  if (needle === '') return groups.map((group) => ({ ...group, models: group.models }))
+  const ranked: QuickModelGroup[] = []
+  for (const group of groups) {
+    const scored: { model: QuickModel; score: number; index: number }[] = []
+    group.models.forEach((model, index) => {
+      const score = subsequenceScore(model.name.toLowerCase(), needle)
+      if (score !== undefined) scored.push({ model, score, index })
+    })
+    if (scored.length === 0) continue
+    scored.sort((left, right) => left.score - right.score || left.index - right.index)
+    ranked.push({ ...group, models: scored.map((entry) => entry.model) })
+  }
+  return ranked
 }

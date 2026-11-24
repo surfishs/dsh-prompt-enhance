@@ -14,6 +14,7 @@
 /** Defaults of every row the settings surfaces edit (provider/model default to empty). */
 export const DEFAULT_VALUES = {
   enabled: true,
+  mode: 'prose',
   temperature: 0.3,
   // A rewrite does not need deep reasoning, and the route default is expensive
   // (measured: 2897 output tokens at `high` vs 252 at `off` for the same draft).

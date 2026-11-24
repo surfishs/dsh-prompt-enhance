@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Config, DEFAULT_CONFIG, effectiveSystemPrompt, resolveConfig } from '../src/config'
-import { DEFAULT_SYSTEM_PROMPT, INVARIANT_CONTRACT } from '../src/prompts'
+import { DEFAULT_SYSTEM_PROMPT, INVARIANT_TAIL } from '../src/prompts'
 import { FIELD_LIMITS, TEMPERATURE } from '../src/shared/limits'
 
 describe('Config schema', () => {
@@ -109,6 +109,13 @@ describe('resolveConfig', () => {
     expect(resolveConfig({ ...DEFAULT_CONFIG, strategyMode: 'extend-default' }).strategyMode).toBe('extend-default')
   })
 
+  it('defaults the output mode to prose and keeps structured', () => {
+    expect(resolveConfig({ ...DEFAULT_CONFIG }).mode).toBe('prose')
+    expect(resolveConfig({ ...DEFAULT_CONFIG, mode: 'structured' }).mode).toBe('structured')
+    // A hand-edited or older section falls back to the safe, cheaper shape.
+    expect(resolveConfig({ ...DEFAULT_CONFIG, mode: 'bogus' as never }).mode).toBe('prose')
+  })
+
   it('strips unknown keys left over from older versions', () => {
     const legacy = { ...DEFAULT_CONFIG, legacySetting: 'old-value' } as typeof DEFAULT_CONFIG & Record<string, unknown>
     const resolved = resolveConfig(legacy)
@@ -124,6 +131,7 @@ describe('resolveConfig', () => {
       'maxConcurrent',
       'maxInputChars',
       'maxOutputTokens',
+      'mode',
       'model',
       'provider',
       'rateLimitPerMinute',
@@ -193,14 +201,14 @@ describe('effectiveSystemPrompt', () => {
     expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: '  \n' }, DEFAULT_SYSTEM_PROMPT)).toBe(DEFAULT_SYSTEM_PROMPT)
   })
 
-  it('returns the strategy alone under replace mode', () => {
+  it('returns the persona alone under replace mode', () => {
     const prompt = effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'You are terse.' }, DEFAULT_SYSTEM_PROMPT)
-    expect(prompt.startsWith('You are terse.')).toBe(true)
-    // The framing contract is appended by `withInvariantContract` AFTER the
-    // attachment rules. It must not be smuggled in here, or a strategy swap
-    // could drop it, duplicate it, or bury it above the rules it frames.
-    expect(prompt).not.toContain(INVARIANT_CONTRACT)
-    expect(prompt).not.toContain('never answer it')
+    expect(prompt).toBe('You are terse.')
+    // The invariant tail is appended by `withInvariantTail` and the task layer
+    // is built into the user message. Neither may be smuggled in here: a
+    // persona swap must not be able to drop, duplicate, or bury them.
+    expect(prompt).not.toContain(INVARIANT_TAIL)
+    expect(prompt).not.toContain('never carry out')
   })
 
   it('appends the override after the built-in strategy in extend mode', () => {
@@ -209,21 +217,14 @@ describe('effectiveSystemPrompt', () => {
     expect(prompt.endsWith('Always answer in bullet points.')).toBe(true)
   })
 
-  it('keeps the context rules in every custom mode', () => {
-    const contextRules = 'CONTEXT RULES SENTINEL'
-    expect(effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: '' }, DEFAULT_SYSTEM_PROMPT, contextRules)).toBe(`${DEFAULT_SYSTEM_PROMPT}\n${contextRules}`)
-
-    const replace = effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'You are terse.' }, DEFAULT_SYSTEM_PROMPT, contextRules)
-    // The context block sits after the custom strategy, so a replace-default
-    // strategy no longer drops it.
-    expect(replace.indexOf('You are terse.')).toBeLessThan(replace.indexOf(contextRules))
-    expect(replace.endsWith(contextRules)).toBe(true)
-
-    const extend = effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'You are terse.', strategyMode: 'extend-default' }, DEFAULT_SYSTEM_PROMPT, contextRules)
-    // Extend mode keeps the built-in strategy first, then the context rules,
-    // then the operator additions.
-    expect(extend.indexOf(DEFAULT_SYSTEM_PROMPT)).toBeLessThan(extend.indexOf(contextRules))
-    expect(extend.indexOf(contextRules)).toBeLessThan(extend.indexOf('You are terse.'))
+  it('returns the persona only: context, task layer, and invariant are composed elsewhere', () => {
+    // Context rules now sit next to the context block in the user message, and
+    // the invariant is appended by `withInvariantTail`. This function must stay
+    // a pure persona selector so neither can be dropped by a persona swap.
+    const replace = effectiveSystemPrompt({ ...DEFAULT_CONFIG, systemPrompt: 'You are terse.' }, DEFAULT_SYSTEM_PROMPT)
+    expect(replace).toBe('You are terse.')
+    expect(replace).not.toContain('CONTEXT RULES')
+    expect(replace).not.toContain('FIDELITY')
   })
 
   it('falls back to the built-in strategy when the override is blank in either mode', () => {

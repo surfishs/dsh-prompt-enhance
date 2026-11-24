@@ -21,7 +21,19 @@ import * as ui from './ui-state'
 import { getClientSettings, subscribeClientSettings } from './settings'
 import { getSettingsWriter, subscribeSettingsWriter } from './settings-writer'
 import { QuickSettingsMenu, type QuickMenuAnchor } from './QuickSettingsMenu'
-import { directoryFaceOf, INHERIT_EFFORT, modelDirectoryOf, resolveQuickSettings, writeQuickContext, writeQuickEffort, type QuickContext, type QuickSettingsData } from './quick-settings'
+import {
+  directoryFaceOf,
+  INHERIT_EFFORT,
+  loadQuickModelGroups,
+  modelDirectoryOf,
+  resolveQuickSettings,
+  writeQuickContext,
+  writeQuickEffort,
+  writeQuickMode,
+  writeQuickRoute,
+  type QuickContext,
+  type QuickSettingsData,
+} from './quick-settings'
 import { useSessionKey, serverSessionId } from './session-key'
 
 /** Props of the input.right entry: the InputZone owner share + session kit + locale seat. */
@@ -282,7 +294,13 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
           const data = await reconcileEffort(resolved)
           if (cancelled) return
           const local = contextWrites.current.desired ?? contextWrites.current.accepted
-          setMenu((current) => (current === null ? current : { ...current, data: local === null ? data : { ...data, contextAware: local } }))
+          setMenu((current) => {
+            if (current === null) return current
+            const next = local === null ? data : { ...data, contextAware: local }
+            // The model groups are loaded once per open; a directory refresh
+            // must not wipe the list the user is looking at.
+            return { ...current, data: { ...next, modelGroups: current.data.modelGroups, modelGroupsState: current.data.modelGroupsState } }
+          })
         })
       }, 80)
     }
@@ -309,7 +327,20 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       const data = await reconcileEffort(resolved)
       // A flip that the mirror has not reflected yet still wins on reopen.
       const local = contextWrites.current.desired ?? contextWrites.current.accepted
-      setMenu({ anchor, data: local === null ? data : { ...data, contextAware: local } })
+      const base = local === null ? data : { ...data, contextAware: local }
+      setMenu({ anchor, data: { ...base, modelGroupsState: 'loading' } })
+      // The model catalog is read behind the open card, so the menu never waits
+      // for N provider round trips; a cached answer settles it on the next tick.
+      void loadQuickModelGroups().then((groups) => {
+        setMenu((current) =>
+          current === null
+            ? current
+            : {
+                ...current,
+                data: { ...current.data, modelGroups: groups ?? [], modelGroupsState: groups === undefined ? 'failed' : 'ready' },
+              },
+        )
+      })
     },
     [props.__ctx, sessionId, settings, reconcileEffort],
   )
@@ -324,6 +355,28 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     if (unchanged) return
     void writeQuickEffort(writer, id).then((ok) => {
       if (!ok) console.warn('[dsh-prompt-enhance] the reasoningEffort write was refused')
+    })
+  }
+
+  const pickMode = (mode: string): void => {
+    if (writer === undefined) return
+    // Same contract as the tier row: the click is the decision, the write rides
+    // behind it, and a refusal is logged because the card is already gone.
+    const unchanged = menu !== null && menu.data.mode === mode
+    dismissMenu()
+    if (unchanged) return
+    void writeQuickMode(writer, mode).then((ok) => {
+      if (!ok) console.warn('[dsh-prompt-enhance] the mode write was refused')
+    })
+  }
+
+  const pickRoute = (route: { provider: string; model: string } | null): void => {
+    if (writer === undefined) return
+    const unchanged = menu !== null && (route === null ? menu.data.provider === '' || menu.data.model === '' : menu.data.provider === route.provider && menu.data.model === route.model)
+    dismissMenu()
+    if (unchanged) return
+    void writeQuickRoute(writer, route).then((ok) => {
+      if (!ok) console.warn('[dsh-prompt-enhance] the provider/model write was refused')
     })
   }
 
@@ -534,7 +587,19 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
           <SparkleFishIcon size={15} spinning={busy} />
         </span>
       </button>
-      {menu === null ? null : <QuickSettingsMenu t={t} data={menu.data} anchor={menu.anchor} error={menuError} onPick={pickEffort} onToggleContext={toggleContext} onClose={dismissMenu} />}
+      {menu === null ? null : (
+        <QuickSettingsMenu
+          t={t}
+          data={menu.data}
+          anchor={menu.anchor}
+          error={menuError}
+          onPick={pickEffort}
+          onPickMode={pickMode}
+          onPickRoute={pickRoute}
+          onToggleContext={toggleContext}
+          onClose={dismissMenu}
+        />
+      )}
     </>
   )
 }

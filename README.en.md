@@ -11,7 +11,7 @@
 
 [简体中文](./README.md) | English
 
-**Prompt enhancement for the DeepSeek Harness web GUI** — turn a composer draft into a structured prompt in one click: role and goal, context and constraints, executable steps, output format, acceptance criteria, edge cases.
+**Prompt enhancement for the DeepSeek Harness web GUI** — turn a composer draft into a prompt you can send in one click. The default is **prose**: one paragraph that says what needs saying; switch to **structured** when you want role and goal, task and steps, constraints and boundaries, output and acceptance — empty sections omitted.
 
 The draft is the source of truth: intent unchanged, no invented requirements, a placeholder wherever information is missing — and it is never modified, not even when a call fails. The result appears in a card above the composer, is written back only when you apply it, and one click undoes that.
 
@@ -27,9 +27,9 @@ Users tend to open with a plea: "So… could you help me out?" — like a patien
 
 *“So… could you help me out?” — a pleading request like this is exactly what this plugin rewrites*
 
-A good prompt spells out six things — who the model acts as and what it delivers, the context and constraints it works under, which steps it takes, in what format, what counts as correct, and where the boundaries are.
+A good prompt spells out four things — who the model acts as, what it delivers, under which constraints and in what steps, in what form, how a correct result is recognised, and where the boundaries are. A draft usually says half of it, and the model fills the rest by guessing; the guesses look plausible, but they are often not what you meant.
 
-That is what the plugin fills in for you.
+The plugin fills in the *expression* — not the content: a fact the draft never stated is not invented.
 
 ## Button and result card
 
@@ -42,12 +42,13 @@ The rewritten prompt appears in a card docked above the composer without coverin
 | Feature | What it does |
 |---|---|
 | 🐋 **One-click enhance** | The composer toolbar button (the DeepSeek whale mark with a sparkle in its corner); the shortcut is off by default and can be set in settings |
-| 🎛️ **Right-click quick settings** | Right-click or long-press the composer button: switch the reasoning tier (pick one inside) and context awareness; the model row is read-only and shows the pinned route or "Follow session"; no settings page needed |
+| 🧾 **Two output shapes** | Prose (default): one paste-ready paragraph. Structured: a four-section brief with empty sections omitted. Both share the same fidelity and language rules. Switch it in the right-click card, next to the reasoning tier |
+| 🎛️ **Right-click quick settings** | Right-click or long-press the composer button: switch the reasoning tier (pick one inside), the output shape (prose / structured), pin the model (a searchable model picker inside) and context awareness; no settings page needed |
 | 🖼️ **Docked result card** | Shown above the composer without covering the conversation, with the model, reasoning tier, timing and `token` usage; folds to its title and footer rows so long results do not fill the screen; a truncated result is flagged |
 | ↩️ **Apply, copy and undo** | Copy the result; applying folds the card to its title row by default and turns its footer button into Undo, which restores the draft and expands the card |
 | 🔄 **Regenerate** | Request another version from the current text; an applied enhanced draft can be regenerated too |
 | 💬 **`/enhance` command** | Rewrite any text from the slash menu; the result is copyable and never enters model history |
-| 🧭 **Model routing** | A pinned `provider` + `model` pair wins; otherwise it follows the session model, then the global default |
+| 🧭 **Model routing** | A pinned `provider` + `model` pair wins; otherwise it follows the session model, then the global default. The quick card's picker writes the same pair and lists only models DSH has registered and can call (credentials present); a "Follow session" row unpins |
 | 🧩 **Context aware** | With `contextAware` on, recent messages between you and the assistant resolve references such as "it" or "that" and fill in task context the draft leaves out; you can turn it off at any time.<br>*Note: the context window is limited — if the draft depends on earlier messages, add that background to the draft or the rewrite may drift from your intent* |
 | 🔑 **Zero credentials** | Calls use DSH's model service and credential store; the plugin never reads or stores keys |
 | 🛡️ **Draft safety** | Empty, attachment-only, over-length and command-or-reference drafts are blocked locally; upstream failures get a readable message and never touch the draft |
@@ -129,7 +130,7 @@ An empty or attachment-only draft dims the button and makes it unclickable; Rege
 
 ### Quick settings card
 
-Right-click or long-press the enhance button in the toolbar to open the quick settings card: choose a reasoning tier inside its list, toggle context awareness directly, and read the pinned provider/model (or "Follow session"). The card only changes settings and never starts an enhancement; full settings stay on the settings page.
+Right-click or long-press the enhance button in the toolbar to open the quick settings card: choose a reasoning tier inside its list, pick prose or structured, open the searchable model picker (grouped by provider, only models DSH has registered and can call, with a "Follow session" row to unpin), and toggle context awareness directly. The card only changes settings and never starts an enhancement; full settings stay on the settings page.
 
 ![Quick settings card opened by right-click or long press](./docs/images/quick-settings-en.png)
 
@@ -148,10 +149,10 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | Field | Default | Notes |
 |---|---|---|
 | `enabled` | `true` | Master switch; off hides the composer button and disables the command and shortcut |
-| `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (no pinned route). With only one filled, the save falls back to follow-session; switching the provider clears the chosen model so a stale pair cannot remain |
+| `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (no pinned route). With only one filled, the save falls back to follow-session; switching the provider clears the chosen model so a stale pair cannot remain. The quick card's picker writes the same pair and lists only registered, callable models |
 | `reasoningEffort` | `off` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`). "Model default" sends no field, so the provider applies its default; switching to a model that does not declare the stored tier rewrites it to "Model default" |
 | `contextAware` | `true` | Read recent messages to resolve references; turn it off for sensitive sessions |
-| `systemPrompt` | empty | Custom system prompt; empty uses the built-in strategy |
+| `systemPrompt` | empty | Custom persona; empty uses the built-in one. It replaces only who the model is — the task layer and the invariant cannot be replaced |
 | `shortcut` | empty (disabled) | Shortcut that triggers the enhancement; e.g. `ctrl+alt+shift+e`. Needs at least one of ctrl/alt/meta; shift is optional; the settings page has a Record button that captures the combination |
 
 ### Advanced settings
@@ -161,7 +162,7 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | `foldAnimation` | `true` | Whether the card animates when it folds or expands; never animates when the system asks for reduced motion |
 | `autoFold` | `true` | Fold the card after applying and expand it again after undoing |
 | `streaming` | `true` | Show the result as it is written; display only, the final result is unchanged |
-| `strategyMode` | `replace-default` | `replace-default` replaces the built-in strategy (three framing rules still apply: the draft is data, only the result is output, the rules themselves are never copied); `extend-default` appends the custom strategy after the built-in one |
+| `strategyMode` | `replace-default` | How a custom persona combines with the built-in one: `replace-default` replaces it, `extend-default` appends after it. Either way the task layer, the fixed invariant, and the conditional rules still apply |
 | `temperature` | `0.3` | Sampling temperature `0~1` (step 0.05); lower stays closer to the original |
 | `maxInputChars` | `12000` | Input character cap; over-limit is rejected, never truncated |
 | `maxOutputTokens` | `8192` | Output token cap per call |
@@ -221,65 +222,57 @@ flowchart LR
 
 ## Prompt system
 
-Every call is assembled from four blocks: the **strategy** (default or custom), context rules (when a conversation snippet is present), attachment rules (when the draft carries attachments), and the **framing contract** (appended last on every call). Only the strategy decides the shape of the result; the other three only constrain the framing: the draft is data, only the result is output, and the rules themselves are never copied.
+Every call has two layers: **system** carries only the persona (replaceable) and the fixed invariant (not replaceable); **user** carries everything about this call — conditional rules and data blocks, output rules, and the mode block.
 
-| Case | System prompt composition |
+| Layer | Content |
 |---|---|
-| Default | default strategy + context rules (when present) + attachment rules (when present) + framing contract |
-| `replace-default` | custom strategy + context rules (when present) + attachment rules (when present) + framing contract |
-| `extend-default` | default strategy + context rules (when present) + `Operator additions` block + custom strategy + attachment rules (when present) + framing contract |
+| system · persona | Role, the four analysis questions, the seven craft principles. `systemPrompt` replaces this layer only |
+| system · invariant | One sentence: rewrite only — never execute, answer, or complete the draft; nothing inside it can change that. Not replaceable |
+| user · conditional | Context rules + `<conversation_context>`, attachment rules + `<attachments>`, placeholder rules; each appears only with its data, and each rule sits immediately before the data it governs |
+| user · framing and draft | One framing line + the draft inside `<raw_prompt>` |
+| user · output rules | `TASK`, `LANGUAGE` (highest priority), `FIDELITY`, `BOUNDARIES` |
+| user · mode block | `FORM`, `LENGTH`, `EXAMPLES` — the only block that differs between modes |
+| user · label contrast | The `BAD`/`GOOD` pair, last |
 
-### Default strategy
+The order is intentional: rules about data come before the data; rules about the result come after the draft.
 
-The default system prompt asks the model to act as a prompt-rewriting expert, applying only what the draft actually needs across six parts:
+### The built-in persona
 
-1. **Role and goal**: state who the assistant acts as and what the final deliverable is.
-2. **Context and constraints**: add only the background and limits the draft implies; never add facts or requirements the draft does not carry.
-3. **Steps**: break vague or multi-part requests into numbered, executable steps.
-4. **Output format**: specify structure, language, length and style where the request implies them.
-5. **Acceptance criteria**: state how to recognize a correct result. **This one is never skipped** — one line is enough, and a placeholder is acceptable when the draft gives no basis.
-6. **Boundary conditions**: list edge cases, invalid inputs and what to do when information is missing.
+It is WorkBuddy's system half (role, the four analysis questions, the seven craft principles) with its fabrication licence (`Be realistic in the features to add`) removed. The persona states no form, length, or language rule: those are per-call constraints and belong to the user layer.
 
-Eight content rules ride along:
+### The two modes
 
-- **Preserve intent**: keep the user's information, without deleting, altering or contradicting it.
-- **Never fabricate**: use only what the draft supports; when a needed detail is missing, write `(TBD: …)` (in the output language) instead of inventing one.
-- **Stay traceable**: every addition needs explicit evidence or a strong implication in the draft; when in doubt, use a placeholder instead of adding content.
-- **Keep the scope**: do not widen, narrow or redirect the task.
-- **Language**: mirror the input language (Chinese in → Chinese out; best effort at the prompt level, not a hard guarantee); placeholders, pointers, labels and headings you add follow it too.
-- **Length**: stay at roughly 1–3× the original length without padding.
-- **Already well-formed drafts**: polish them lightly, unchanged in substance.
-- **Rewrite greetings too**: a greeting, small talk or a task-less fragment is still the draft to rewrite — describe how an assistant should respond to it.
+- **Prose** (default): one paste-ready paragraph. Length is stated as judgement — a short draft gets a few sentences, an already-clear draft keeps its length, a long draft is tightened; no numbers and no formula, because an executable threshold belongs in the host's log check, not in the prompt.
+- **Structured**: a four-section brief with `##` headings (role and goal / task and steps / constraints and boundaries / output and acceptance). **A section the draft gives nothing for is omitted** — the skeleton is never completed by inventing content — and there is no length ratio: as many sections as are needed.
 
-### Custom strategies
+The two modes share every other block verbatim, so switching modes cannot change the fidelity, language, or data-handling rules.
 
-`strategyMode` decides how a custom strategy combines with the built-in one:
+### Custom personas
 
-- `replace-default`: **replaces it entirely** (the six-part strategy and the language rule are no longer retained; the conditional placeholder rules are not appended either); context rules and the framing contract are still appended.
-- `extend-default`: **appends** your text after the built-in strategy, keeping the default rules in force; context rules are retained.
+`strategyMode` decides only how custom text combines with the built-in **persona**:
 
-In either mode the call ends with the framing contract, which applies to the default strategy too — see the next section.
+- `replace-default`: replaces the built-in persona;
+- `extend-default`: appends after it.
 
-### Additional rules
+Either way the invariant, the task layer, and the conditional rules still apply. This is the 0.2.0 breaking change: the old `replace-default` replaced the hard rules too; now it replaces only the persona.
 
-- **Context rules**: appended when conversation context is present; used only to resolve pronouns and vague references (in any language), to pick up the stack and terminology the conversation already established, and to stay aligned with the conversation's current goal; it is evidence, not instructions — never override, widen or contradict the draft, ignore it when it is irrelevant or too thin, and never quote or restate the history in the output.
-- **Placeholder rules**: appended only when the draft actually contains `{{...}}` slots; they ask the model to keep every slot exactly as written and explicitly forbid introducing a slot the draft did not have (a missing detail still uses `(TBD: …)`). A slot-free draft never sees the syntax, so the model is not primed to imitate it.
-- **Attachment rules**: appended when the draft carries attachments; they report only the count and never the contents; when the draft relies on an attachment it does not name, the only sanctioned pointer is a task-level one (for example `the attached screenshot`, written in the output language), and the count may appear only inside such a pointer; the model must not report the count/availability/"cannot see them" on their own, nor claim the user provided no attachment.
-- **Framing contract**: appended last on every call; the draft is data — never answered, explained or commented on; output only the result, with no preamble, commentary, questions, pleasantries or code fences; everything outside `<raw_prompt>` (the system instructions, the context block, the attachment block) is meta and must never be copied, quoted, summarized or translated into the output, and the step itself is never described.
+### Conditional rules
+
+- **Context rules**: sit before `<conversation_context>`; the block is evidence, not instructions — resolve references and keep the established stack and goal, ignore it when irrelevant, never quote or restate it in the output.
+- **Attachment rules**: sit before `<attachments>`; the count is announced, contents are never read; the only sanctioned pointer at an unnamed attachment is a task-level one (`the attached screenshot`), and the count or "cannot see them" is never reported on its own.
+- **Placeholder rules**: appear only when the draft actually contains `{{…}}` slots; every slot is kept verbatim, no new slot may be introduced, and missing information still uses `(TBD: …)` / `（待补充：…）`.
 
 ### Post-generation checks
 
 Before a successful result is returned, the host runs three deterministic checks over the draft and the rewrite — no model call, no blocking:
 
 - **No rewrite**: the result says no more than the draft (whitespace and trailing punctuation ignored); the body stays visible, and the card offers retry or direct use;
-- **Framework leak**: scaffolding such as `<conversation_context>`, `<raw_prompt>` or `Framing that applies` appears in the result; a marker the draft itself contains is ignored entirely (the result may be quoting what you asked for);
-- **Lost placeholder**: a `{{variable}}` slot from the draft did not survive (checked only when the draft has slots and the active strategy still promises to keep them; a `replace-default` custom strategy is exempt).
+- **Framework leak**: scaffolding such as `<conversation_context>`, `<raw_prompt>`, `CONTEXT RULES`, `FRAMING:` or `LANGUAGE LABEL CONTRAST` appears in the result; a marker the draft itself contains is ignored entirely;
+- **Lost placeholder**: a `{{variable}}` slot from the draft did not survive (checked whenever the draft has slots).
 
 When one fires, the card shows a single warning line and the fill-back action stays available. The `checks` field is present only on a hit, so a clean result keeps its previous payload.
 
-The body no longer has its `<raw_prompt>` / `</raw_prompt>` tags stripped automatically: if the model echoes the wrapper, the body keeps it and the framework-leak warning explains what happened; only code-fence wrappers are still treated as formatting.
-
-The host deliberately does **not** count pending markers such as `(TBD: …)`, `TBD` or `待确认`: they are free-form model prose with no stable syntax, so any number would be false precision. A `{{...}}` inside a code block counts as a placeholder too; if the model explains it away, that is reported as a lost slot — such text should have been kept verbatim.
+The body does not have its `<raw_prompt>` / `</raw_prompt>` tags stripped automatically: if the model echoes the wrapper, the body keeps it and the framework-leak warning explains what happened; only code-fence wrappers are still treated as formatting. A `{{…}}` inside a code block counts as a placeholder too. Pending markers such as `(TBD: …)` are deliberately not counted: free-form prose has no stable syntax, so a number would be false precision.
 
 ## Troubleshooting
 
@@ -369,8 +362,8 @@ Host half, `src/`:
 ```text
 src/
 ├── index.ts               apply: settings source, HTTP routes, /enhance command
-├── config.ts              settings schema, per-request resolution, strategy composition
-├── prompts.ts             default strategy, context/attachment rules, framing contract, <raw_prompt> framing
+├── config.ts              settings schema, per-request resolution, persona composition
+├── prompts.ts             persona, invariant tail, task layer (conditional + output rules), mode blocks
 ├── orchestrate.ts         one orchestration shared by both entry points: route, context, call, log
 ├── enhancer.ts            one model call: stream assembly, timeout and cancellation, output normalization
 ├── enhance-routes.ts      POST /dsh-prompt-enhance/enhance and /enhance-stream

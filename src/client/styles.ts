@@ -263,6 +263,33 @@ html[data-platform='darwin'] .dsh-pe-menu {
   font-size: 12px;
   line-height: 16px;
 }
+/* Model picker: a search field above provider-grouped rows. The selected row
+   keeps a quiet filled background, the way the shell's model list marks it. */
+.dsh-pe-menu-model-pane { max-height: 320px; overflow-y: auto; }
+.dsh-pe-menu-search { padding: 4px 6px 6px; }
+.dsh-pe-menu-search-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--dsw-radius-md, 8px);
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12));
+  color: var(--dsw-alias-label-primary, inherit);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  outline: none;
+}
+.dsh-pe-menu-search-input::placeholder { color: var(--dsw-alias-label-tertiary, inherit); }
+.dsh-pe-menu-search-input:focus-visible { box-shadow: 0 0 0 1px var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.4)) inset; }
+.dsh-pe-menu-group-label {
+  padding: 6px 8px 2px;
+  color: var(--dsw-alias-label-tertiary, inherit);
+  font-size: 12px;
+  line-height: 16px;
+}
+.dsh-pe-menu-item.is-selected { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12)); }
 .dsh-pe-panel {
   box-sizing: border-box;
   display: flex;

@@ -28,6 +28,12 @@ function makeLlm(stream: (options: GenerateOptions) => AsyncIterable<StreamChunk
   return { stream }
 }
 
+/** The text block of the single user message the plugin sends. */
+function userText(options: GenerateOptions | undefined): string {
+  const block = options?.messages[0]?.content[0]
+  return block !== undefined && block.type === 'text' ? block.text : ''
+}
+
 /** Text stream helper: one text block, usage, terminal finish. */
 function streamOf(parts: string[], finish: StreamChunk[]): AsyncIterable<StreamChunk> {
   const chunks: StreamChunk[] = [
@@ -239,15 +245,20 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     try {
       await call(server, 'POST', JSON.stringify({ text: '写一篇关于 {{topic}} 的文章' }))
       await call(server, 'POST', JSON.stringify({ text: '写一篇文章' }))
-      expect(captured[0]?.system).toContain('The draft contains {{...}} slots.')
-      expect(captured[1]?.system).not.toContain('The draft contains {{...}} slots.')
-      expect(captured[1]?.system).not.toContain('{{variable}}')
+      // The rule rides next to the draft in the user message; the system message
+      // is persona + invariant only.
+      expect(userText(captured[0])).toContain('PLACEHOLDER RULES')
+      expect(userText(captured[0])).toContain('{{…}} slots')
+      expect(userText(captured[1])).not.toContain('PLACEHOLDER RULES')
+      expect(captured[1]?.system).not.toContain('PLACEHOLDER RULES')
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
     }
   })
 
-  it('does not add the placeholder rule under a replace-default custom strategy', async () => {
+  it('keeps the placeholder rule under a replace-default custom persona', async () => {
+    // The task layer is ours and is not replaceable: a custom persona changes who
+    // the model is, never what it may do with the draft.
     const captured: GenerateOptions[] = []
     const capturingLlm = {
       stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -259,15 +270,18 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     try {
       await call(server, 'POST', JSON.stringify({ text: '写一篇关于 {{topic}} 的文章' }))
-      expect(captured[0]?.system).not.toContain('The draft contains {{...}} slots.')
+      expect(captured[0]?.system).toContain('fill the slots')
+      expect(captured[0]?.system).not.toContain('PLACEHOLDER RULES')
+      expect(userText(captured[0])).toContain('PLACEHOLDER RULES')
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
     }
   })
 
-  it('skips the placeholder check for a replace-default custom strategy', async () => {
-    // A custom strategy may deliberately fill the slots; the check must not
-    // police a promise that strategy no longer makes.
+  it('runs the placeholder check even under a replace-default custom persona', async () => {
+    // The rule lives in the task layer, so the check cannot be opted out of: the
+    // custom persona said "fill the slots", the rewrite did, and the check now
+    // reports it instead of tolerating it.
     const server = mount(
       makeLlm(() => streamOf(['写一篇关于人工智能的文章'], [{ type: 'finish', reason: { kind: 'stop' } }])),
       { ...CONFIG, systemPrompt: 'fill the slots', strategyMode: 'replace-default' },
@@ -276,7 +290,8 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     try {
       const { status, json } = await call(server, 'POST', JSON.stringify({ text: '写一篇关于 {{topic}} 的文章' }))
       expect(status).toBe(200)
-      expect((json as { value: { checks?: unknown } }).value.checks).toBeUndefined()
+      const value = (json as { value: { checks?: Array<{ code: string }> } }).value
+      expect(value.checks?.map((check) => check.code)).toContain('placeholder-lost')
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
     }
@@ -527,25 +542,26 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     try {
       const { status } = await call(announced, 'POST', JSON.stringify({ text: '把这张图整理成提示词', attachments: { count: 2 } }))
       expect(status).toBe(200)
-      expect(captured[0]?.system).toContain('The draft carries attachments you cannot see')
-      expect(captured[0]?.system).toContain('Framing:')
-      // The framing contract is appended last, so "these instructions" covers
-      // the attachment block that came before it.
-      expect((captured[0]?.system ?? '').indexOf('Framing:')).toBeGreaterThan((captured[0]?.system ?? '').indexOf('The draft carries attachments you cannot see'))
+      // Rules immediately before the block they govern; the block announces the
+      // count only and sits outside the draft's tags. The system message stays
+      // persona + invariant.
+      expect(captured[0]?.system).not.toContain('ATTACHMENT RULES')
+      const text = userText(captured[0])
+      expect(text).toContain('ATTACHMENT RULES')
+      expect(text).toContain('The block below announces attachments you cannot see')
+      expect(text).toContain('<attachments count="2" content="not-included" />')
+      expect(text.indexOf('ATTACHMENT RULES')).toBeLessThan(text.indexOf('<attachments'))
+      expect(text.indexOf('<attachments')).toBeLessThan(text.indexOf('<raw_prompt>'))
       const blocks = captured[0]?.messages[0]?.content ?? []
       // Metadata only: the call still carries exactly one text block, never
       // image or file parts.
       expect(blocks).toHaveLength(1)
-      const block = blocks[0]
-      const text = block?.type === 'text' ? block.text : ''
-      expect(text).toContain('<attachments count="2" content="not-included" />')
-      expect(text.indexOf('<attachments')).toBeLessThan(text.indexOf('<raw_prompt>\n'))
     } finally {
       await new Promise<void>((resolve) => announced.close(() => resolve()))
     }
   })
 
-  it('appends the framing contract to an attachment-free system prompt', async () => {
+  it('frames the draft inside the user message, not the system prompt', async () => {
     const captured: GenerateOptions[] = []
     const capturingLlm = {
       stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
@@ -558,8 +574,10 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     try {
       const { status } = await call(plain, 'POST', JSON.stringify({ text: '写个脚本' }))
       expect(status).toBe(200)
-      expect(captured[0]?.system).toContain('Framing:')
-      expect(captured[0]?.system).not.toContain('The draft carries attachments you cannot see')
+      expect(captured[0]?.system).not.toContain('FRAMING')
+      const text = userText(captured[0])
+      expect(text).toContain('FRAMING:')
+      expect(text).not.toContain('ATTACHMENT RULES')
     } finally {
       await new Promise<void>((resolve) => plain.close(() => resolve()))
     }

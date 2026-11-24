@@ -10,6 +10,7 @@ import type { BlockAssembler, FinishReason, GenerateOptions, StreamChunk } from 
 import type { EnhanceError, EnhanceResult } from './shared/protocol'
 import { normalizeOutput } from './shared/normalize'
 import { frameUserPrompt } from './prompts'
+import type { EnhanceMode } from './prompts'
 import { DEFAULT_CONFIG, type ReasoningEffortChoice } from './config'
 
 /**
@@ -93,10 +94,14 @@ export function resolveRoute(explicit: Partial<RoutePair> | undefined, session: 
 /** Options of one enhancement call. */
 export interface EnhanceCallOptions {
   route: RoutePair
-  /** System prompt text (the effective strategy). */
+  /** System prompt text: the effective persona plus the invariant tail. */
   system: string
   /** The raw draft to rewrite. */
   text: string
+  /** Output shape of this call; defaults to prose. */
+  mode?: EnhanceMode
+  /** Whether the draft already contains `{{…}}` slots; defaults to false. */
+  hasSlots?: boolean
   temperature: number
   /**
    * Reasoning budget forwarded verbatim, or `inherit` to omit the field.
@@ -174,7 +179,17 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
     const BlockAssemblerClass = runtime.BlockAssembler
     const messages = [
       createMessage({
-        content: [{ type: 'text', text: frameUserPrompt(options.text, options.context, options.attachmentCount) }],
+        content: [
+          {
+            type: 'text',
+            text: frameUserPrompt(options.text, {
+              context: options.context,
+              attachmentCount: options.attachmentCount,
+              mode: options.mode ?? 'prose',
+              hasSlots: options.hasSlots === true,
+            }),
+          },
+        ],
         source: { kind: 'dsh-prompt-enhance' },
       }),
     ]

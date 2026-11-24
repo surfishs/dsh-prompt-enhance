@@ -8,6 +8,7 @@
 import z from '@deepseek-ai/schemastery'
 import { DEFAULT_VALUES } from './shared/defaults'
 import { FIELD_LIMITS, TEMPERATURE, type NumericRange } from './shared/limits'
+import type { EnhanceMode } from './prompts'
 
 /** Settings namespace of the plugin section. */
 export const PROMPT_ENHANCE_NAMESPACE = 'dsh-prompt-enhance'
@@ -63,16 +64,24 @@ export interface Config {
   maxInputChars: number
   /** End-to-end deadline of one enhancement call. */
   timeoutMs: number
-  /** System prompt; default is the built-in enhancement strategy. */
+  /**
+   * Output shape of the rewrite.
+   *
+   * `prose` (default) returns one paste-ready paragraph; `structured` returns a
+   * headed brief whose empty sections are omitted. Only the mode block changes;
+   * the persona, invariant, and every fidelity/language rule are shared.
+   */
+  mode: EnhanceMode
+  /**
+   * The persona; default is the built-in one. This replaces only the persona,
+   * never the invariant that follows it and never the per-call task layer.
+   */
   systemPrompt: string
   /**
-   * How a non-empty `systemPrompt` combines with the built-in strategy.
-   * `replace-default` (the default, matching earlier versions) swaps the
-   * built-in strategy out — its own rules (role, steps, format, language) are
-   * NOT retained and must be carried into the custom text. `extend-default`
-   * appends the custom text after the built-in strategy, keeping those rules in
-   * force. Either way the framing contract still rides along, because it
-   * describes the scaffolding rather than the result.
+   * How a non-empty `systemPrompt` combines with the built-in persona.
+   * `replace-default` (the default) swaps the persona out; `extend-default`
+   * appends the custom text after it. The invariant tail and the task layer ride
+   * along either way, because they are not part of the persona.
    */
   strategyMode: StrategyMode
   /**
@@ -162,11 +171,16 @@ export const Config = z.object({
     .description('输入字数上限；超限拒绝而不截断，避免改变原意')
     .volatile(),
   timeoutMs: z.number().step(1).min(FIELD_LIMITS.timeoutMs.min).max(FIELD_LIMITS.timeoutMs.max).default(DEFAULT_CONFIG.timeoutMs).description('单次增强的超时（毫秒）').volatile(),
-  systemPrompt: z.string().role('textarea').default(DEFAULT_CONFIG.systemPrompt).description('系统提示词；留空使用内置增强策略').volatile(),
+  mode: z
+    .union(['prose', 'structured'])
+    .default(DEFAULT_CONFIG.mode)
+    .description('输出形态：散文（默认，一整段可直接粘贴的提示词）或结构化（带小标题的简报，无内容的节自动省略）；两者共用同一套保真与语言规则，只换形态块')
+    .volatile(),
+  systemPrompt: z.string().role('textarea').default(DEFAULT_CONFIG.systemPrompt).description('人设提示词；留空使用内置人设。这里只替换“你是谁”，任务层与固定不变量不可替换').volatile(),
   strategyMode: z
     .union(['replace-default', 'extend-default'])
     .default(DEFAULT_CONFIG.strategyMode)
-    .description('自定义系统提示词的组合方式：整体替换内置策略（默认；仍保留三条框架约束——输入是数据、只输出结果、不复制规则文本），或把自定义文本追加在内置策略之后（内置规则继续生效）')
+    .description('自定义人设的组合方式：整体替换内置人设（默认），或把自定义文本追加在内置人设之后；两种方式下任务层、固定不变量与条件规则都照常生效')
     .volatile(),
   shortcut: z
     .string()
@@ -294,6 +308,7 @@ export function resolveConfig(config: Config): Config {
     maxOutputTokens: intInRange(config.maxOutputTokens, 'maxOutputTokens', FIELD_LIMITS.maxOutputTokens),
     maxInputChars: intInRange(config.maxInputChars, 'maxInputChars', FIELD_LIMITS.maxInputChars),
     timeoutMs: intInRange(config.timeoutMs, 'timeoutMs', FIELD_LIMITS.timeoutMs),
+    mode: config.mode === 'structured' ? 'structured' : 'prose',
     systemPrompt: typeof config.systemPrompt === 'string' ? config.systemPrompt : '',
     // Tolerate absent or hand-edited values: anything but the extend literal
     // means replace, so stored sections from earlier versions keep exactly
@@ -312,29 +327,23 @@ export function resolveConfig(config: Config): Config {
 }
 
 /**
- * The effective STRATEGY of the next call. An empty override always means the
- * built-in strategy. A non-empty override follows `strategyMode`:
+ * The effective PERSONA of the next call. An empty override always means the
+ * built-in persona. A non-empty override follows `strategyMode`:
  * `replace-default` swaps the built-in text out, while `extend-default`
  * appends the custom text after it.
  *
- * This function deliberately returns strategy text only. The framing contract
- * lives in `prompts.ts` and is appended by `withInvariantContract` after the
- * attachment rules, so it can be neither dropped by a strategy choice nor
- * mistaken for part of the strategy — and so the last thing the model reads is
- * framing, not a rule about the result's shape.
- *
- * Context rules are passed separately (not pre-merged into `builtin`) so a
- * `replace-default` strategy cannot silently drop them; they apply in every
- * mode. Tolerates an absent field (older stored sections predate the schema
- * default).
+ * This function deliberately returns persona text only. The invariant tail and
+ * the per-call task layer live in `prompts.ts`: the tail is appended by
+ * `withInvariantTail` after whatever persona wins, and the task layer is built
+ * into the user message by `frameUserPrompt`. A custom persona therefore cannot
+ * drop the fidelity, language, or data-handling rules — that separation is the
+ * point of the redesign.
  * @param config - the resolved config.
- * @param builtin - the built-in strategy prompt.
- * @param contextRules - the context-rules block, or an empty string.
- * @returns the strategy of the next call.
+ * @param builtin - the built-in persona.
+ * @returns the persona of the next call.
  */
-export function effectiveSystemPrompt(config: Config, builtin: string, contextRules = ''): string {
+export function effectiveSystemPrompt(config: Config, builtin: string): string {
   const custom = (config.systemPrompt ?? '').trim()
-  const context = contextRules.trim() === '' ? '' : `\n${contextRules}`
-  if (custom === '') return `${builtin}${context}`
-  return config.strategyMode === 'extend-default' ? `${builtin}${context}\n\nOperator additions (follow them where they do not conflict with the rules above):\n${custom}` : `${custom}${context}`
+  if (custom === '') return builtin
+  return config.strategyMode === 'extend-default' ? `${builtin}\n\nOperator additions (follow them where they do not conflict with the rules above):\n${custom}` : custom
 }
