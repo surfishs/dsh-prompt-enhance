@@ -6,7 +6,7 @@
  * @module dsh-prompt-enhance/client/ResultPanel
  */
 
-import { useCallback, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ContextUsage, ContractCheck, EnhanceError, EnhanceUsage, ClientFailureReason } from '../shared/protocol'
 import type { PromptEnhanceKey } from './locales'
@@ -184,12 +184,22 @@ function totalTokensOf(usage: EnhanceUsage): number {
  * Footer info button: the call's context usage, on hover/focus (and a tap on
  * touch devices, where there is no hover). The card has no room for this in
  * its header, and the footer keeps the action row intact.
+ *
+ * The bubble is placed in viewport coordinates from the trigger's rect, not
+ * CSS-anchored above the trigger: the card clips its own overflow, and a folded
+ * card has no room above the footer for the bubble to grow into.
  * @param props - the usage numbers and the locale seat.
  * @returns the info button and its tooltip.
  */
 function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: number }; t: TranslateNS<'dsh-prompt-enhance'> }): ReactNode {
   const { usage, attachments, t } = props
   const [open, setOpen] = useState(false)
+  // The bubble's viewport coordinates, measured from the trigger. It cannot be
+  // CSS-anchored above the trigger: the card clips its own overflow (rounded
+  // corners + the fold), and a folded card leaves only the header above the
+  // footer, so an anchored bubble grows out of the card and is cut in half.
+  const [box, setBox] = useState<{ left: number; bottom: number } | null>(null)
+  const trigger = useRef<HTMLButtonElement | null>(null)
   // Reaching the turn cap is the normal shape of the window, not a warning;
   // only a character squeeze or a cut turn needs the amber treatment.
   const limited = usage !== undefined && (usage.cutTurn || usage.limitedBy === 'chars')
@@ -205,18 +215,44 @@ function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: 
           percent,
         })
   const reason = usage === undefined ? '' : usage.cutTurn ? t('panel.contextCut') : usage.limitedBy === 'chars' ? t('panel.contextCharsLimited') : ''
+
+  /** Measure the trigger and sit the bubble 8px above it, inside the viewport. */
+  const place = useCallback((): void => {
+    const rect = trigger.current?.getBoundingClientRect()
+    if (rect === undefined) return
+    setBox({ left: Math.max(8, rect.left), bottom: Math.max(8, window.innerHeight - rect.top + 8) })
+  }, [])
+  /** Measure first, then open, so the first paint already lands in place. */
+  const show = useCallback((): void => {
+    place()
+    setOpen(true)
+  }, [place])
+  // Out of the card's flow, the bubble no longer follows the trigger on its own:
+  // the shell and the dock can both scroll while a pointer rests on it.
+  useEffect(() => {
+    if (!open) return
+    const reposition = (): void => place()
+    window.addEventListener('scroll', reposition, true)
+    window.addEventListener('resize', reposition)
+    return () => {
+      window.removeEventListener('scroll', reposition, true)
+      window.removeEventListener('resize', reposition)
+    }
+  }, [open, place])
+
   return (
     <span className="dsh-pe-context-wrap">
       <button
+        ref={trigger}
         type="button"
         className={`dsh-pe-context${limited ? ' is-limited' : ''}`}
         aria-label={t('panel.contextUsage')}
         aria-expanded={open}
-        onMouseEnter={() => setOpen(true)}
+        onMouseEnter={show}
         onMouseLeave={() => setOpen(false)}
-        onFocus={() => setOpen(true)}
+        onFocus={show}
         onBlur={() => setOpen(false)}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => (open ? setOpen(false) : show())}
         onKeyDown={(event) => {
           if (event.key === 'Escape') setOpen(false)
         }}
@@ -226,8 +262,8 @@ function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: 
           <path d="M5.2 6.6h5.6M5.2 9.2h3.8" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       </button>
-      {open && (
-        <span role="tooltip" className="dsh-pe-context-tip">
+      {open && box !== null && (
+        <span role="tooltip" className="dsh-pe-context-tip" style={{ left: box.left, bottom: box.bottom }}>
           <span className="dsh-pe-context-stats">{stats}</span>
           {reason !== '' && <span className="dsh-pe-context-reason">{reason}</span>}
           {attachments !== undefined && attachments.count > 0 && <span className="dsh-pe-context-attachments">{t('panel.attachmentsCount', { count: attachments.count })}</span>}

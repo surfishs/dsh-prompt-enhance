@@ -58,6 +58,14 @@ describe('panel stylesheet', () => {
     expect(CSS).toMatch(/\.dsh-pe-btn-action\.primary:hover\s*\{[^}]*var\(--dsw-alias-bg-layer-1/)
   })
 
+  it('places the context bubble in the viewport, not anchored inside the clipping card', () => {
+    // The card clips its own overflow (rounded corners + the fold), and a folded
+    // card leaves only the header above the footer: an anchored bubble grows out
+    // of the card and is cut in half. It must be fixed and JS-positioned.
+    expect(CSS).toMatch(/\.dsh-pe-context-tip\s*\{[^}]*position:\s*fixed/)
+    expect(CSS).not.toMatch(/\.dsh-pe-context-tip\s*\{[^}]*bottom:\s*calc\(100% \+ 8px\)/)
+  })
+
   it('gives the settings header links a hover and a keyboard-focus state', () => {
     // Inline style objects cannot express pseudo-classes, so both chips shipped
     // with no feedback at all; the state has to live in the stylesheet.

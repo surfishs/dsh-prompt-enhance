@@ -18,6 +18,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - The lost-placeholder warning now says when it can be ignored (an intentional fill or no impact) instead of always recommending a regenerate.
 - The framework-leak check now ignores any marker the draft itself contains, even when the result quotes it more than once; the warning copy also says when it can be ignored.
 
+### Fixed
+
+- The context-usage tooltip is no longer cut in half on a folded card. It is placed in viewport coordinates from its trigger instead of being anchored inside the card, which clips its own overflow; the bubble also re-measures while open, so scrolling cannot strand it.
+
 ## [0.1.10] - 2026-11-23
 
 ### Changed

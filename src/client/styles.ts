@@ -435,8 +435,11 @@ html[data-platform='darwin'] .dsh-pe-menu {
 .dsh-pe-foot .dsh-pe-grow { flex: 1; }
 
 /* The context-usage button sits at the quiet end of the footer, opposite the
-   actions. Its tooltip opens upward into the card body, so no portal is needed
-   and the card's own overflow clipping stays out of the way. */
+   actions. Its bubble is positioned in viewport coordinates by
+   ContextUsageInfo, so it is fixed rather than anchored to this wrapper: the
+   card clips its own overflow (rounded corners and the fold), and a folded card
+   leaves only the header above the footer — an anchored bubble would grow out
+   of the card and be cut in half. */
 .dsh-pe-context-wrap {
   position: relative;
   display: inline-flex;
@@ -480,9 +483,11 @@ html[data-platform='darwin'] .dsh-pe-menu {
   color: var(--pe-context-accent);
 }
 .dsh-pe-context-tip {
-  position: absolute;
+  position: fixed;
+  /* Placed from the trigger's rect in JS; these only cover the frame before the
+     measurement lands (and a host with no layout at all). */
   left: 0;
-  bottom: calc(100% + 8px);
+  bottom: 0;
   z-index: 5;
   display: flex;
   flex-direction: column;
