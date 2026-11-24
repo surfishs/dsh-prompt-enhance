@@ -161,7 +161,7 @@ describe('attachment notice', () => {
 
   it('appends the attachment block only through withAttachmentRules', () => {
     expect(DEFAULT_SYSTEM_PROMPT).not.toContain('Attachment block')
-    expect(withAttachmentRules('SYS')).toContain('an <attachments> block precedes it')
+    expect(withAttachmentRules('SYS')).toContain('the <attachments> block before the draft')
     expect(ATTACHMENT_SYSTEM_ADDITION).toContain('never claim the user provided no attachment')
     expect(ATTACHMENT_SYSTEM_ADDITION).toContain('never infer them from the conversation context')
     expect(ATTACHMENT_SYSTEM_ADDITION).toContain('Never output the <attachments> block itself')

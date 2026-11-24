@@ -22,6 +22,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - The acceptance criteria became one conditional shape item instead of "never skipped": the floor forced every rewrite to invent an acceptance section, which was the largest source of invented content and of placeholders.
 - Compress the conditional blocks: context rules 6 → 4, attachment rules 9 → 5, and the placeholder block now refers to the strategy's marker instead of redefining it.
 - Framing states four rules in plainer sentences and no longer names the context and attachment blocks, which most calls do not carry.
+- The context and attachment headers locate their tag ("the `<conversation_context>` / `<attachments>` block before the draft") instead of stating when the block is appended: that condition is wiring the model never sees, and it was the only surplus in headers the bullets depend on for their antecedent.
 
 ### Fixed
 
