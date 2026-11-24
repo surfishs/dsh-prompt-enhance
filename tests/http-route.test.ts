@@ -239,8 +239,8 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     try {
       await call(server, 'POST', JSON.stringify({ text: '写一篇关于 {{topic}} 的文章' }))
       await call(server, 'POST', JSON.stringify({ text: '写一篇文章' }))
-      expect(captured[0]?.system).toContain('double-brace template slots')
-      expect(captured[1]?.system).not.toContain('double-brace template slots')
+      expect(captured[0]?.system).toContain('The draft contains {{...}} slots.')
+      expect(captured[1]?.system).not.toContain('The draft contains {{...}} slots.')
       expect(captured[1]?.system).not.toContain('{{variable}}')
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
@@ -259,7 +259,7 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     try {
       await call(server, 'POST', JSON.stringify({ text: '写一篇关于 {{topic}} 的文章' }))
-      expect(captured[0]?.system).not.toContain('double-brace template slots')
+      expect(captured[0]?.system).not.toContain('The draft contains {{...}} slots.')
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
     }
@@ -527,11 +527,13 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     try {
       const { status } = await call(announced, 'POST', JSON.stringify({ text: '把这张图整理成提示词', attachments: { count: 2 } }))
       expect(status).toBe(200)
-      expect(captured[0]?.system).toContain('Attachment block')
-      expect(captured[0]?.system).toContain('Framing that applies to every response')
+      expect(captured[0]?.system).toContain('The draft carries attachments you cannot see')
+      expect(captured[0]?.system).toContain('Framing (applies to every call, whatever strategy is configured)')
       // The framing contract is appended last, so "these instructions" covers
       // the attachment block that came before it.
-      expect((captured[0]?.system ?? '').indexOf('Framing that applies to every response')).toBeGreaterThan((captured[0]?.system ?? '').indexOf('Attachment block'))
+      expect((captured[0]?.system ?? '').indexOf('Framing (applies to every call, whatever strategy is configured)')).toBeGreaterThan(
+        (captured[0]?.system ?? '').indexOf('The draft carries attachments you cannot see'),
+      )
       const blocks = captured[0]?.messages[0]?.content ?? []
       // Metadata only: the call still carries exactly one text block, never
       // image or file parts.
@@ -558,8 +560,8 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     try {
       const { status } = await call(plain, 'POST', JSON.stringify({ text: '写个脚本' }))
       expect(status).toBe(200)
-      expect(captured[0]?.system).toContain('Framing that applies to every response')
-      expect(captured[0]?.system).not.toContain('Attachment block')
+      expect(captured[0]?.system).toContain('Framing (applies to every call, whatever strategy is configured)')
+      expect(captured[0]?.system).not.toContain('The draft carries attachments you cannot see')
     } finally {
       await new Promise<void>((resolve) => plain.close(() => resolve()))
     }

@@ -47,24 +47,29 @@ describe('frameUserPrompt', () => {
 
 describe('DEFAULT_SYSTEM_PROMPT', () => {
   it('owns the output form: the result is a prompt, and a greeting is described rather than answered', () => {
-    expect(DEFAULT_SYSTEM_PROMPT).toContain('immediately usable prompt')
+    expect(DEFAULT_SYSTEM_PROMPT).toContain('a competent assistant can act on without guessing')
     expect(DEFAULT_SYSTEM_PROMPT).toContain("describe the assistant's role and how it should respond")
   })
 
   it('carries the no-fabrication and language-mirroring rules', () => {
     expect(DEFAULT_SYSTEM_PROMPT).toContain('Never fabricate')
-    expect(DEFAULT_SYSTEM_PROMPT).toContain('SAME language')
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("in the draft's language")
     // Everything the model adds follows the draft's language too, not only the
     // rewrite itself: that is what lets the framing blocks drop their examples.
-    expect(DEFAULT_SYSTEM_PROMPT).toContain('This covers everything you add')
+    expect(DEFAULT_SYSTEM_PROMPT).toContain('including every heading and label you add')
   })
 
-  it('anchors the placeholder on one language-neutral wording', () => {
+  it('maps the missing-fact marker to the output language, not to one neutral wording', () => {
+    // 0.1.9 kept only "(TBD: …)" and relied on the language rule to translate
+    // it. Observation says no: the marker is a literal token, so a Chinese
+    // draft came back carrying it verbatim. Each output language gets its form.
     expect(DEFAULT_SYSTEM_PROMPT).toContain('(TBD: …)')
-    expect(DEFAULT_SYSTEM_PROMPT).toContain("written in the output's language")
-    // No Chinese product string: the language of the marker is the model's call
-    // under the rule above.
-    expect(DEFAULT_SYSTEM_PROMPT).not.toContain('待补充')
+    expect(DEFAULT_SYSTEM_PROMPT).toContain('(待补充：…)')
+    expect(DEFAULT_SYSTEM_PROMPT).toContain('in a Chinese output')
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("in the output's language")
+    // No count language: a cap (or an explicit "no count limit") is a rule
+    // written against an error nobody observed.
+    expect(DEFAULT_SYSTEM_PROMPT).not.toMatch(/count limit/i)
   })
 
   it('keeps the {{variable}} syntax out of the default prompt and uses it only on demand', () => {
@@ -74,7 +79,7 @@ describe('DEFAULT_SYSTEM_PROMPT', () => {
     expect(DEFAULT_SYSTEM_PROMPT).not.toContain('{{variable}}')
     expect(DEFAULT_SYSTEM_PROMPT).not.toContain('template slots')
     expect(PLACEHOLDER_SYSTEM_ADDITION).toContain('Never introduce a slot')
-    expect(withPlaceholderRules('SYS')).toContain('Preserve every slot exactly as written')
+    expect(withPlaceholderRules('SYS')).toContain('Keep every slot exactly as written')
     expect(withPlaceholderRules('SYS').startsWith('SYS\n')).toBe(true)
   })
 
@@ -83,17 +88,28 @@ describe('DEFAULT_SYSTEM_PROMPT', () => {
     // for non-task input the model fell back to chat mode. A confirmation
     // ("修好了") slipped through the same gap as "already well-formed".
     expect(DEFAULT_SYSTEM_PROMPT).toContain('confirmation or status note')
-    expect(DEFAULT_SYSTEM_PROMPT).toContain('never hand the fragment back')
+    expect(DEFAULT_SYSTEM_PROMPT).toContain('hand the fragment back')
     // The framing contract forbids answering the draft but must not prescribe
     // what replaces the answer — that half belongs to the strategy alone.
     expect(INVARIANT_CONTRACT).not.toContain('describe how the assistant should respond')
   })
 
-  it('never skips the acceptance criteria', () => {
-    // Both observed runs dropped it while keeping role, steps and format: it is
-    // the softest of the six items and the one that most improves what the
-    // downstream assistant produces, so "apply what it needs" does not cover it.
-    expect(DEFAULT_SYSTEM_PROMPT).toContain('never skipped')
+  it('states the acceptance criteria as a condition, not as a floor', () => {
+    // It used to be "never skipped", which forced every rewrite to invent an
+    // acceptance section — the largest source of invented content and of
+    // placeholders. It is now one shape item with its own trigger.
+    expect(DEFAULT_SYSTEM_PROMPT).toContain('when inputs can fail or the result has to be checked')
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain('never skipped')
+  })
+
+  it('stops capping how much the model may add and stops explaining why', () => {
+    // The selection line is the upstream wording again: it says which parts to
+    // apply and leaves the method to the model. The length rule carries the
+    // anti-padding requirement, so no rationale and no numeric cap are needed.
+    expect(DEFAULT_SYSTEM_PROMPT).toContain('apply what the draft actually needs, skip what it already has')
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain('never all five')
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain('forces the assistant to guess')
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain('1x-3x')
   })
 })
 
@@ -145,25 +161,25 @@ describe('attachment notice', () => {
 
   it('appends the attachment block only through withAttachmentRules', () => {
     expect(DEFAULT_SYSTEM_PROMPT).not.toContain('Attachment block')
-    expect(withAttachmentRules('SYS')).toContain('Attachment block')
-    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('Never claim the user provided no attachment.')
-    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('Do not infer attachment contents from the conversation context.')
-    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('metadata, not part of the draft')
+    expect(withAttachmentRules('SYS')).toContain('an <attachments> block precedes it')
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('never claim the user provided no attachment')
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('never infer them from the conversation context')
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('Never output the <attachments> block itself')
   })
 
   it('fixes one sanctioned pointer instead of inviting one', () => {
     // Restriction, not encouragement: a strategy that wants no pointer is never
     // pushed to add one, but the model still has a legitimate way to name it.
-    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('the only sanctioned way to refer to it is a plain task-level pointer')
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('is the only allowed way to mention it')
     expect(ATTACHMENT_SYSTEM_ADDITION).toContain('("the attached screenshot")')
     expect(ATTACHMENT_SYSTEM_ADDITION).not.toContain('you may add')
     // No Chinese product string: the pointer follows the output's language.
     expect(ATTACHMENT_SYSTEM_ADDITION).not.toContain('见附件')
-    expect(ATTACHMENT_SYSTEM_ADDITION).toContain("written in the output's language")
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain("in the output's language")
   })
 
   it('separates a bare count report from a count inside a pointer', () => {
-    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('inability to see them on their own')
+    expect(ATTACHMENT_SYSTEM_ADDITION).toContain('that you cannot see them on their own')
     expect(ATTACHMENT_SYSTEM_ADDITION).toContain('inside such a pointer the count may appear')
   })
 })
@@ -175,10 +191,14 @@ describe('invariant contract', () => {
     expect(composed.endsWith(INVARIANT_CONTRACT)).toBe(true)
   })
 
-  it('carries the three framing rules and no shape of its own', () => {
+  it('carries the four framing rules and no shape of its own', () => {
     expect(DEFAULT_SYSTEM_PROMPT).not.toContain('Framing that applies')
     expect(INVARIANT_CONTRACT).toContain('never answer it')
     expect(INVARIANT_CONTRACT).toContain('Output only the result')
-    expect(INVARIANT_CONTRACT).toContain('never copy, quote, summarize, or translate')
+    expect(INVARIANT_CONTRACT).toContain('are delimiters, not content')
+    expect(INVARIANT_CONTRACT).toContain('copy, quote, summarize, or translate')
+    // The blocks it names must stay out of the count: most calls carry neither.
+    expect(INVARIANT_CONTRACT).not.toContain('<conversation_context>')
+    expect(INVARIANT_CONTRACT).not.toContain('<attachments')
   })
 })

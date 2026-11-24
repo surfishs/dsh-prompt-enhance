@@ -17,8 +17,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Pending markers such as `TBD` and `待确认` are deliberately not counted: free-form prose has no stable syntax, so a number would be false precision.
 - The lost-placeholder warning now says when it can be ignored (an intentional fill or no impact) instead of always recommending a regenerate.
 - The framework-leak check now ignores any marker the draft itself contains, even when the result quotes it more than once; the warning copy also says when it can be ignored.
+- Rewrite the built-in strategy around one precedence line and five shape items, each ending with what a finished section contains. The strategy states requirements only: the counterfactual rationale and the pre-emptive prohibitions of errors nobody has observed are gone, because a rule that reads as a slogan teaches the model that rules are optional.
+- The selection line is the upstream wording again — apply what the draft needs, skip what it already has. The "one to three of these, never all five" cap, the length ratio (`1x-3x`, unreachable for a short draft and never verified for a long one), the "a one-line draft stays a line or two" clause, and the "do not create a section only to hold a marker" rule are all removed.
+- The acceptance criteria became one conditional shape item instead of "never skipped": the floor forced every rewrite to invent an acceptance section, which was the largest source of invented content and of placeholders.
+- Compress the conditional blocks: context rules 6 → 4, attachment rules 9 → 5, and the placeholder block now refers to the strategy's marker instead of redefining it.
+- Framing states four rules in plainer sentences and no longer names the context and attachment blocks, which most calls do not carry.
 
 ### Fixed
+
+- Map the missing-fact marker to the output language: `(待补充：…)` in a Chinese output, `(TBD: …)` otherwise. 0.1.9 kept a single language-neutral wording and relied on the language rule to translate it; observation says otherwise — the marker is a literal token, so a Chinese draft came back carrying `TBD` verbatim.
 
 - The context-usage tooltip is no longer cut in half on a folded card, and no longer lands a sidebar-width to the right of its chip. It is portaled to the document body and placed in viewport coordinates from its trigger: the card clips its own overflow, and the composer seat declares `will-change: transform`, which makes it the containing block for fixed descendants. It also re-measures while open, so scrolling cannot strand it.
 - The result card follows the conversation column when the sidebar or a workspace panel opens or closes. The dock entry copies the composer card's width and left margin, and now re-measures when its own ancestors resize: the column narrows inside an unchanged viewport, so watching the window alone left the old width and margin applied and the card overflowed the column.
