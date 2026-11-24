@@ -17,6 +17,11 @@
  * 3. any editor in the document (the original heuristic, kept as the last
  *    resort for a host whose DOM matches neither of the above).
  * When nothing is found, the host's full width is left untouched.
+ *
+ * The copy is not a one-shot: it re-measures on window resize and on any resize
+ * of the entry's ancestor chain, because the shell can move and narrow the
+ * conversation column without resizing the viewport (opening the sidebar or a
+ * workspace panel does exactly that).
  * @module dsh-prompt-enhance/client/useDockAlignment
  */
 
@@ -39,6 +44,12 @@ const CARD_MAX_DEPTH = 12
 const CARD_MAX_VIEWPORT_SHARE = 0.8
 const CARD_CENTER_TOLERANCE = 40
 const EDITOR_BELOW_SLACK = 4
+/**
+ * How far up from the dock entry the resize observer reaches. The slot nests
+ * the entry a handful of levels below the conversation column, and the column is
+ * the box a sidebar or workspace toggle resizes — see the effect below.
+ */
+const OBSERVED_ANCESTOR_DEPTH = 8
 
 /** Whether one element looks like the composer's rounded, opaque surface. */
 function isCardSurface(node: HTMLElement, minWidth: number): boolean {
@@ -164,8 +175,19 @@ export function useDockAlignment(active: boolean, uiKey?: string): RefObject<HTM
     schedule()
     schedule()
     window.addEventListener('resize', schedule)
+    // The window and the document element never change size when the shell's own
+    // chrome opens or closes: a sidebar or workspace toggle only resizes the
+    // conversation column INSIDE the viewport, so an entry measured once keeps a
+    // stale width and left margin — too wide for the narrowed column, and offset
+    // from the card it was copied from. Watch the entry's own ancestor chain
+    // instead (the slot, the composer stack, the seat and the column all live
+    // there), and keep the shell-level targets as the fallback.
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule)
-    observer?.observe(document.documentElement)
+    const observed: Element[] = [document.documentElement]
+    for (let node = root.parentElement, depth = 0; node !== null && node !== document.body && depth < OBSERVED_ANCESTOR_DEPTH; node = node.parentElement, depth++) {
+      observed.push(node)
+    }
+    for (const node of observed) observer?.observe(node)
     return () => {
       cancelAnimationFrame(frame)
       window.removeEventListener('resize', schedule)
