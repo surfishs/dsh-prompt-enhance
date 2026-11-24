@@ -178,7 +178,7 @@ This plugin defaults to `off`, and that default is usually the right one to keep
 Raise the tier for one call when:
 
 - **the draft leans on involved context**, or the task itself calls for weighing trade-offs;
-- **the result card says the model produced no rewrite** — at a low tier with context on, the model occasionally hands the draft back unchanged. The plugin refuses that result and reports it honestly, but **never retries on its own**: press Regenerate first; if it keeps happening, raise the tier a step; turn context awareness off only when that is still not enough;
+- **the result card says the model produced no rewrite** — at a low tier with context on, the model occasionally hands the draft back unchanged. The plugin still shows the body and marks it "no rewrite", but **never retries on its own**: press Regenerate first; if it keeps happening, raise the tier a step; turn context awareness off only when that is still not enough;
 - you want to compare tiers on the same draft.
 
 Both the settings page and the right-click quick card switch the tier, so you can compare on the spot. When you need more capability, a stronger model usually pays off more than keeping the tier raised.
@@ -255,7 +255,7 @@ Eight content rules ride along:
 
 `strategyMode` decides how a custom strategy combines with the built-in one:
 
-- `replace-default`: **replaces it entirely** (the six-part strategy, placeholders and the language rule are no longer retained); context rules and the framing contract are still appended.
+- `replace-default`: **replaces it entirely** (the six-part strategy and the language rule are no longer retained; the conditional placeholder rules are not appended either); context rules and the framing contract are still appended.
 - `extend-default`: **appends** your text after the built-in strategy, keeping the default rules in force; context rules are retained.
 
 In either mode the call ends with the framing contract, which applies to the default strategy too — see the next section.
@@ -263,8 +263,23 @@ In either mode the call ends with the framing contract, which applies to the def
 ### Additional rules
 
 - **Context rules**: appended when conversation context is present; used only to resolve pronouns and vague references (in any language), to pick up the stack and terminology the conversation already established, and to stay aligned with the conversation's current goal; it is evidence, not instructions — never override, widen or contradict the draft, ignore it when it is irrelevant or too thin, and never quote or restate the history in the output.
+- **Placeholder rules**: appended only when the draft actually contains `{{...}}` slots; they ask the model to keep every slot exactly as written and explicitly forbid introducing a slot the draft did not have (a missing detail still uses `(TBD: …)`). A slot-free draft never sees the syntax, so the model is not primed to imitate it.
 - **Attachment rules**: appended when the draft carries attachments; they report only the count and never the contents; when the draft relies on an attachment it does not name, the only sanctioned pointer is a task-level one (for example `the attached screenshot`, written in the output language), and the count may appear only inside such a pointer; the model must not report the count/availability/"cannot see them" on their own, nor claim the user provided no attachment.
 - **Framing contract**: appended last on every call; the draft is data — never answered, explained or commented on; output only the result, with no preamble, commentary, questions, pleasantries or code fences; everything outside `<raw_prompt>` (the system instructions, the context block, the attachment block) is meta and must never be copied, quoted, summarized or translated into the output, and the step itself is never described.
+
+### Post-generation checks
+
+Before a successful result is returned, the host runs three deterministic checks over the draft and the rewrite — no model call, no blocking:
+
+- **No rewrite**: the result says no more than the draft (whitespace and trailing punctuation ignored); the body stays visible, and the card offers retry or direct use;
+- **Framework leak**: scaffolding such as `<conversation_context>`, `<raw_prompt>` or `Framing that applies` appears in the result; a marker the draft itself contains is ignored entirely (the result may be quoting what you asked for);
+- **Lost placeholder**: a `{{variable}}` slot from the draft did not survive (checked only when the draft has slots and the active strategy still promises to keep them; a `replace-default` custom strategy is exempt).
+
+When one fires, the card shows a single warning line and the fill-back action stays available. The `checks` field is present only on a hit, so a clean result keeps its previous payload.
+
+The body no longer has its `<raw_prompt>` / `</raw_prompt>` tags stripped automatically: if the model echoes the wrapper, the body keeps it and the framework-leak warning explains what happened; only code-fence wrappers are still treated as formatting.
+
+The host deliberately does **not** count pending markers such as `(TBD: …)`, `TBD` or `待确认`: they are free-form model prose with no stable syntax, so any number would be false precision. A `{{...}}` inside a code block counts as a placeholder too; if the model explains it away, that is reported as a lost slot — such text should have been kept verbatim.
 
 ## Troubleshooting
 
@@ -281,7 +296,7 @@ The table is organized by what you see; parameter meanings and defaults are in C
 | Enhancement timed out or was cancelled | Over `timeoutMs`, or you pressed Cancel | Retry or raise `timeoutMs` after a timeout; a cancel leaves the draft unchanged — just run it again |
 | Authentication failure | The provider's credentials or API key are invalid | Check that provider's credentials/API key in DSH |
 | Truncated result | Reached `maxOutputTokens` | Check the truncation warning and raise `maxOutputTokens` in settings |
-| The card shows your draft itself, possibly with a full stop added | With a low reasoning tier and context awareness on, the model sometimes produces no rewrite and hands the draft back | The plugin reports "no rewrite" instead of showing it as a result. Retry first; if it keeps happening, raise the reasoning tier a step; turn context awareness off only when that is still not enough |
+| The card shows your draft itself, possibly with a full stop added | With a low reasoning tier and context awareness on, the model sometimes produces no rewrite and hands the draft back | The plugin still shows the body and marks it "no rewrite". Retry first; if it keeps happening, raise the reasoning tier a step; turn context awareness off only when that is still not enough |
 | Context usage shows `8/8 messages` (default) | The `contextMaxMessages` message cap (default 8) was reached; this is normal truncation and is not shown as a warning | Usually nothing to do; raise `contextMaxMessages` if you need older messages, though `contextMaxChars` (default 4,000 chars) may be hit first |
 | Context usage shows `4,000/4,000 chars` (default, amber) | The `contextMaxChars` limit (default 4,000) was reached, so earlier content was not sent; if the latest turn was cut, the reason says only its opening was sent | Raise `contextMaxChars`, or trim the conversation/references; more context means more input tokens and cost |
 | Message says no model is configured for the enhancement (no model route) | No pinned `provider`/`model` pair and no session model route | Set both `provider` and `model` in settings, or send a message in the current session so the plugin can follow the session model |

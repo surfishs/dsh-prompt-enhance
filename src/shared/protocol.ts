@@ -89,6 +89,26 @@ export interface ContextUsage {
   cutTurn: boolean
 }
 
+/**
+ * One deterministic post-generation check. The host runs these against the
+ * draft and the normalized result; they never call a model and never block the
+ * fill-back action. Codes are stable wire values the browser half localizes.
+ */
+export type ContractCheckCode = 'no-rewrite' | 'framework-leak' | 'placeholder-lost'
+
+/** One check's verdict, as carried on {@link EnhanceResult.checks}. */
+export interface ContractCheck {
+  code: ContractCheckCode
+  /** How many occurrences the check found (lost slots, leaked markers, …). */
+  count: number
+  /**
+   * Optional short detail for the card's tooltip: the lost placeholder names
+   * (`{{topic}}, {{n}}`) or the framework markers that leaked. Never contains
+   * the draft or the result body.
+   */
+  detail?: string
+}
+
 export interface EnhanceResult {
   /** The rewritten prompt body (already normalized: no fences, trimmed). */
   text: string
@@ -110,6 +130,12 @@ export interface EnhanceResult {
   reasoningEffort?: string
   /** Conversation-history usage of this call; absent when no context was sent. */
   context?: ContextUsage
+  /**
+   * Deterministic post-generation checks, absent when everything held. The host
+   * orders them (no-rewrite, framework leaks, then lost slots); the card shows
+   * the first and keeps the full list in its tooltip.
+   */
+  checks?: ContractCheck[]
 }
 
 /**

@@ -8,7 +8,7 @@
 
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
-import type { ContextUsage, EnhanceError, EnhanceUsage, ClientFailureReason } from '../shared/protocol'
+import type { ContextUsage, ContractCheck, EnhanceError, EnhanceUsage, ClientFailureReason } from '../shared/protocol'
 import type { PromptEnhanceKey } from './locales'
 import type { PanelState } from './ui-state'
 import { ChevronIcon, CopyIcon, FillIcon, RegenerateIcon, UndoIcon, XIcon } from './ActionIcons'
@@ -237,12 +237,49 @@ function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: 
   )
 }
 
+/** One localized line for a deterministic contract check. */
+function checkText(t: TranslateNS<'dsh-prompt-enhance'>, check: ContractCheck): string {
+  switch (check.code) {
+    case 'no-rewrite':
+      return t('panel.checks.noRewrite')
+    case 'framework-leak':
+      return t('panel.checks.leak')
+    case 'placeholder-lost':
+      return check.detail === undefined ? t('panel.checks.placeholder.generic') : t('panel.checks.placeholder', { names: check.detail })
+  }
+}
+
+/** The card's single line: the top check plus how many more were suppressed. */
+function checkSummary(t: TranslateNS<'dsh-prompt-enhance'>, checks: readonly ContractCheck[]): string {
+  const first = checks[0]
+  if (first === undefined) return ''
+  const line = checkText(t, first)
+  return checks.length > 1 ? `${line} · ${t('panel.checks.more', { count: checks.length - 1 })}` : line
+}
+
+/** Tooltip: every check, one per line. */
+function checkTitle(t: TranslateNS<'dsh-prompt-enhance'>, checks: readonly ContractCheck[]): string {
+  return checks.map((check) => checkText(t, check)).join('\n')
+}
+
 /** One enhancement result card. */
 export function ResultPanel(props: ResultPanelProps): ReactNode {
   const { state, t, onApply, onCancel, onRetry, applied = false, onUndo, onRegenerate, draftEmpty = false, regenerated = false, collapsed = false, onToggleCollapsed, foldAnimation = true } = props
   const [copied, setCopied] = useState<'idle' | 'ok' | 'failed'>('idle')
   /** Pending reset of the copy label; one timer only, so a second copy cannot be cut short by the first. */
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  // Contract checks are a property of the result. The host orders them
+  // (framework leaks before lost slots); the card shows the first and keeps the
+  // rest in the tooltip.
+  const checks = state.phase === 'result' ? (state.result?.checks ?? []) : []
+  const topCheck = checks[0]
+  const truncated = state.phase === 'result' && state.result?.truncated === true
+  // One warning at a time: a stale draft hides everything (the result is based
+  // on old text), truncation outranks checks (the body itself is incomplete).
+  const showChecks = state.phase === 'result' && state.stale !== true && !truncated && topCheck !== undefined
+  const collapsedWarningDanger = state.stale !== true && truncated
+  const collapsedWarningTitle = state.stale === true ? t('panel.stale.dot') : truncated ? t('panel.truncated.dot') : t('panel.checks.dot', { count: checks.length })
 
   const copy = useCallback((): void => {
     if (state.result === undefined) return
@@ -332,8 +369,8 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
           )}
           {/* Collapsed, the body — and with it the warnings — is hidden, so the
               header carries a marker instead of silently swallowing one. */}
-          {collapsed && (state.stale === true || state.result?.truncated === true) ? (
-            <span className={`dsh-pe-warn-dot${state.stale === true ? '' : ' is-danger'}`} title={state.stale === true ? t('panel.stale.dot') : t('panel.truncated.dot')} aria-hidden="true">
+          {collapsed && (state.stale === true || truncated || checks.length > 0) ? (
+            <span className={`dsh-pe-warn-dot${collapsedWarningDanger ? ' is-danger' : ''}`} title={collapsedWarningTitle} aria-hidden="true">
               ⚠
             </span>
           ) : null}
@@ -392,6 +429,12 @@ export function ResultPanel(props: ResultPanelProps): ReactNode {
           )}
 
           {state.phase === 'result' && state.result?.truncated === true && !state.stale && <div className="dsh-pe-stale dsh-pe-truncated">⚠ {t('panel.truncated')}</div>}
+
+          {showChecks && topCheck !== undefined && (
+            <div className="dsh-pe-stale" title={checkTitle(t, checks)}>
+              ⚠ {checkSummary(t, checks)}
+            </div>
+          )}
 
           {state.phase === 'result' && state.stale && <div className="dsh-pe-stale">⚠ {t(draftEmpty ? 'panel.stale.empty' : 'panel.stale.warn')}</div>}
         </div>

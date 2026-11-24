@@ -8,7 +8,7 @@
 
 import type { BlockAssembler, FinishReason, GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { EnhanceError, EnhanceResult } from './shared/protocol'
-import { isDegenerateOutput, normalizeOutput } from './shared/normalize'
+import { normalizeOutput } from './shared/normalize'
 import { frameUserPrompt } from './prompts'
 import { DEFAULT_CONFIG, type ReasoningEffortChoice } from './config'
 
@@ -345,14 +345,6 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
       .filter((block) => block.type === 'text')
       .map((block) => block.text)
       .join('\n')
-    // A weak model on a low reasoning tier occasionally hands the framed draft
-    // back unchanged — bare, wrapped in its tags, or with a full stop appended.
-    // Stripping the tags is right for a wrapped answer, but an answer that says
-    // no more than the draft is not a result: fail it here, where both the raw
-    // output and the draft are in hand.
-    if (isDegenerateOutput(joined, options.text)) {
-      fail({ code: 'upstream', params: { reason: 'degenerate' } })
-    }
     const text = normalizeOutput(joined)
     if (text === '') {
       fail({ code: 'upstream', params: { reason: 'empty' } })

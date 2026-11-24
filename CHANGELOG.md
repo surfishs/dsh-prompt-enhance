@@ -5,6 +5,19 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- Post-generation contract checks: framework leakage and lost `{{variable}}` placeholders are reported as one non-blocking warning line in the result card. No model call, no new settings, and a clean result keeps its previous payload.
+- A `no-rewrite` warning: when the result says no more than the draft, the body stays visible and the card offers retry instead of replacing the body with an error.
+
+### Changed
+
+- Output normalization no longer strips `<raw_prompt>` tags from the body; a wrapper echo is reported by the framework-leak / no-rewrite warnings instead of being silently deleted.
+- The placeholder rule is appended only when the draft contains `{{...}}` slots (built-in strategy or `extend-default`), so a slot-free prompt never sees the syntax; a `replace-default` custom strategy is exempt.
+- Pending markers such as `TBD` and `待确认` are deliberately not counted: free-form prose has no stable syntax, so a number would be false precision.
+- The lost-placeholder warning now says when it can be ignored (an intentional fill or no impact) instead of always recommending a regenerate.
+- The framework-leak check now ignores any marker the draft itself contains, even when the result quotes it more than once; the warning copy also says when it can be ignored.
+
 ## [0.1.10] - 2026-11-23
 
 ### Changed

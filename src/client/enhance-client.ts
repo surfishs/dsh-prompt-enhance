@@ -8,6 +8,8 @@
 import {
   ENHANCE_ENDPOINT,
   ENHANCE_STREAM_ENDPOINT,
+  type ContractCheck,
+  type ContractCheckCode,
   type EnhanceError,
   type EnhanceErrorCode,
   type EnhanceRequestBody,
@@ -118,6 +120,33 @@ function parseContextUsage(value: unknown): ContextUsage | undefined {
   }
 }
 
+/** The stable contract-check codes; an unknown code drops that entry. */
+const CONTRACT_CHECK_CODES = new Set<ContractCheckCode>(['no-rewrite', 'framework-leak', 'placeholder-lost'])
+
+/**
+ * Narrow the optional contract-check block. Entries are validated one by one,
+ * so a future host code the browser half does not know yet is dropped instead
+ * of failing the whole result; an all-invalid block reads as "no checks".
+ * @param value - the `checks` field of a success value.
+ * @returns the validated checks, or undefined when absent/empty.
+ */
+function parseChecks(value: unknown): ContractCheck[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const checks: ContractCheck[] = []
+  for (const entry of value) {
+    if (entry === null || typeof entry !== 'object') continue
+    const record = entry as Partial<ContractCheck>
+    if (typeof record.code !== 'string' || !CONTRACT_CHECK_CODES.has(record.code as ContractCheckCode)) continue
+    if (typeof record.count !== 'number' || !Number.isInteger(record.count) || record.count < 0) continue
+    checks.push({
+      code: record.code as ContractCheckCode,
+      count: record.count,
+      ...(typeof record.detail === 'string' && record.detail !== '' ? { detail: record.detail } : {}),
+    })
+  }
+  return checks.length === 0 ? undefined : checks
+}
+
 function parseResult(value: unknown): EnhanceResult {
   const record = value as Partial<EnhanceResult> | null
   if (
@@ -134,6 +163,7 @@ function parseResult(value: unknown): EnhanceResult {
   ) {
     const usage = parseUsage((record as { usage?: unknown }).usage)
     const context = parseContextUsage((record as { context?: unknown }).context)
+    const checks = parseChecks((record as { checks?: unknown }).checks)
     return {
       text: record.text,
       provider: record.provider,
@@ -151,6 +181,7 @@ function parseResult(value: unknown): EnhanceResult {
       // in this exact place or the UI silently never sees it.
       ...(typeof record.reasoningEffort === 'string' ? { reasoningEffort: record.reasoningEffort } : {}),
       ...(context === undefined ? {} : { context }),
+      ...(checks === undefined ? {} : { checks }),
     }
   }
   throw new EnhanceClientError({ code: 'internal', params: { reason: 'malformed' } })

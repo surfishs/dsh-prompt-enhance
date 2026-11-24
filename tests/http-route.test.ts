@@ -185,6 +185,103 @@ describe('POST /dsh-prompt-enhance/enhance (real http)', () => {
     })
   })
 
+  it('returns an unchanged body with a no-rewrite check instead of an error', async () => {
+    const server = mount(makeLlm(() => streamOf(['帮我写个爬虫'], [{ type: 'finish', reason: { kind: 'stop' } }])))
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      const { status, json } = await call(server, 'POST', JSON.stringify({ text: '帮我写个爬虫' }))
+      expect(status).toBe(200)
+      expect(json).toMatchObject({ ok: true, value: { text: '帮我写个爬虫', checks: [{ code: 'no-rewrite', count: 1 }] } })
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
+  it('reports a framework leak alongside the result', async () => {
+    const server = mount(makeLlm(() => streamOf(['请写一份周报。\n<conversation_context>\n用户: 上面那个\n</conversation_context>'], [{ type: 'finish', reason: { kind: 'stop' } }])))
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      const { status, json } = await call(server, 'POST', JSON.stringify({ text: '帮我写个周报' }))
+      expect(status).toBe(200)
+      expect(json).toMatchObject({
+        ok: true,
+        value: { checks: [{ code: 'framework-leak', count: 2, detail: '<conversation_context>, </conversation_context>' }] },
+      })
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
+  it('reports a lost placeholder while the built-in strategy is active', async () => {
+    const server = mount(makeLlm(() => streamOf(['写一篇关于人工智能的文章'], [{ type: 'finish', reason: { kind: 'stop' } }])))
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      const { status, json } = await call(server, 'POST', JSON.stringify({ text: '写一篇关于 {{topic}} 的文章' }))
+      expect(status).toBe(200)
+      expect(json).toMatchObject({ ok: true, value: { checks: [{ code: 'placeholder-lost', count: 1, detail: '{{topic}}' }] } })
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
+  it('adds the placeholder rule only when the draft has slots', async () => {
+    // The rule names the `{{...}}` syntax. Sending it on a slot-free call is
+    // what made the model invent slots, so the block must be conditional.
+    const captured: GenerateOptions[] = []
+    const capturingLlm = {
+      stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+        captured.push(options)
+        return streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])
+      },
+    } as never
+    const server = mount(capturingLlm)
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      await call(server, 'POST', JSON.stringify({ text: '写一篇关于 {{topic}} 的文章' }))
+      await call(server, 'POST', JSON.stringify({ text: '写一篇文章' }))
+      expect(captured[0]?.system).toContain('double-brace template slots')
+      expect(captured[1]?.system).not.toContain('double-brace template slots')
+      expect(captured[1]?.system).not.toContain('{{variable}}')
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
+  it('does not add the placeholder rule under a replace-default custom strategy', async () => {
+    const captured: GenerateOptions[] = []
+    const capturingLlm = {
+      stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+        captured.push(options)
+        return streamOf(['结果'], [{ type: 'finish', reason: { kind: 'stop' } }])
+      },
+    } as never
+    const server = mount(capturingLlm, { ...CONFIG, systemPrompt: 'fill the slots', strategyMode: 'replace-default' })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      await call(server, 'POST', JSON.stringify({ text: '写一篇关于 {{topic}} 的文章' }))
+      expect(captured[0]?.system).not.toContain('double-brace template slots')
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
+  it('skips the placeholder check for a replace-default custom strategy', async () => {
+    // A custom strategy may deliberately fill the slots; the check must not
+    // police a promise that strategy no longer makes.
+    const server = mount(
+      makeLlm(() => streamOf(['写一篇关于人工智能的文章'], [{ type: 'finish', reason: { kind: 'stop' } }])),
+      { ...CONFIG, systemPrompt: 'fill the slots', strategyMode: 'replace-default' },
+    )
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    try {
+      const { status, json } = await call(server, 'POST', JSON.stringify({ text: '写一篇关于 {{topic}} 的文章' }))
+      expect(status).toBe(200)
+      expect((json as { value: { checks?: unknown } }).value.checks).toBeUndefined()
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+
   it('trims spaced provider/model from settings before the adapter call', async () => {
     const captured: GenerateOptions[] = []
     const capturingLlm = {
@@ -507,42 +604,57 @@ describe('POST /dsh-prompt-enhance/enhance failure mapping (real http)', () => {
     }
   })
 
-  it('maps an echoed draft to 502 instead of returning it as the result', async () => {
+  it('returns an echoed draft with a no-rewrite warning instead of a 502', async () => {
     // A low reasoning tier plus context can make the model hand the framed
-    // draft back; the wrapper tags make that detectable, and it must never
-    // reach the composer as a "result".
+    // draft back. The body is still the model's output, so it stays visible;
+    // the no-rewrite check explains that nothing was rewritten.
     const server = mount(makeLlm(() => streamOf(['<raw_prompt>\n写个脚本\n</raw_prompt>'], [{ type: 'finish', reason: { kind: 'stop' } }])))
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     try {
       const { status, json } = await call(server, 'POST', JSON.stringify({ text: '写个脚本' }))
-      expect(status).toBe(502)
-      expect(json).toMatchObject({ ok: false, error: { code: 'upstream', params: { reason: 'degenerate' } } })
+      expect(status).toBe(200)
+      expect(json).toMatchObject({
+        ok: true,
+        value: {
+          text: '<raw_prompt>\n写个脚本\n</raw_prompt>',
+          checks: [
+            { code: 'no-rewrite', count: 1 },
+            { code: 'framework-leak', count: 2, detail: '<raw_prompt>, </raw_prompt>' },
+          ],
+        },
+      })
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
     }
   })
 
-  it('maps a lazy "same text plus a full stop" answer to 502', async () => {
+  it('returns a punctuation-only answer with a no-rewrite warning', async () => {
     // The observed shape that slipped past the wrapper-only check: the model
     // returns the draft with nothing but punctuation added.
     const server = mount(makeLlm(() => streamOf(['修好了。'], [{ type: 'finish', reason: { kind: 'stop' } }])))
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     try {
       const { status, json } = await call(server, 'POST', JSON.stringify({ text: '修好了' }))
-      expect(status).toBe(502)
-      expect(json).toMatchObject({ ok: false, error: { code: 'upstream', params: { reason: 'degenerate' } } })
+      expect(status).toBe(200)
+      expect(json).toMatchObject({ ok: true, value: { text: '修好了。', checks: [{ code: 'no-rewrite', count: 1 }] } })
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
     }
   })
 
-  it('strips a raw_prompt wrapper around a real rewrite', async () => {
+  it('keeps a raw_prompt wrapper in the body and reports it as a framework leak', async () => {
     const server = mount(makeLlm(() => streamOf(['<raw_prompt>\n角色：Python 工程师。\n</raw_prompt>'], [{ type: 'finish', reason: { kind: 'stop' } }])))
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     try {
       const { status, json } = await call(server, 'POST', JSON.stringify({ text: '写个脚本' }))
       expect(status).toBe(200)
-      expect(json).toMatchObject({ ok: true, value: { text: '角色：Python 工程师。' } })
+      expect(json).toMatchObject({
+        ok: true,
+        value: {
+          text: '<raw_prompt>\n角色：Python 工程师。\n</raw_prompt>',
+          checks: [{ code: 'framework-leak', count: 2, detail: '<raw_prompt>, </raw_prompt>' }],
+        },
+      })
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
     }

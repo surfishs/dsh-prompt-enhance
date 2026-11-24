@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { ATTACHMENT_SYSTEM_ADDITION, CONTEXT_SYSTEM_ADDITION, DEFAULT_SYSTEM_PROMPT, INVARIANT_CONTRACT, frameUserPrompt, withAttachmentRules, withInvariantContract } from '../src/prompts'
+import {
+  ATTACHMENT_SYSTEM_ADDITION,
+  CONTEXT_SYSTEM_ADDITION,
+  DEFAULT_SYSTEM_PROMPT,
+  INVARIANT_CONTRACT,
+  PLACEHOLDER_SYSTEM_ADDITION,
+  frameUserPrompt,
+  withAttachmentRules,
+  withInvariantContract,
+  withPlaceholderRules,
+} from '../src/prompts'
 
 describe('frameUserPrompt', () => {
   it('frames the draft between raw_prompt tags and defers to the configured strategy', () => {
@@ -55,6 +65,17 @@ describe('DEFAULT_SYSTEM_PROMPT', () => {
     // No Chinese product string: the language of the marker is the model's call
     // under the rule above.
     expect(DEFAULT_SYSTEM_PROMPT).not.toContain('待补充')
+  })
+
+  it('keeps the {{variable}} syntax out of the default prompt and uses it only on demand', () => {
+    // The syntax is conditional: naming it on every call primes the model to
+    // invent slots in drafts that had none. Only a slot-carrying draft gets the
+    // block, and that block forbids introducing a new slot.
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain('{{variable}}')
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain('template slots')
+    expect(PLACEHOLDER_SYSTEM_ADDITION).toContain('Never introduce a slot')
+    expect(withPlaceholderRules('SYS')).toContain('Preserve every slot exactly as written')
+    expect(withPlaceholderRules('SYS').startsWith('SYS\n')).toBe(true)
   })
 
   it('turns greetings and confirmations into a rewrite instead of a reply', () => {

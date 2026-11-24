@@ -212,6 +212,18 @@ describe('enhanceText', () => {
     expect(result.text).toBe('角色：翻译')
   })
 
+  it('returns an unchanged body instead of failing, leaving the verdict to checks', async () => {
+    const llm = stubLlm(() => textStream(['帮我写个爬虫'], { reason: 'stop' }))
+    const result = await enhanceText(llm, baseOptions)
+    expect(result.text).toBe('帮我写个爬虫')
+  })
+
+  it('returns a wrapper echo as the body, tags included', async () => {
+    const llm = stubLlm(() => textStream(['<raw_prompt>\n帮我写个爬虫\n</raw_prompt>'], { reason: 'stop' }))
+    const result = await enhanceText(llm, baseOptions)
+    expect(result.text).toBe('<raw_prompt>\n帮我写个爬虫\n</raw_prompt>')
+  })
+
   it('maps an AUTH error finish to a fix hint and keeps the draft untouched', async () => {
     const llm = stubLlm(() => textStream([], { reason: 'error', code: 'AUTH', message: '401' }))
     await expect(enhanceText(llm, baseOptions)).rejects.toMatchObject({

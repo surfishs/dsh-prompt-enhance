@@ -39,7 +39,7 @@ export type { EnhanceCallOptions, LlmStreamFace, RoutePair, UpstreamReason } fro
 export { normalizeOutput } from './shared/normalize'
 export { checkInputText } from './shared/validate'
 export { ENHANCE_ENDPOINT } from './shared/protocol'
-export type { EnhanceError, EnhanceResult, EnhanceRequestBody, EnhanceResponse, EnhanceErrorCode } from './shared/protocol'
+export type { EnhanceError, EnhanceResult, EnhanceRequestBody, EnhanceResponse, EnhanceErrorCode, ContractCheck, ContractCheckCode } from './shared/protocol'
 
 /**
  * Mount the host half.

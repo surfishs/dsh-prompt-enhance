@@ -165,3 +165,50 @@ describe('result narrowing keeps the context usage', () => {
     expect(result.context).toBeUndefined()
   })
 })
+
+describe('result narrowing keeps the contract checks', () => {
+  const CHECKS = [
+    { code: 'no-rewrite', count: 1 },
+    { code: 'placeholder-lost', count: 1, detail: '{{topic}}' },
+    { code: 'framework-leak', count: 2, detail: '<conversation_context>, </conversation_context>' },
+  ] as const
+  const CHECK_VALUE = { ...ONESHOT_OK.value, checks: CHECKS }
+  const jsonResponse = (envelope: unknown): Response => new Response(JSON.stringify(envelope), { status: 200, headers: { 'content-type': 'application/json' } })
+
+  it('carries checks onto the one-shot result', async () => {
+    // Same trap as truncated/reasoningEffort/context: parseResult rebuilds the
+    // object field by field, so a field missing from that list never reaches
+    // the card.
+    stubFetch(() => jsonResponse({ ok: true, value: CHECK_VALUE }))
+    const result = await requestEnhance({ text: '写个爬虫' })
+    expect(result.checks).toEqual(CHECKS)
+  })
+
+  it('carries them through the streamed done frame too', async () => {
+    const frame = `event: done\ndata: ${JSON.stringify({ type: 'done', value: CHECK_VALUE })}\n\n`
+    stubFetch(() => new Response(frame, { status: 200, headers: { 'content-type': 'text/event-stream' } }))
+    const result = await requestEnhanceStream({ text: '写个爬虫' }, { onDelta: (): void => {} })
+    expect(result.checks).toEqual(CHECKS)
+  })
+
+  it('drops malformed entries but keeps the valid ones', async () => {
+    const mixed = {
+      ...ONESHOT_OK.value,
+      checks: [
+        { code: 'framework-leak', count: 1 },
+        { code: 'future-code', count: 1 },
+        { code: 'placeholder-lost', count: -1 },
+      ],
+    }
+    stubFetch(() => jsonResponse({ ok: true, value: mixed }))
+    const result = await requestEnhance({ text: '写个爬虫' })
+    expect(result.checks).toEqual([{ code: 'framework-leak', count: 1 }])
+  })
+
+  it('reads an all-invalid block as absent', async () => {
+    const malformed = { ...ONESHOT_OK.value, checks: [{ code: 'future-code', count: 1 }] }
+    stubFetch(() => jsonResponse({ ok: true, value: malformed }))
+    const result = await requestEnhance({ text: '写个爬虫' })
+    expect(result.checks).toBeUndefined()
+  })
+})

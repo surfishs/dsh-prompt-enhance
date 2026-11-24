@@ -9,10 +9,11 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { randomUUID } from 'node:crypto'
 import { effectiveSystemPrompt, type Config } from './config'
-import { DEFAULT_SYSTEM_PROMPT, CONTEXT_SYSTEM_ADDITION, withAttachmentRules, withInvariantContract } from './prompts'
+import { DEFAULT_SYSTEM_PROMPT, CONTEXT_SYSTEM_ADDITION, withAttachmentRules, withInvariantContract, withPlaceholderRules } from './prompts'
 import { buildConversationContextWithUsage } from './context'
 import { EnhanceFailure, enhanceText, resolveRoute, toEnhanceError, type RoutePair } from './enhancer'
-import type { ContextUsage, EnhanceResult } from './shared/protocol'
+import type { ContextUsage, ContractCheck, EnhanceResult } from './shared/protocol'
+import { checkContract, placeholderNames } from './shared/contract'
 import { countText } from './shared/validate'
 import type { LlmResolvedModelInfo } from '@deepseek-ai/dsh-llm'
 import { readCachedCapabilities, writeCachedCapabilities } from './reasoning-cache'
@@ -313,11 +314,16 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
     const effort = await effectiveReasoningEffort(llm, route.provider, route.model, config.reasoningEffort)
     // The strategy (built-in or custom) decides the output's form. The context
     // rules ride along ONLY when there is context to reason about, the
+    // placeholder rules ONLY when the draft actually contains `{{...}}` slots
+    // (naming the syntax unconditionally primes the model to invent one), the
     // attachment rules ONLY when the draft carries attachments, and the framing
     // contract is appended LAST to every call so its "these instructions"
     // covers every block above it.
+    const draftHasSlots = placeholderNames(options.text).length > 0
+    const builtinRules = config.systemPrompt.trim() === '' || config.strategyMode === 'extend-default'
     const baseSystem = effectiveSystemPrompt(config, DEFAULT_SYSTEM_PROMPT, context === undefined ? '' : CONTEXT_SYSTEM_ADDITION)
-    const withAttachments = attachmentCount > 0 ? withAttachmentRules(baseSystem) : baseSystem
+    const withPlaceholders = draftHasSlots && builtinRules ? withPlaceholderRules(baseSystem) : baseSystem
+    const withAttachments = attachmentCount > 0 ? withAttachmentRules(withPlaceholders) : withPlaceholders
     const system = withInvariantContract(withAttachments)
     const result = await enhanceText(llm, {
       route,
@@ -333,10 +339,25 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
       ...(options.onDelta !== undefined ? { onDelta: options.onDelta } : {}),
       ...(options.sessionId !== undefined ? { sessionId: options.sessionId } : {}),
     })
-    console.info(`[dsh-prompt-enhance] ${requestId} in=${countText(options.text)} out=${countText(result.text)} ctx=${context === undefined ? 0 : 1} ${result.elapsedMs}ms ok`)
+    // Post-generation contract checks: pure string work over the draft and the
+    // normalized result. Fail-open by design — a checker bug must never turn a
+    // usable rewrite into a failed call. The placeholder check only runs while
+    // the draft has slots and the strategy still promises to preserve them: a
+    // replace-default custom strategy may deliberately fill them, and a warning
+    // would be wrong.
+    let checks: ContractCheck[] = []
+    try {
+      checks = checkContract(options.text, result.text, { placeholders: draftHasSlots && builtinRules })
+    } catch {
+      checks = []
+    }
+    const settled = checks.length === 0 ? result : { ...result, checks }
+    console.info(
+      `[dsh-prompt-enhance] ${requestId} in=${countText(options.text)} out=${countText(result.text)} ctx=${context === undefined ? 0 : 1} checks=${checks.length === 0 ? 'none' : checks.map((check) => check.code).join(',')} ${result.elapsedMs}ms ok`,
+    )
     // The card reports what the context window actually held; a caller that
     // supplied its own snippet has no usage to report, so the field stays out.
-    return derivedContext === undefined ? result : { ...result, context: derivedContext.usage }
+    return derivedContext === undefined ? settled : { ...settled, context: derivedContext.usage }
   } catch (error) {
     const wire = toEnhanceError(error)
     console.info(`[dsh-prompt-enhance] ${requestId} in=${countText(options.text)} error=${wire.code} ${Date.now() - started}ms`)

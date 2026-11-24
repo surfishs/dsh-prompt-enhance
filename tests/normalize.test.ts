@@ -50,15 +50,22 @@ describe('normalizeOutput', () => {
 })
 
 describe('draft wrapper handling', () => {
-  it('strips a raw_prompt wrapper around a real rewrite', () => {
-    expect(normalizeOutput('<raw_prompt>\n角色：翻译\n</raw_prompt>')).toBe('角色：翻译')
-    expect(normalizeOutput('<raw_prompt>角色：翻译</raw_prompt>')).toBe('角色：翻译')
+  it('keeps a raw_prompt wrapper in the body instead of silently removing it', () => {
+    expect(normalizeOutput('<raw_prompt>\n角色：翻译\n</raw_prompt>')).toBe('<raw_prompt>\n角色：翻译\n</raw_prompt>')
+    expect(normalizeOutput('<raw_prompt>角色：翻译</raw_prompt>')).toBe('<raw_prompt>角色：翻译</raw_prompt>')
   })
 
-  it('strips a lone opening or closing tag', () => {
-    // A truncated answer can carry only one side; the tag is still scaffolding.
-    expect(normalizeOutput('<raw_prompt>\n角色：翻译')).toBe('角色：翻译')
-    expect(normalizeOutput('角色：翻译\n</raw_prompt>')).toBe('角色：翻译')
+  it('keeps a lone opening or closing tag', () => {
+    // Deleting half a wrapper is worse than showing it: the tag may be content
+    // the user asked for, and the card's warnings explain a real echo.
+    expect(normalizeOutput('<raw_prompt>\n角色：翻译')).toBe('<raw_prompt>\n角色：翻译')
+    expect(normalizeOutput('角色：翻译\n</raw_prompt>')).toBe('角色：翻译\n</raw_prompt>')
+  })
+
+  it('keeps the wrapper in the body while still detecting a pure echo', () => {
+    const output = '<raw_prompt>\n写个爬虫\n</raw_prompt>'
+    expect(normalizeOutput(output)).toBe(output)
+    expect(isDegenerateOutput(output, '写个爬虫')).toBe(true)
   })
 
   it('leaves an unwrapped answer untouched', () => {

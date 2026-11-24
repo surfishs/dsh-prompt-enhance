@@ -29,14 +29,14 @@ export interface UnwrappedOutput {
 }
 
 /**
- * Remove the `<raw_prompt>` / `</raw_prompt>` delimiters a model sometimes
- * copies into its answer.
+ * Strip the `<raw_prompt>` / `</raw_prompt>` delimiters for COMPARISON ONLY.
  *
  * The draft is wrapped in those tags in the USER message, so a weak model
- * occasionally reproduces them — either as a pure echo of the block or as a
- * wrapper around an otherwise good answer. The delimiters are scaffolding, not
- * content, so they are stripped here; whether the remainder is a real rewrite
- * is a separate question, answered by {@link isDegenerateOutput}.
+ * occasionally reproduces them. `normalizeOutput` deliberately keeps them in
+ * the body: deleting content the user may have written on purpose is worse than
+ * showing a wrapper, and the `framework-leak` / `no-rewrite` warnings explain
+ * what happened. This helper exists only so the fingerprint can tell a pure
+ * echo from a real rewrite.
  * @param raw - the assembled text output of the model.
  * @returns the inner text and whether a wrapper was present.
  */
@@ -95,8 +95,10 @@ export function isDegenerateOutput(raw: string, draft: string): boolean {
  * that lead-in used to stay glued to the fence, so the raw ``` reached the
  * composer. This also covers single-line fences like `` ```角色：翻译``` ``.
  *
- * The same treatment applies to the draft's `<raw_prompt>` delimiters when the
- * model copied them into its answer (see {@link unwrapPromptWrapper}).
+ * The draft's `<raw_prompt>` delimiters are NOT stripped from the body. The
+ * model may be echoing the wrapper, but deleting it silently would also delete
+ * content a user wrote on purpose; the `framework-leak` / `no-rewrite` warnings
+ * report the echo while the body stays intact.
  *
  * Two boundaries keep the lenient fence rule from corrupting real content:
  * - the pair must be the ONLY one in the text (a rewritten prompt that shows
@@ -107,7 +109,7 @@ export function isDegenerateOutput(raw: string, draft: string): boolean {
  * @returns the normalized body; empty string when nothing usable remains.
  */
 export function normalizeOutput(raw: string): string {
-  let text = unwrapPromptWrapper(raw).text
+  let text = raw.trim()
   const fenceMarkCount = (text.match(/```/g) ?? []).length
   if (fenceMarkCount === 2 && /```[\s]*$/.test(text)) {
     const open = text.indexOf(FENCE)

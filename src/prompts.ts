@@ -5,10 +5,12 @@
  *
  * One rule shapes this module: the output's FORM is decided in exactly one
  * place — the strategy text, built-in or custom. Every other block here is
- * framing: it constrains what the model may do with the scaffolding (answer it,
- * copy it, describe it), never what the result should look like. That is why
- * these blocks survive a custom strategy, and why they may not contain a single
- * word about "prompt", "rewrite", or how to respond.
+ * framing or a conditional preservation rule: framing constrains what the model
+ * may do with the scaffolding (answer it, copy it, describe it), and the
+ * placeholder block only keeps what the draft already contains. None of them
+ * decides what the result should look like. That is why these blocks survive a
+ * custom strategy, and why they may not contain a single word about "prompt",
+ * "rewrite", or how to respond.
  * @module dsh-prompt-enhance/prompts
  */
 
@@ -126,6 +128,31 @@ export const CONTEXT_SYSTEM_ADDITION = [
  */
 export function withContextRules(builtin: string): string {
   return `${builtin}\n${CONTEXT_SYSTEM_ADDITION}`
+}
+
+/**
+ * Rules appended ONLY when the draft actually contains `{{...}}` slots.
+ *
+ * The block is conditional on purpose: naming the syntax in every call primes
+ * the model to invent slots in drafts that had none. Even here, "preserve" is
+ * not enough — the model must not introduce a slot the draft did not have, and
+ * a missing detail still uses the strategy's `(TBD: …)` marker, never a new
+ * `{{...}}` slot.
+ */
+export const PLACEHOLDER_SYSTEM_ADDITION = [
+  '',
+  'The raw prompt contains double-brace template slots.',
+  'Preserve every slot exactly as written: do not add, remove, rename, translate, or fill it in.',
+  'Never introduce a slot that was not in the raw prompt; when information is missing, use the (TBD: …) marker instead.',
+].join('\n')
+
+/**
+ * The strategy plus the placeholder rules, for calls whose draft has slots.
+ * @param builtin - the strategy prompt (built-in or custom).
+ * @returns the strategy of one slot-carrying call.
+ */
+export function withPlaceholderRules(builtin: string): string {
+  return `${builtin}\n${PLACEHOLDER_SYSTEM_ADDITION}`
 }
 
 /**
