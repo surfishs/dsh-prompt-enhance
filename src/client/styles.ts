@@ -266,23 +266,50 @@ html[data-platform='darwin'] .dsh-pe-menu {
 /* Model picker: a search field above provider-grouped rows. The selected row
    keeps a quiet filled background, the way the shell's model list marks it. */
 .dsh-pe-menu-model-pane { max-height: 320px; overflow-y: auto; }
-.dsh-pe-menu-search { padding: 4px 6px 6px; }
+.dsh-pe-menu-search { position: relative; padding: 4px 6px 6px; }
+/* The shell's Input recipe (dsh-web-frontend/index-*.css, ._wrap_14sgc_1):
+   32px tall, 0.5px border-l4, radius-md, bg-layer-1, 14/22 text. */
 .dsh-pe-menu-search-input {
   box-sizing: border-box;
   width: 100%;
-  height: 30px;
-  padding: 0 8px;
-  border: none;
+  height: 32px;
+  padding: 0 34px 0 7px;
+  border: 0;
   border-radius: var(--dsw-radius-md, 8px);
-  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12));
+  background: transparent;
   color: var(--dsw-alias-label-primary, inherit);
   font: inherit;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 14px;
+  line-height: 22px;
   outline: none;
 }
-.dsh-pe-menu-search-input::placeholder { color: var(--dsw-alias-label-tertiary, inherit); }
-.dsh-pe-menu-search-input:focus-visible { box-shadow: 0 0 0 1px var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.4)) inset; }
+.dsh-pe-menu-search-input::placeholder { color: var(--dsw-alias-label-dimmed, var(--dsw-alias-label-tertiary, inherit)); }
+/* The native model search is chrome-less: the searchRow/search override zeroes
+   the border and background, so the text sits on the menu surface. This field
+   is auto-focused on drill-in, so no focus border either. */
+.dsh-pe-menu-search-input:focus,
+.dsh-pe-menu-search-input:focus-visible { outline: none; }
+.dsh-pe-menu-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-top: -1px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, inherit);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.dsh-pe-menu-search-clear:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12)); }
 .dsh-pe-menu-group-label {
   padding: 6px 8px 2px;
   color: var(--dsw-alias-label-tertiary, inherit);

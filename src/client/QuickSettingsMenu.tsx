@@ -190,13 +190,27 @@ export function QuickSettingsMenu(props: QuickSettingsMenuProps): ReactElement {
           <div className="dsh-pe-menu-search">
             <input
               ref={searchRef}
-              type="search"
+              type="text"
+              role="searchbox"
               className="dsh-pe-menu-search-input"
               placeholder={t('menu.searchPlaceholder')}
               aria-label={t('menu.searchPlaceholder')}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
+            {query === '' ? null : (
+              <button
+                type="button"
+                className="dsh-pe-menu-search-clear"
+                aria-label={t('menu.clearSearch')}
+                onClick={() => {
+                  setQuery('')
+                  searchRef.current?.focus()
+                }}
+              >
+                ×
+              </button>
+            )}
           </div>
           <MenuRow role="menuitemradio" label={t('menu.followSession')} checked={following} highlight onSelect={() => onPickRoute(null)} />
           {data.modelGroupsState === 'loading' ? (
