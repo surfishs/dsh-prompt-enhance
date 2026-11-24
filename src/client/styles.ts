@@ -435,11 +435,15 @@ html[data-platform='darwin'] .dsh-pe-menu {
 .dsh-pe-foot .dsh-pe-grow { flex: 1; }
 
 /* The context-usage button sits at the quiet end of the footer, opposite the
-   actions. Its bubble is positioned in viewport coordinates by
-   ContextUsageInfo, so it is fixed rather than anchored to this wrapper: the
-   card clips its own overflow (rounded corners and the fold), and a folded card
-   leaves only the header above the footer — an anchored bubble would grow out
-   of the card and be cut in half. */
+   actions. Its bubble is portaled to the document body and positioned in
+   viewport coordinates by ContextUsageInfo, so it is fixed rather than anchored
+   to this wrapper. Two ancestors make that mandatory: the card clips its own
+   overflow (rounded corners and the fold), and the composer seat
+   (ConversationRoot.composerSeat) declares will-change: transform, which makes
+   it the containing block for fixed descendants — a bubble left inside the
+   composer resolves left against the seat and lands a sidebar-width to the
+   right. Portaling above both is also what the seat's own comment asks of fixed
+   overlays inside the composer. */
 .dsh-pe-context-wrap {
   position: relative;
   display: inline-flex;
@@ -488,7 +492,9 @@ html[data-platform='darwin'] .dsh-pe-menu {
      measurement lands (and a host with no layout at all). */
   left: 0;
   bottom: 0;
-  z-index: 5;
+  /* At the document body it competes with the whole shell, so it outranks the
+     composer seat (z-index 9) and the plugin's own quick menu (1100). */
+  z-index: 1200;
   display: flex;
   flex-direction: column;
   gap: 2px;

@@ -117,8 +117,10 @@ describe('ResultPanel upstream error copy', () => {
     const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
     expect(button).not.toBeNull()
     fireEvent.focus(button)
-    expect(container.textContent).toContain('3/8')
-    expect(container.textContent).toContain('79%')
+    // The bubble is portaled to the document body, clear of the card's clip and
+    // of the composer seat's `will-change: transform` containing block.
+    expect(document.body.textContent).toContain('3/8')
+    expect(document.body.textContent).toContain('79%')
   })
 
   it('shows the info button even when no context was used', () => {
@@ -128,7 +130,7 @@ describe('ResultPanel upstream error copy', () => {
     const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
     expect(button).not.toBeNull()
     fireEvent.focus(button)
-    expect(container.textContent).toContain(zh['panel.contextUnused'])
+    expect(document.body.textContent).toContain(zh['panel.contextUnused'])
   })
 
   it('does not warn when only the turn cap was reached', () => {
@@ -146,9 +148,9 @@ describe('ResultPanel upstream error copy', () => {
     const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
     expect(button.classList.contains('is-limited')).toBe(false)
     fireEvent.focus(button)
-    expect(container.textContent).toContain('8/8')
-    expect(container.textContent).not.toContain(zh['panel.contextCharsLimited'])
-    expect(container.textContent).not.toContain('已达条数上限')
+    expect(document.body.textContent).toContain('8/8')
+    expect(document.body.textContent).not.toContain(zh['panel.contextCharsLimited'])
+    expect(document.body.textContent).not.toContain('已达条数上限')
   })
 
   it('marks the info button when the context window was cut', () => {
@@ -164,7 +166,7 @@ describe('ResultPanel upstream error copy', () => {
     const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
     expect(button.classList.contains('is-limited')).toBe(true)
     fireEvent.focus(button)
-    expect(container.textContent).toContain(zh['panel.contextCharsLimited'])
+    expect(document.body.textContent).toContain(zh['panel.contextCharsLimited'])
   })
 
   it('warns when the host reports a token-capped rewrite', () => {

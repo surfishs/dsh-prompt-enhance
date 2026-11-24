@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 /**
- * The context bubble is placed from the trigger's viewport rect, not anchored by
- * CSS inside the card.
+ * The context bubble is portaled to `document.body` and placed from the
+ * trigger's viewport rect.
  *
- * The card clips its own overflow (rounded corners + the fold animation), and a
- * folded card leaves only the header above the footer. An anchored bubble grows
- * out of the card and gets cut in half — the bug this pins down.
+ * Two ancestors force both halves: the card clips its own overflow (rounded
+ * corners + the fold), and the composer seat declares `will-change: transform`,
+ * which makes it the containing block for `position: fixed` descendants — a
+ * bubble left inside the composer is positioned against the seat and lands a
+ * sidebar-width to the right (the bug this pins down).
  * @module tests/result-panel-context-tip
  */
 
@@ -50,8 +52,23 @@ afterEach(() => {
 })
 
 describe('context usage bubble placement', () => {
-  it('sits the bubble 8px above the trigger measured in viewport coordinates', () => {
+  it('renders the bubble at the document body, clear of the card and the composer seat', () => {
     const { container } = render(<ResultPanel state={state()} t={t} onApply={() => {}} onCancel={() => {}} />)
+    const trigger = screen.getByLabelText(zh['panel.contextUsage'])
+    withRect(trigger, { left: 120, top: 500 })
+
+    fireEvent.mouseEnter(trigger)
+
+    const bubble = screen.getByRole('tooltip')
+    // Body-level is what keeps the seat's `will-change: transform` from becoming
+    // the bubble's containing block; anywhere inside the card is also clipped.
+    expect(bubble.parentElement).toBe(document.body)
+    expect(bubble.closest('.dsh-pe-panel')).toBeNull()
+    expect(container.querySelector('.dsh-pe-context-tip')).toBeNull()
+  })
+
+  it('sits the bubble 8px above the trigger measured in viewport coordinates', () => {
+    render(<ResultPanel state={state()} t={t} onApply={() => {}} onCancel={() => {}} />)
     const trigger = screen.getByLabelText(zh['panel.contextUsage'])
     withRect(trigger, { left: 120, top: 500 })
 
@@ -61,7 +78,6 @@ describe('context usage bubble placement', () => {
     // jsdom's viewport is 768px tall: bottom = 768 - 500 + 8.
     expect(bubble.style.left).toBe('120px')
     expect(bubble.style.bottom).toBe('276px')
-    expect(container.querySelector('.dsh-pe-context-tip')).not.toBeNull()
   })
 
   it('keeps the bubble off the viewport edge', () => {

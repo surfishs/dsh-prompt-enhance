@@ -20,7 +20,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Fixed
 
-- The context-usage tooltip is no longer cut in half on a folded card. It is placed in viewport coordinates from its trigger instead of being anchored inside the card, which clips its own overflow; the bubble also re-measures while open, so scrolling cannot strand it.
+- The context-usage tooltip is no longer cut in half on a folded card, and no longer lands a sidebar-width to the right of its chip. It is portaled to the document body and placed in viewport coordinates from its trigger: the card clips its own overflow, and the composer seat declares `will-change: transform`, which makes it the containing block for fixed descendants. It also re-measures while open, so scrolling cannot strand it.
 
 ## [0.1.10] - 2026-11-23
 

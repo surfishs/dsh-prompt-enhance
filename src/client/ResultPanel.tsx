@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ContextUsage, ContractCheck, EnhanceError, EnhanceUsage, ClientFailureReason } from '../shared/protocol'
 import type { PromptEnhanceKey } from './locales'
@@ -185,19 +186,21 @@ function totalTokensOf(usage: EnhanceUsage): number {
  * touch devices, where there is no hover). The card has no room for this in
  * its header, and the footer keeps the action row intact.
  *
- * The bubble is placed in viewport coordinates from the trigger's rect, not
- * CSS-anchored above the trigger: the card clips its own overflow, and a folded
- * card has no room above the footer for the bubble to grow into.
+ * The bubble is placed in viewport coordinates from the trigger's rect AND
+ * portaled to `document.body`. Both halves are required:
+ * - the card clips its own overflow, and a folded card has no room above the
+ *   footer, so the bubble cannot be anchored inside it;
+ * - the composer seat (`ConversationRoot.composerSeat`) declares
+ *   `will-change: transform`, which makes it the containing block for every
+ *   `position: fixed` descendant. Inside it, a fixed bubble resolves `left`
+ *   against the seat's own box and lands a sidebar-width to the right.
  * @param props - the usage numbers and the locale seat.
  * @returns the info button and its tooltip.
  */
 function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: number }; t: TranslateNS<'dsh-prompt-enhance'> }): ReactNode {
   const { usage, attachments, t } = props
   const [open, setOpen] = useState(false)
-  // The bubble's viewport coordinates, measured from the trigger. It cannot be
-  // CSS-anchored above the trigger: the card clips its own overflow (rounded
-  // corners + the fold), and a folded card leaves only the header above the
-  // footer, so an anchored bubble grows out of the card and is cut in half.
+  // The bubble's viewport coordinates, measured from the trigger.
   const [box, setBox] = useState<{ left: number; bottom: number } | null>(null)
   const trigger = useRef<HTMLButtonElement | null>(null)
   // Reaching the turn cap is the normal shape of the window, not a warning;
@@ -262,13 +265,16 @@ function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: 
           <path d="M5.2 6.6h5.6M5.2 9.2h3.8" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       </button>
-      {open && box !== null && (
-        <span role="tooltip" className="dsh-pe-context-tip" style={{ left: box.left, bottom: box.bottom }}>
-          <span className="dsh-pe-context-stats">{stats}</span>
-          {reason !== '' && <span className="dsh-pe-context-reason">{reason}</span>}
-          {attachments !== undefined && attachments.count > 0 && <span className="dsh-pe-context-attachments">{t('panel.attachmentsCount', { count: attachments.count })}</span>}
-        </span>
-      )}
+      {open &&
+        box !== null &&
+        createPortal(
+          <span role="tooltip" className="dsh-pe-context-tip" style={{ left: box.left, bottom: box.bottom }}>
+            <span className="dsh-pe-context-stats">{stats}</span>
+            {reason !== '' && <span className="dsh-pe-context-reason">{reason}</span>}
+            {attachments !== undefined && attachments.count > 0 && <span className="dsh-pe-context-attachments">{t('panel.attachmentsCount', { count: attachments.count })}</span>}
+          </span>,
+          document.body,
+        )}
     </span>
   )
 }
