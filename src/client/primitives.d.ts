@@ -65,6 +65,19 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
   /** The shell's on/off control (`role="switch"`), for boolean rows. */
   export const Switch: any
 
+  /** The shell's button primitive; the ghost/sm pair draws a bare icon button. */
+  export const Button: any
+
+  /**
+   * The shell's floating label bubble. Positioning, portal and the dark bubble
+   * are the shell's; the trigger is hover (after `delayMs`), focus, or — with
+   * `openOnClick` — a click.
+   */
+  export const Tooltip: any
+
+  /** The shell's info glyph, drawn at 11px beside a label. */
+  export const IconInfoOutlineRegular: any
+
   /** The shell's segmented choice control (`role="tablist"`), for enum rows. */
   export const SegmentedControl: any
 

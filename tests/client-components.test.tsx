@@ -1252,6 +1252,20 @@ describe('quick settings menu', () => {
     expect(set).not.toHaveBeenCalled()
   })
 
+  it('explains context awareness in place without toggling it', async () => {
+    const { set, button } = setupMenu()
+    fireEvent.contextMenu(button)
+    await screen.findByRole('menu')
+    const info = screen.getByRole('button', { name: zh['menu.contextInfoLabel'] })
+    // The shell's Tooltip carries the copy; the test double keeps it on a data
+    // attribute, so this pins the wiring, not the shell's paint.
+    expect(info.closest('[data-tooltip]')?.getAttribute('data-tooltip')).toBe(zh['menu.contextDescription'])
+    fireEvent.click(info)
+    // The explanation must not flip the setting it explains.
+    expect(set).not.toHaveBeenCalled()
+    expect(screen.getByRole('switch', { name: /上下文/ }).getAttribute('aria-checked')).toBe('true')
+  })
+
   it('toggles the context switch without closing the menu', async () => {
     const { set, button } = setupMenu()
     fireEvent.contextMenu(button)

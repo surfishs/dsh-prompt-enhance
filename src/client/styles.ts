@@ -229,6 +229,18 @@ html[data-platform='darwin'] .dsh-pe-menu {
   gap: 4px;
   min-width: 0;
 }
+/* The label's information button, copied from the shell's TeamModeToggle row
+   (TeamModeToggle.module.css .infoButton): 20×20 in the caption tone, and above
+   the switch's row-wide hit target so a click still reaches it. */
+.dsh-pe-menu-info-button {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--dsw-alias-label-caption, var(--dsw-alias-label-tertiary, inherit));
+}
 /* Extend the native switch hit target over the whole row. */
 .dsh-pe-menu-switch .dsh-pe-menu-switch-input { position: static; }
 .dsh-pe-menu-switch .dsh-pe-menu-switch-input::after {

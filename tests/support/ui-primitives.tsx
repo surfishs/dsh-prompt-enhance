@@ -406,6 +406,25 @@ export function Switch(props: { checked: boolean; onChange: (next: boolean) => v
   })
 }
 
+/** The shell's button primitive (the ghost/sm pair is the bare icon button). */
+export function Button(props: { children?: ReactNode; className?: string; variant?: string; size?: string; 'aria-label'?: string; onClick?: () => void }): ReactElement {
+  return createElement('button', { type: 'button', className: props.className, 'aria-label': props['aria-label'], onClick: props.onClick }, props.children)
+}
+
+/**
+ * The shell's floating label bubble. The double keeps the copy on a data
+ * attribute instead of drawing a portal: tests assert the label reaches the
+ * trigger, not how the shell paints it.
+ */
+export function Tooltip(props: { label: string; side?: string; delayMs?: number; maxWidth?: number; portal?: boolean; openOnClick?: boolean; children?: ReactNode }): ReactElement {
+  return createElement('span', { 'data-tooltip': props.label }, props.children)
+}
+
+/** The shell's info glyph. */
+export function IconInfoOutlineRegular(props: { size?: number; 'aria-hidden'?: boolean | string }): ReactElement {
+  return createElement('span', { 'data-icon': 'info', 'aria-hidden': props['aria-hidden'] })
+}
+
 /** The shell's segmented choice control. */
 export function SegmentedControl(props: {
   id: string

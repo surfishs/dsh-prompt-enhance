@@ -30,6 +30,8 @@ export const zh = {
   'menu.effortDefault': '模型默认',
   'menu.mode': '输出形态',
   'menu.context': '上下文感知',
+  'menu.contextInfoLabel': '关于上下文感知',
+  'menu.contextDescription': '读取最近的对话消息，用来消解指代、补全草稿里省略的背景；改写更贴合上下文，但会多消耗一些 token，含敏感内容的会话建议关闭。',
   'menu.contextOn': '开',
   'menu.contextOff': '关',
   'menu.writeFailed': '写入失败，请稍后再试。',
@@ -240,6 +242,9 @@ export const en: Record<PromptEnhanceKey, string> = {
   'menu.effortDefault': 'Model default',
   'menu.mode': 'Output shape',
   'menu.context': 'Context awareness',
+  'menu.contextInfoLabel': 'About context awareness',
+  'menu.contextDescription':
+    'Reads recent messages to resolve references and fill in background the draft leaves out; rewrites fit the conversation better but spend more tokens. Turn it off for sensitive chats.',
   'menu.contextOn': 'on',
   'menu.contextOff': 'off',
   'menu.writeFailed': 'Could not save — try again.',

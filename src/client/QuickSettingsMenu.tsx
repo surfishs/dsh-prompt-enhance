@@ -20,7 +20,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
-import { Switch } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconInfoOutlineRegular, Switch, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales'
 import { INHERIT_EFFORT, menuOptionsOf, rankModelGroups, type QuickSettingsData } from './quick-settings'
@@ -188,7 +188,14 @@ export function QuickSettingsMenu(props: QuickSettingsMenuProps): ReactElement {
           </button>
           <div className="dsh-pe-menu-sep" role="separator" />
           <div className="dsh-pe-menu-switch">
-            <span className="dsh-pe-menu-switch-label">{t('menu.context')}</span>
+            <span className="dsh-pe-menu-switch-label">
+              <span>{t('menu.context')}</span>
+              <Tooltip label={t('menu.contextDescription')} side="top" delayMs={300} maxWidth={300} portal openOnClick>
+                <Button variant="ghost" size="sm" className="dsh-pe-menu-info-button" aria-label={t('menu.contextInfoLabel')}>
+                  <IconInfoOutlineRegular size={11} aria-hidden="true" />
+                </Button>
+              </Tooltip>
+            </span>
             <Switch className="dsh-pe-menu-switch-input" checked={data.contextAware} label={t('menu.context')} onChange={(next: boolean) => onToggleContext(next)} />
           </div>
         </>
