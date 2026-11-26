@@ -15,8 +15,16 @@ import type { CSSProperties } from 'react'
  */
 export const ROW_STYLE: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 0' }
 export const HEAD_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8 }
+/**
+ * The title group owns the empty part of the title line. The label inside it
+ * hugs its text, so the stretch to the right of a title is inert — it must not
+ * activate the row's field the way clicking the title itself does. This is the
+ * host's settings-field layout: `labelGroup` takes the free space and its child
+ * label is `flex: 0 1 auto`.
+ */
+export const LABEL_GROUP_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }
 export const LABEL_STYLE: CSSProperties = {
-  flex: 1,
+  flex: '0 1 auto',
   minWidth: 0,
   fontSize: 13,
   fontWeight: 500,
@@ -71,8 +79,17 @@ export const REFRESH_STYLE: CSSProperties = { ...CHIP_STYLE, flex: 'none' }
 export const RESET_STYLE: CSSProperties = CHIP_STYLE
 /** The shortcut recorder: the same neutral chip, so it reads as a row action. */
 export const RECORD_STYLE: CSSProperties = CHIP_STYLE
+/**
+ * The resting edge of every form control, written as its own value because a
+ * control has to be able to return to it on blur. Dropping the inline
+ * `borderColor` instead leaves the `border` shorthand to be re-resolved, which
+ * is how a blurred field keeps a `currentColor` (near-black) edge.
+ */
+export const FIELD_BORDER_COLOR = 'var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38))'
 /** One border for every form control, so focus never changes the outline width. */
-export const FIELD_BORDER = '1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.38))'
+export const FIELD_BORDER = `1px solid ${FIELD_BORDER_COLOR}`
+/** The focused edge: the business colour the host's own inputs use. */
+export const FIELD_FOCUS_COLOR = 'var(--dsw-alias-state-business-primary, #4f8cff)'
 /**
  * The form control box: the same 34px / 1px border / 12px inline padding the
  * page always used. It is shared by the text-field shell and the select so the

@@ -27,6 +27,18 @@ const THEME_TOKENS = [
 ] as const
 
 describe('panel stylesheet', () => {
+  it('leaves the multiline edge to the inline swap and only clears the rings', () => {
+    // The shell's edge colour is an inline value (TextControl writes the
+    // resting, focus and invalid colours as values). A stylesheet border-color
+    // here would outrank that swap through !important and could keep the focus
+    // colour painted after blur — the dark frame this replaces.
+    expect(CSS).not.toContain('.dsh-pe-multiline-shell')
+    expect(CSS).not.toContain('border-color: var(--dsw-alias-state-business-primary')
+    expect(CSS).toContain('.dsh-pe-multiline-input:focus-visible')
+    expect(CSS).toContain('border: none !important')
+    expect(CSS).toContain('outline: none !important')
+  })
+
   it('resolves its palette from the shell theme tokens', () => {
     for (const token of THEME_TOKENS) {
       expect(CSS, `${token} must drive the panel palette`).toContain(`var(${token}`)

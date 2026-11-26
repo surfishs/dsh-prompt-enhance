@@ -172,8 +172,8 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | `contextMaxChars` | `4000` | Character budget of the history snippet (DSH-injected messages excluded); `0` disables |
 | `maxConcurrent` | `2` | Concurrent enhancement limit; a new request past the limit is told to retry later |
 | `rateLimitPerMinute` | `10` | Successful enhancements per minute, counted over any rolling 60 seconds; past the limit the request is told to retry later |
-| `lanHosts` | empty | Direct-LAN allowlist: one full origin per line (e.g. `http://192.168.31.181:3080`). A match permits non-loopback direct access but still requires a DSH session and rejects `X-Forwarded-For` / `Forwarded`. Empty keeps the routes loopback-only. If the same host is in both lists, the LAN rule wins |
-| `relayHosts` | empty | Relay allowlist: one full origin per line (e.g. `https://abc.dsh-market.com`). A match permits `X-Forwarded-For` / `Forwarded` but still requires a DSH session and an exact `Host` / `Origin`. The relay origin is not a secret; empty by default, and the quota/exposure risk is accepted by the operator |
+| `lanHosts` | empty | Direct-LAN allowlist: one full origin per line (e.g. `http://192.168.1.100:3080`). A match permits non-loopback direct access but still requires a DSH session and rejects `X-Forwarded-For` / `Forwarded`. Empty keeps the routes loopback-only. If the same host is in both lists, the LAN rule wins |
+| `relayHosts` | empty | Relay allowlist: one full origin per line (e.g. `https://relay.example.com`). A match permits `X-Forwarded-For` / `Forwarded` but still requires a DSH session and an exact `Host` / `Origin`. The relay origin is not a secret; empty by default, and the quota/exposure risk is accepted by the operator |
 
 ### About the default reasoning effort
 

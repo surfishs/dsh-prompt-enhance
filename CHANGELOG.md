@@ -11,6 +11,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Fixed
 
+- Stop a focused field from keeping a dark edge after blur: the text shells write the resting border colour back instead of dropping the inline longhand, so multi-line fields return to the default gray frame.
 - Return distinct trust error codes (`unauthorized`, `forbidden`, `loopback-only`) instead of `internal`, and localize them in the result card.
 - Show the actual catalog failure in the settings page: a loopback refusal, an expired session, a host-gate refusal, an offline read and another failure no longer all read as "check the DSH model services configuration".
 

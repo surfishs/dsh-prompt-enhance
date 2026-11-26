@@ -255,13 +255,47 @@ afterEach(() => {
 })
 
 describe('settings dialog page', () => {
-  it('renders the network allowlists in Advanced as textareas', () => {
+  it('renders the network allowlists in Advanced as two-row textareas', () => {
     renderRowPage()
     for (const key of ['settings.row.lanHosts.label', 'settings.row.relayHosts.label'] as const) {
       const field = screen.getByLabelText(zhCopy(key)) as HTMLTextAreaElement
       expect(field.tagName).toBe('TEXTAREA')
+      expect(field.rows).toBe(2)
+      expect(field.style.minHeight).toBe('44px')
       expect(document.querySelector('.dsh-pe-advanced')?.contains(field)).toBe(true)
     }
+  })
+
+  it('writes the edge colour back on blur instead of dropping it', () => {
+    renderRowPage()
+    const field = screen.getByLabelText(zhCopy('settings.row.lanHosts.label')) as HTMLTextAreaElement
+    const shell = field.closest('.dsh-pe-multiline-shell') as HTMLElement
+    expect(shell).toBeTruthy()
+    // The resting edge is a value, never an absent property: removing the
+    // inline longhand next to the `border` shorthand let React/the engine
+    // re-resolve it to currentColor, which is the near-black frame that used
+    // to outlive the focus.
+    const resting = shell.style.borderColor
+    expect(resting).toContain('--dsw-alias-border-l2')
+    fireEvent.focus(field)
+    expect(shell.style.borderColor).toContain('--dsw-alias-state-business-primary')
+    fireEvent.blur(field)
+    expect(shell.style.borderColor).toBe(resting)
+  })
+
+  it('leaves the blank stretch of a title line inert', () => {
+    renderRowPage()
+    const key = 'settings.row.rateLimitPerMinute.label'
+    const control = screen.getByLabelText(zhCopy(key)) as HTMLInputElement
+    const label = document.querySelector(`label[for="${control.id}"]`) as HTMLLabelElement
+    expect(label.tagName).toBe('LABEL')
+    // The host's settings field hangs the label inside a group that owns the
+    // free width, and lets the label hug its own text. A stretched label made
+    // the blank part of the title line a second click target for the field.
+    expect(label.style.flex).toBe('0 1 auto')
+    const group = label.parentElement as HTMLElement
+    expect(group.style.flex).toMatch(/^1( 1 0%)?$/)
+    expect(group.style.minWidth).toBe('0px')
   })
 
   it('keeps the temperature row inside the advanced disclosure, after the persona row', () => {
@@ -866,6 +900,8 @@ describe('plugins page entry', () => {
     const { mutate } = renderRowPage()
     const control = screen.getByLabelText(zhCopy('settings.row.systemPrompt.label')) as HTMLTextAreaElement
     expect(control.tagName).toBe('TEXTAREA')
+    expect(control.rows).toBe(2)
+    expect(control.style.minHeight).toBe('44px')
 
     const persona = '你是产品需求文档的提示词工程师。\n只输出 Markdown 小节，不要解释。'
     fireEvent.change(control, { target: { value: persona } })

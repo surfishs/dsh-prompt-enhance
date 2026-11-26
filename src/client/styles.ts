@@ -989,6 +989,25 @@ html:not([data-platform='darwin']) .dsh-pe-menu-group-label { border-radius: var
 @media (prefers-reduced-motion: reduce) {
   .dsh-pe-header-link { transition: none; }
 }
+
+/* Multiline fields own every visible edge. The edge colour itself is an inline
+   value on the shell, so nothing here may re-declare border-color: a stylesheet
+   !important would outrank that inline swap and could keep the focused colour
+   after blur. These rules only clear the UA/shell rings the field must not show
+   in addition to its own edge. */
+.dsh-pe-form .dsh-pe-multiline-input,
+.dsh-pe-form .dsh-pe-multiline-input:focus,
+.dsh-pe-form .dsh-pe-multiline-input:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.dsh-pe-form .dsh-pe-field-row,
+.dsh-pe-form .dsh-pe-field-row:focus,
+.dsh-pe-form .dsh-pe-field-row:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}
 `
 
 /**

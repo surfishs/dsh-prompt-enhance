@@ -15,9 +15,12 @@ import type { RowCopy } from './settings-page-copy'
 import {
   HEAD_STYLE,
   HINT_STYLE,
+  FIELD_BORDER_COLOR,
+  FIELD_FOCUS_COLOR,
   FIELD_INPUT_STYLE,
   FIELD_SHELL_STYLE,
   INVALID_STYLE,
+  LABEL_GROUP_STYLE,
   LABEL_STYLE,
   NOTICE_STYLE,
   RECORD_STYLE,
@@ -58,6 +61,27 @@ function modelFailureKey(failure: CatalogFailure): PromptEnhanceKey {
     default:
       return 'settings.routing.modelsUnavailable'
   }
+}
+
+/**
+ * The row's title line: the label hung off the row's control id, then the row's
+ * quiet actions. The label sits in a group that owns the free width, so only
+ * the title text itself activates the control — the empty stretch beside it
+ * stays inert, matching the host's settings field.
+ * @param props - the control id, the resolved title, and the row's actions.
+ * @returns the title row.
+ */
+export function RowHead(props: { id: string; label: string; children?: ReactNode }): ReactElement {
+  return (
+    <div style={HEAD_STYLE}>
+      <div style={LABEL_GROUP_STYLE}>
+        <label htmlFor={props.id} style={LABEL_STYLE}>
+          {props.label}
+        </label>
+      </div>
+      {props.children}
+    </div>
+  )
 }
 
 /**
@@ -313,7 +337,7 @@ export function SelectControl(props: { id: string; value: string; disabled?: boo
   return (
     <select
       id={props.id}
-      style={{ ...SELECT_STYLE, ...(focused ? { borderColor: 'var(--dsw-alias-state-business-primary, #4f8cff)' } : {}) }}
+      style={{ ...SELECT_STYLE, borderColor: focused ? FIELD_FOCUS_COLOR : FIELD_BORDER_COLOR }}
       value={props.value}
       disabled={props.disabled}
       onFocus={() => setFocused(true)}
@@ -343,12 +367,9 @@ export function ProviderRow(props: RowProps & { routing: LlmRoutingState }): Rea
   const registered = props.routing.providers.entries.filter((entry) => entry.registered)
   return (
     <div style={ROW_STYLE}>
-      <div style={HEAD_STYLE}>
-        <label htmlFor={props.id} style={LABEL_STYLE}>
-          {props.label}
-        </label>
+      <RowHead id={props.id} label={props.label}>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
-      </div>
+      </RowHead>
       <SelectControl id={props.id} value={current} disabled={props.disabled} onChange={(value) => props.onEdit(value)}>
         <option value="">{props.copy.choice('settings.routing.followSession')}</option>
         {missing ? (
@@ -409,12 +430,9 @@ export function ModelRow(props: RowProps & { routing: LlmRoutingState; providerV
   const routeUnavailable = provider !== '' && current !== '' && props.routing.route.available === false
   return (
     <div style={ROW_STYLE}>
-      <div style={HEAD_STYLE}>
-        <label htmlFor={props.id} style={LABEL_STYLE}>
-          {props.label}
-        </label>
+      <RowHead id={props.id} label={props.label}>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
-      </div>
+      </RowHead>
       <SelectControl
         id={props.id}
         value={showCustom ? '__custom__' : current}
@@ -492,8 +510,14 @@ export function TextControl(props: {
     if (props.invalid !== true) setRevealedInvalid(false)
   }, [props.invalid])
   const showInvalid = props.invalid === true && revealedInvalid
-  const borderColor = showInvalid ? 'var(--dsw-alias-state-error-primary, #f85149)' : focused ? 'var(--dsw-alias-state-business-primary, #4f8cff)' : undefined
   const multiline = props.multiline === true
+  // The edge colour is written as a value in every state. Blur restores the
+  // resting colour instead of dropping the inline longhand: React removing
+  // `borderColor` while the `border` shorthand is also inline leaves the
+  // blurred field to re-resolve that shorthand, which is the dark
+  // `currentColor` edge that used to outlive the focus here.
+  const borderColor = showInvalid ? 'var(--dsw-alias-state-error-primary, #f85149)' : focused ? FIELD_FOCUS_COLOR : FIELD_BORDER_COLOR
+  const multilineClass = multiline === true ? 'dsh-pe-multiline-shell' : undefined
   const commit = (): void => {
     if (props.invalid === true) setRevealedInvalid(true)
     props.onCommit?.()
@@ -502,12 +526,13 @@ export function TextControl(props: {
     // Host primitives Input: a flex shell centers a borderless inner input, so
     // the text sits on the shell's center line instead of relying on a fixed
     // height plus a line-height to be centered by the browser. The multiline
-    // variant grows instead of centering: its rows are prose, not one value.
-    <div style={{ ...(multiline ? { ...FIELD_SHELL_STYLE, height: 'auto', padding: '8px 12px', alignItems: 'stretch' } : FIELD_SHELL_STYLE), ...(borderColor === undefined ? {} : { borderColor }) }}>
+    // variant starts at its minimum (two rows) and can only be dragged taller.
+    <div className={multilineClass} style={{ ...(multiline ? { ...FIELD_SHELL_STYLE, height: 'auto', padding: '8px 12px', alignItems: 'stretch' } : FIELD_SHELL_STYLE), borderColor }}>
       {multiline ? (
         <textarea
           id={props.id}
-          rows={5}
+          className="dsh-pe-multiline-input"
+          rows={2}
           aria-invalid={showInvalid || undefined}
           disabled={props.disabled}
           placeholder={props.placeholder}
@@ -515,7 +540,7 @@ export function TextControl(props: {
           style={{
             ...FIELD_INPUT_STYLE,
             height: 'auto',
-            minHeight: 88,
+            minHeight: 44,
             resize: 'vertical',
             ...(props.disabled === true ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {}),
           }}
@@ -610,10 +635,7 @@ export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: str
   }, [recording, onEdit, onCommit])
   return (
     <div style={ROW_STYLE}>
-      <div style={HEAD_STYLE}>
-        <label htmlFor={props.id} style={LABEL_STYLE}>
-          {props.label}
-        </label>
+      <RowHead id={props.id} label={props.label}>
         {props.view.overridden ? <OverrideActions copy={props.copy} disabled={props.disabled} onReset={props.onReset} /> : null}
         {props.recordable === true ? (
           <button
@@ -630,7 +652,7 @@ export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: str
             {recording ? props.copy.labels.recordStop : props.copy.labels.record}
           </button>
         ) : null}
-      </div>
+      </RowHead>
       <TextControl
         id={props.id}
         value={props.view.text}

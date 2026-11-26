@@ -13,8 +13,8 @@ function req(headers: Record<string, string>, method = 'POST'): IncomingMessage 
   return { headers, method } as unknown as IncomingMessage
 }
 
-const LAN = 'http://192.168.31.181:3080'
-const RELAY = 'https://abc.dsh-market.com'
+const LAN = 'http://192.168.1.100:3080'
+const RELAY = 'https://relay.example.com'
 
 describe('canonicalHost', () => {
   it('drops default ports and keeps real ones', () => {
@@ -35,9 +35,9 @@ describe('canonicalHost', () => {
 
 describe('parseTrustAllowlist', () => {
   it('parses full origins and comments, and de-duplicates', () => {
-    const allowlist = parseTrustAllowlist(`\n# LAN\n${LAN}\n${LAN}\n`, `# relay\n${RELAY}\nhttps://abc.dsh-market.com:443\n`)
-    expect(allowlist.lan).toEqual([{ mode: 'lan', origin: 'http://192.168.31.181:3080', host: '192.168.31.181:3080' }])
-    expect(allowlist.relay).toEqual([{ mode: 'relay', origin: 'https://abc.dsh-market.com', host: 'abc.dsh-market.com' }])
+    const allowlist = parseTrustAllowlist(`\n# LAN\n${LAN}\n${LAN}\n`, `# relay\n${RELAY}\nhttps://relay.example.com:443\n`)
+    expect(allowlist.lan).toEqual([{ mode: 'lan', origin: 'http://192.168.1.100:3080', host: '192.168.1.100:3080' }])
+    expect(allowlist.relay).toEqual([{ mode: 'relay', origin: 'https://relay.example.com', host: 'relay.example.com' }])
   })
 
   it('rejects non-origin, non-http, credentialed and malformed entries', () => {
@@ -59,36 +59,36 @@ describe('matchTrustedRequest', () => {
   const allowlist = parseTrustAllowlist(LAN, RELAY)
 
   it('matches a direct LAN request with an exact Origin', () => {
-    expect(matchTrustedRequest(req({ host: '192.168.31.181:3080', origin: LAN }), allowlist)).toMatchObject({ mode: 'lan' })
+    expect(matchTrustedRequest(req({ host: '192.168.1.100:3080', origin: LAN }), allowlist)).toMatchObject({ mode: 'lan' })
   })
 
   it('allows a LAN GET without Origin, but not a mutating request without one', () => {
-    expect(matchTrustedRequest(req({ host: '192.168.31.181:3080' }, 'GET'), allowlist)).toMatchObject({ mode: 'lan' })
-    expect(matchTrustedRequest(req({ host: '192.168.31.181:3080' }), allowlist)).toBeUndefined()
+    expect(matchTrustedRequest(req({ host: '192.168.1.100:3080' }, 'GET'), allowlist)).toMatchObject({ mode: 'lan' })
+    expect(matchTrustedRequest(req({ host: '192.168.1.100:3080' }), allowlist)).toBeUndefined()
   })
 
   it('refuses a LAN entry that carries a proxy header', () => {
-    expect(matchTrustedRequest(req({ host: '192.168.31.181:3080', origin: LAN, 'x-forwarded-for': '10.0.0.2' }), allowlist)).toBeUndefined()
-    expect(matchTrustedRequest(req({ host: '192.168.31.181:3080', origin: LAN, forwarded: 'for=10.0.0.2' }), allowlist)).toBeUndefined()
+    expect(matchTrustedRequest(req({ host: '192.168.1.100:3080', origin: LAN, 'x-forwarded-for': '10.0.0.2' }), allowlist)).toBeUndefined()
+    expect(matchTrustedRequest(req({ host: '192.168.1.100:3080', origin: LAN, forwarded: 'for=10.0.0.2' }), allowlist)).toBeUndefined()
   })
 
   it('matches a relay request with proxy headers and an exact Origin', () => {
-    expect(matchTrustedRequest(req({ host: 'abc.dsh-market.com', origin: RELAY, 'x-forwarded-for': '10.0.0.2' }), allowlist)).toMatchObject({ mode: 'relay' })
+    expect(matchTrustedRequest(req({ host: 'relay.example.com', origin: RELAY, 'x-forwarded-for': '10.0.0.2' }), allowlist)).toMatchObject({ mode: 'relay' })
   })
 
   it('still requires the exact Origin on relay mutating requests', () => {
-    expect(matchTrustedRequest(req({ host: 'abc.dsh-market.com', 'x-forwarded-for': '10.0.0.2' }), allowlist)).toBeUndefined()
-    expect(matchTrustedRequest(req({ host: 'abc.dsh-market.com', origin: 'https://evil.example.com' }), allowlist)).toBeUndefined()
-    expect(matchTrustedRequest(req({ host: 'abc.dsh-market.com', origin: 'null' }), allowlist)).toBeUndefined()
+    expect(matchTrustedRequest(req({ host: 'relay.example.com', 'x-forwarded-for': '10.0.0.2' }), allowlist)).toBeUndefined()
+    expect(matchTrustedRequest(req({ host: 'relay.example.com', origin: 'https://evil.example.com' }), allowlist)).toBeUndefined()
+    expect(matchTrustedRequest(req({ host: 'relay.example.com', origin: 'null' }), allowlist)).toBeUndefined()
   })
 
   it('matches a relay GET without Origin even with forwarded headers', () => {
-    expect(matchTrustedRequest(req({ host: 'abc.dsh-market.com', 'x-forwarded-for': '10.0.0.2' }, 'GET'), allowlist)).toMatchObject({ mode: 'relay' })
+    expect(matchTrustedRequest(req({ host: 'relay.example.com', 'x-forwarded-for': '10.0.0.2' }, 'GET'), allowlist)).toMatchObject({ mode: 'relay' })
   })
 
   it('does not match a different host or origin', () => {
     expect(matchTrustedRequest(req({ host: '192.168.31.179:3080', origin: LAN }), allowlist)).toBeUndefined()
-    expect(matchTrustedRequest(req({ host: 'abc.dsh-market.com', origin: 'http://abc.dsh-market.com' }), allowlist)).toBeUndefined()
-    expect(matchTrustedRequest(req({ host: 'abc.dsh-market.com:443', origin: RELAY }), allowlist)).toMatchObject({ mode: 'relay' })
+    expect(matchTrustedRequest(req({ host: 'relay.example.com', origin: 'http://relay.example.com' }), allowlist)).toBeUndefined()
+    expect(matchTrustedRequest(req({ host: 'relay.example.com:443', origin: RELAY }), allowlist)).toMatchObject({ mode: 'relay' })
   })
 })

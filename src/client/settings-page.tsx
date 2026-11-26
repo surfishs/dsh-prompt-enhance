@@ -420,7 +420,7 @@ function SettingsRows(props: {
     // host's `overridden` flag alone would keep it visible.
     const view = raw.overridden && atDefaultValue(row.key, raw.text) ? { ...raw, overridden: false } : raw
     return (
-      <div key={row.key} style={index === 0 ? undefined : SEPARATOR_STYLE}>
+      <div key={row.key} className="dsh-pe-field-row" style={index === 0 ? undefined : SEPARATOR_STYLE}>
         <SettingsRow
           row={row}
           copy={props.copy}

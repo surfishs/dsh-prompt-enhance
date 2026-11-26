@@ -198,13 +198,13 @@ describe('serveCatalog', () => {
       ctx,
       {
         method: 'GET',
-        headers: { host: 'abc.dsh-market.com', origin: 'https://abc.dsh-market.com', 'x-forwarded-for': '10.0.0.2' },
+        headers: { host: 'relay.example.com', origin: 'https://relay.example.com', 'x-forwarded-for': '10.0.0.2' },
         socket: { remoteAddress: '203.0.113.9' },
         url: LLM_PROVIDERS_ENDPOINT,
       } as never,
       res as never,
       LLM_PROVIDERS_ENDPOINT,
-      () => ({ lanHosts: '', relayHosts: 'https://abc.dsh-market.com' }),
+      () => ({ lanHosts: '', relayHosts: 'https://relay.example.com' }),
     )
     expect(res.status).toBe(200)
     expect(JSON.parse(res.body)).toMatchObject({ ok: true })

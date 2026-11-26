@@ -173,8 +173,8 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `contextMaxChars` | `4000` | 对话片段的字符预算（DSH 注入消息不计入）；`0` 表示不参考 |
 | `maxConcurrent` | `2` | 同时进行的增强上限；达到上限时新请求会提示稍后再试 |
 | `rateLimitPerMinute` | `10` | 每分钟成功增强次数上限，按任意连续 60 秒计算；超限时提示稍后再试 |
-| `lanHosts` | 空 | 局域网直连白名单：每行一个完整 origin（如 `http://192.168.31.181:3080`）；命中后允许非回环直连，但仍要求 DSH 会话，并拒绝 `X-Forwarded-For` / `Forwarded`。默认空即只允许本机回环。同一地址同时出现在两份名单时按 LAN 处理 |
-| `relayHosts` | 空 | 中继访问白名单：每行一个完整 origin（如 `https://abc.dsh-market.com`）；命中后允许 `X-Forwarded-For` / `Forwarded`，但仍要求 DSH 会话与精确 `Host` / `Origin`。中继域名不是密钥；默认空，开启后的额度与暴露风险由用户承担 |
+| `lanHosts` | 空 | 局域网直连白名单：每行一个完整 origin（如 `http://192.168.1.100:3080`）；命中后允许非回环直连，但仍要求 DSH 会话，并拒绝 `X-Forwarded-For` / `Forwarded`。默认空即只允许本机回环。同一地址同时出现在两份名单时按 LAN 处理 |
+| `relayHosts` | 空 | 中继访问白名单：每行一个完整 origin（如 `https://relay.example.com`）；命中后允许 `X-Forwarded-For` / `Forwarded`，但仍要求 DSH 会话与精确 `Host` / `Origin`。中继域名不是密钥；默认空，开启后的额度与暴露风险由用户承担 |
 
 ### 关于默认的思考档位
 

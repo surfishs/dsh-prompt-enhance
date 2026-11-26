@@ -22,9 +22,9 @@ export type TrustMode = 'lan' | 'relay'
 /** One normalized allowlist entry. */
 export interface TrustedOrigin {
   readonly mode: TrustMode
-  /** Normalized `Origin` value, e.g. `https://abc.dsh-market.com`. */
+  /** Normalized `Origin` value, e.g. `https://relay.example.com`. */
   readonly origin: string
-  /** Normalized `Host` value, e.g. `abc.dsh-market.com` or `192.168.1.7:3080`. */
+  /** Normalized `Host` value, e.g. `relay.example.com` or `192.168.1.7:3080`. */
   readonly host: string
 }
 
