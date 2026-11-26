@@ -11,9 +11,11 @@
 
 [简体中文](./README.md) | English
 
-**Prompt enhancement for the DeepSeek Harness web GUI** — turn a composer draft into a prompt you can send in one click. The default is **prose**: one paragraph that says what needs saying; switch to **structured** when you want role and goal, task and steps, constraints and boundaries, output and acceptance — empty sections omitted.
+**Prompt enhancement for the DeepSeek Harness web GUI** — turn a draft in the composer into a prompt you can send in one click.
 
-The draft is the source of truth: intent unchanged, no invented requirements, a placeholder wherever information is missing — and it is never modified, not even when a call fails. The result appears in a card above the composer, is written back only when you apply it, and one click undoes that.
+The default is **prose**: one paste-ready paragraph. Switch to **structured** when you want role and goal, task and steps, constraints and boundaries, output and acceptance — empty sections are omitted.
+
+Your draft is the source of truth: intent unchanged, no invented requirements, and a `(TBD: …)` marker wherever information is missing. The rewrite never modifies the draft — not even when a call fails: the result appears in a card above the composer, is written back only when you apply it, and one click undoes that.
 
 ![Prompt Enhance: the docked result card above the composer](./docs/images/panel-en.png)
 
