@@ -29,12 +29,6 @@ Users tend to open with a plea: "So… could you help me out?" — like a patien
 
 What the plugin does is turn your draft into something executable — it fills in the *expression*, not the content: a fact the draft never stated is not invented.
 
-## Button and result card
-
-The plugin adds a Prompt enhancement button to the composer toolbar. One click sends your draft to DSH's model service, which rewrites it into a structured prompt.
-
-The rewritten prompt appears in a card docked above the composer without covering the conversation. Your draft is never replaced: you can apply it, copy it, regenerate it, or undo — the draft you started from can always be restored.
-
 ## Feature overview
 
 | Feature | What it does |
