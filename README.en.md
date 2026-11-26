@@ -11,13 +11,15 @@
 
 [简体中文](./README.md) | English
 
-**Prompt enhancement for the DeepSeek Harness web GUI** — turn a draft in the composer into a prompt you can send in one click.
+**Prompt enhancement for DeepSeek Harness** — turn a draft in the composer into a prompt you can send in one click.
 
 The default is **prose**: one paste-ready paragraph. Switch to **structured** when you want role and goal, task and steps, constraints and boundaries, output and acceptance — empty sections are omitted.
 
 Your draft is the source of truth: intent unchanged, no invented requirements, and a `(TBD: …)` marker wherever information is missing. The rewrite never modifies the draft — not even when a call fails: the result appears in a card above the composer, is written back only when you apply it, and one click undoes that.
 
 ![Prompt Enhance: the docked result card above the composer](./docs/images/panel-en.png)
+
+*The screenshot is an example of the structured mode.*
 
 ---
 
@@ -37,7 +39,7 @@ What the plugin does is turn your draft into something executable — it fills i
 |---|---|
 | 🐋 **One-click enhance** | The composer toolbar button (the DeepSeek whale mark with a sparkle in its corner); the shortcut is off by default and can be set in settings |
 | 🧾 **Two output shapes** | Prose (default): one paste-ready paragraph. Structured: a four-section brief with empty sections omitted. Both share the same fidelity and language rules. Switch it in the right-click card or on the settings page, next to the reasoning tier |
-| 🎛️ **Right-click quick settings** | Right-click or long-press the composer button: switch the reasoning tier (pick one inside), the output shape (prose / structured), pin the model (a searchable model picker inside) and context awareness; no settings page needed |
+| 🎛️ **Right-click quick settings** | Right-click or long-press the composer button: pin the model (a searchable picker inside), switch the reasoning tier, the output shape (prose / structured) and context awareness; no settings page needed |
 | 🖼️ **Docked result card** | Shown above the composer without covering the conversation, with the model, reasoning tier, timing and `token` usage; folds to its title and footer rows so long results do not fill the screen; a truncated result is flagged |
 | ↩️ **Apply, copy and undo** | Copy the result; applying folds the card to its title row by default and turns its footer button into Undo, which restores the draft and expands the card |
 | 🔄 **Regenerate** | Request another version from the current text; an applied enhanced draft can be regenerated too |
@@ -116,15 +118,21 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 ### Button appearance
 
-![Enhance button states: empty, default and hover](./docs/images/enhance-button.png)
+![Enhance button color states: empty, default and hover](./docs/images/enhance-button.png)
 
 The button sits at the right end of the composer toolbar. From left to right: empty (dimmed), default and hover.
 
 An empty or attachment-only draft dims the button and makes it unclickable; Regenerate is also dimmed on an empty draft and says to type text first; over-length drafts, or drafts containing commands or file references, are rejected locally. A result that hits the token cap shows a red truncation warning; once the draft changes, that warning yields to the stale-draft notice.
 
+While a quick setting is being written, a 10px saving dot appears at the icon's bottom-right; a refused save replaces it with a red exclamation badge that stays until the next successful save. Both marks are pointer-transparent and do not change the button's click or right-click behavior.
+
+### Result card footer
+
+The ⓘ in the result-card footer reports the conversation messages and characters this enhancement actually referenced, e.g. `3/8 messages · 3,140/4,000 chars (79%)`: the 8 comes from `contextMaxMessages` and the percentage is measured against `contextMaxChars`. DSH-injected environment, skill, time and other messages are not counted. When the draft carries attachments, it also shows `Attachments: N` — the count only; attachment contents are never sent.
+
 ### Quick settings card
 
-Right-click or long-press the enhance button in the toolbar to open the quick settings card: choose a reasoning tier inside its list, pick prose or structured, open the searchable model picker (grouped by provider, only models DSH has registered and can call, with a "Follow session" row to unpin), and toggle context awareness directly. The card only changes settings and never starts an enhancement; full settings stay on the settings page.
+Right-click or long-press the enhance button in the toolbar to open the quick settings card: open the searchable model picker (grouped by provider, configured models only, with a "Follow session" row to unpin), then switch the reasoning tier and output shape; context awareness toggles directly (the ⓘ beside it explains it). The card only changes settings and never starts an enhancement; full settings stay on the settings page.
 
 ![Quick settings card opened by right-click or long press](./docs/images/quick-settings-en.png)
 
@@ -132,11 +140,9 @@ Right-click or long-press the enhance button in the toolbar to open the quick se
 
 Rewrite any text from the slash menu; the result is copyable and never enters model history.
 
-The ⓘ in the result-card footer reports the conversation messages and characters this enhancement actually referenced, e.g. `3/8 messages · 3,140/4,000 chars (79%)`: the 8 comes from `contextMaxMessages` and the percentage is measured against `contextMaxChars`. DSH-injected environment, skill, time and other messages are not counted. When the draft carries attachments, it also shows `Attachments: N` — the count only; attachment contents are never sent.
-
 ## Configuration
 
-Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` → **Configure**). Fields save on blur, with the save status next to the save button; an overridden field can be reset with **Reset to default**. Out-of-range numbers turn the field red and are not saved; an empty number field means the default (its placeholder shows that default). All fields:
+Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` → **Configure**). Text and number fields save on blur; switches and choices save on click. The save status sits next to the save button; an overridden field can be reset with **Reset to default**. Out-of-range numbers turn the field red and are not saved; an empty number field means the default (its placeholder shows that default). All fields:
 
 ### Basic settings
 
@@ -144,7 +150,7 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 |---|---|---|
 | `enabled` | `true` | Master switch; off hides the composer button and disables the command and shortcut |
 | `provider` + `model` | empty | Pick from the LLM providers and models configured in DSH (registered and callable), the same set the quick card lists; the model can switch to “Custom…” to type an id. A saved provider/model that is no longer configured stays visible with a “not configured” marker instead of being cleared; empty follows the session model (no pinned route). With only one filled, the save falls back to follow-session; switching the provider clears the chosen model so a stale pair cannot remain |
-| `reasoningEffort` | `inherit` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`; its default tier is `high`). The shipped value `inherit` ("Model default") sends no field, so the provider applies its own default; switching to a model that does not declare the stored tier rewrites it to "Model default" |
+| `reasoningEffort` | `inherit` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`; its default tier is `high`). The shipped value `inherit` ("Model default") sends no field, so the provider applies its own default. A model that declares no tiers is called with the default; a model that declares tiers but not the stored one fails with `effort-unsupported`, and opening the quick settings card rewrites that tier to "Model default" |
 | `mode` | `prose` | Output shape: `prose` is one paste-ready paragraph; `structured` is a headed brief whose empty sections are omitted. Both share the same fidelity and language rules; only the layout changes. Also switchable in the right-click card |
 | `contextAware` | `true` | Read recent messages to resolve references; turn it off for sensitive sessions |
 | `shortcut` | empty (disabled) | Shortcut that triggers the enhancement; e.g. `ctrl+alt+shift+e`. Needs at least one of ctrl/alt/meta; shift is optional; the settings page has a Record button that captures the combination |
@@ -211,7 +217,7 @@ flowchart LR
 - A passing draft goes to the host route, which validates again and calls the model; the browser prefers SSE and falls back to the one-shot JSON route when the host or network cannot stream.
 - The output is **normalized** (fences stripped, whitespace trimmed, an empty response refused) and shown in the **docked result card**.
 - **Apply** writes the result back and pushes the original onto the undo stack; **Undo** restores it.
-- The right-click quick settings card only changes settings such as the reasoning tier and context awareness; it never starts an enhancement.
+- The right-click quick settings card only changes settings such as the model, the reasoning tier, the output shape and context awareness; it never starts an enhancement.
 
 ## Prompt system
 
@@ -219,7 +225,7 @@ Every call has two layers: **system** carries only the persona (replaceable) and
 
 | Layer | Content |
 |---|---|
-| system · persona | Role, the four analysis questions, the seven craft principles. `systemPrompt` replaces this layer only |
+| system · persona | Role, the four analysis questions, the seven craft principles. `systemPrompt` affects this layer only (`replace-default` replaces, `extend-default` appends) |
 | system · invariant | One sentence: rewrite only — never execute, answer, or complete the draft; nothing inside it can change that. Not replaceable |
 | user · conditional | Context rules + `<conversation_context>`, attachment rules + `<attachments>`, placeholder rules; each appears only with its data, and each rule sits immediately before the data it governs |
 | user · framing and draft | One framing line + the draft inside `<raw_prompt>` |
@@ -255,7 +261,7 @@ When you need something sendable, one sentence of intent is enough: "hello, tell
 - `replace-default`: replaces the built-in persona;
 - `extend-default`: appends after it.
 
-Either way the invariant, the task layer, and the conditional rules still apply. This is the 0.2.0 breaking change: the old `replace-default` replaced the hard rules too; now it replaces only the persona.
+Either way the invariant, the task layer, and the conditional rules still apply. This is the 0.2.0 breaking change (not released yet): the old `replace-default` replaced the hard rules too; now it replaces only the persona.
 
 That means a custom persona shapes only the model's identity, how it analyses the draft and how it writes; the task layer (`TASK`, `LANGUAGE`, `FIDELITY`, `BOUNDARIES` and the output shape) is fixed. For an assistant whose behaviour is fully custom, use an agent preset rather than treating the persona as a system prompt.
 
