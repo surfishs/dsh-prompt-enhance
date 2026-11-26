@@ -173,25 +173,27 @@ describe('resolveConfig', () => {
     expect(() => resolveConfig({ ...DEFAULT_CONFIG, contextMaxChars: -1 })).toThrow(/contextMaxChars/)
   })
 
-  it('defaults the reasoning effort to the cheapest shipped choice', () => {
-    expect(DEFAULT_CONFIG.reasoningEffort).toBe('off')
-    expect(resolveConfig({ ...DEFAULT_CONFIG }).reasoningEffort).toBe('off')
+  it('defaults the reasoning effort to the provider default', () => {
+    // Omit the field: the provider applies its own tier (DeepSeek: high).
+    // `off` is still selectable, but only fits simple, context-free drafts.
+    expect(DEFAULT_CONFIG.reasoningEffort).toBe('inherit')
+    expect(resolveConfig({ ...DEFAULT_CONFIG }).reasoningEffort).toBe('inherit')
   })
 
   it('keeps an explicit reasoning effort', () => {
-    expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: 'inherit' }).reasoningEffort).toBe('inherit')
+    expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: 'off' }).reasoningEffort).toBe('off')
     expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: 'low' }).reasoningEffort).toBe('low')
   })
 
   it('keeps an opaque reasoning id verbatim and degrades only blank or absent values', () => {
     // Ids are adapter-owned; the plugin cannot enumerate them in a schema. A
     // value it does not know is preserved for the adapter to accept or reject
-    // with a clear error, while a blank/absent value keeps the cheap default.
+    // with a clear error, while a blank/absent value keeps the shipped default.
     const missing = { ...DEFAULT_CONFIG } as Partial<typeof DEFAULT_CONFIG>
     delete missing.reasoningEffort
-    expect(resolveConfig(missing as typeof DEFAULT_CONFIG).reasoningEffort).toBe('off')
+    expect(resolveConfig(missing as typeof DEFAULT_CONFIG).reasoningEffort).toBe('inherit')
     expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: 'turbo' as never }).reasoningEffort).toBe('turbo')
-    expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: '   ' as never }).reasoningEffort).toBe('off')
+    expect(resolveConfig({ ...DEFAULT_CONFIG, reasoningEffort: '   ' as never }).reasoningEffort).toBe('inherit')
   })
 })
 

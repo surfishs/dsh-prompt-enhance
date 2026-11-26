@@ -36,7 +36,7 @@ describe('decodeClientSettings', () => {
       streaming: false,
       foldAnimation: true,
       autoFold: true,
-      reasoningEffort: 'off',
+      reasoningEffort: 'inherit',
       mode: 'prose',
       contextAware: true,
       provider: '',

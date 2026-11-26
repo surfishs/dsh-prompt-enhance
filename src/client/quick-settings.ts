@@ -213,7 +213,7 @@ async function routeLabelsOf(provider: string, model: string): Promise<RouteLabe
  */
 export async function resolveQuickSettings(input: QuickSettingsInput): Promise<QuickSettingsData> {
   const stored = typeof input.settings.reasoningEffort === 'string' ? input.settings.reasoningEffort.trim() : ''
-  const effort = stored === '' ? 'off' : stored
+  const effort = stored === '' ? INHERIT_EFFORT : stored
   const contextAware = input.settings.contextAware === true
   const mode = input.settings.mode === 'structured' ? 'structured' : 'prose'
   const provider = input.settings.provider?.trim() ?? ''

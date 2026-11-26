@@ -129,7 +129,7 @@ describe('resolveQuickSettings', () => {
 
   it('treats a blank stored effort as the shipped default', async () => {
     const data = await resolveQuickSettings({ settings: { ...baseSettings, reasoningEffort: '' } })
-    expect(data.effort).toBe('off')
+    expect(data.effort).toBe('inherit')
   })
 })
 

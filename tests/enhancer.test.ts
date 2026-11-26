@@ -78,7 +78,7 @@ const baseOptions = {
   system: 'SYS',
   text: '帮我写个爬虫',
   temperature: 0.3,
-  reasoningEffort: 'off' as const,
+  reasoningEffort: 'inherit' as const,
   maxTokens: 512,
   timeoutMs: 5000,
 }
@@ -89,7 +89,7 @@ describe('enhanceText', () => {
     const result = await enhanceText(llm, baseOptions)
     expect(result.text).toBe('角色：Python 工程师…')
     // Reported so the card can show what actually ran, not what was configured.
-    expect(result.reasoningEffort).toBe('off')
+    expect(result.reasoningEffort).toBe('inherit')
     expect(result.provider).toBe('zhipu')
     // The usage chunk is copied verbatim so the panel can show the call cost.
     expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 5 })
@@ -108,9 +108,10 @@ describe('enhanceText', () => {
     expect(text.indexOf('<attachments')).toBeLessThan(text.indexOf('<raw_prompt>\n'))
   })
 
-  // Cost regression: omitting the field makes the adapter apply the model's own
-  // default effort, which measured ~11x the output tokens of `off` on
-  // deepseek-flash for the same draft. The effort must reach the call.
+  // An explicit tier must reach the call: the shipped default omits the field,
+  // so a configured tier that got swallowed would silently run the provider
+  // default instead (on deepseek-flash that is `high`, ~11x the output tokens
+  // of `off` for the same draft).
   it('forwards the configured reasoning effort to the model call', async () => {
     const llm = stubLlm(() => textStream(['ok'], { reason: 'stop' }))
     await enhanceText(llm, { ...baseOptions, reasoningEffort: 'low' })
@@ -125,29 +126,26 @@ describe('enhanceText', () => {
 
   // The harness rejects an explicit effort outright when the model declares no
   // reasoning capability, before any provider I/O, with this exact code. The
-  // cheap `off` default must therefore degrade to "no field" for those models
-  // instead of failing every call.
+  // shipped default now sends no effort, so such a route works out of the box;
+  // an explicit tier is the user's choice and must not be swapped for another
+  // tier behind their back.
   //
   // This test asserts on the finish-chunk shape on purpose. An earlier version
   // of it stubbed the refusal as a THROW and passed while the real host kept
   // failing: the harness converts an adapter failure into a terminal finish
-  // chunk, so nothing was ever thrown for the retry to catch. The stub had the
-  // wrong shape, not the assertion.
-  it('retries once without the effort when the model has no reasoning capability', async () => {
+  // chunk.
+  it('surfaces a refused explicit tier instead of silently dropping it', async () => {
     const llm = stubLlm((options) => {
       if (options.reasoningEffort !== undefined) return refusalStream(options.reasoningEffort)
       return textStream(['ok'], { reason: 'stop' })
     })
-    const result = await enhanceText(llm, baseOptions)
-    expect(result.text).toBe('ok')
-    expect(llm.calls).toHaveLength(2)
-    // The rejected attempt is not silently dropped: it is identifiable in the
-    // recorded traffic as the one that carried the effort.
+    // `off` used to be the shipped default and was silently dropped here; it is
+    // an explicit choice now, like any other tier.
+    await expect(enhanceText(llm, { ...baseOptions, reasoningEffort: 'off' })).rejects.toMatchObject({
+      detail: { code: 'effort-unsupported', params: { effort: 'off' } },
+    })
+    expect(llm.calls).toHaveLength(1)
     expect(llm.calls[0]?.reasoningEffort).toBe('off')
-    expect(llm.calls[1]).not.toHaveProperty('reasoningEffort')
-    // The retry dropped the field, so the result reports the omission — not the
-    // tier that was refused.
-    expect(result.reasoningEffort).toBe('inherit')
   })
 
   it('surfaces the refusal without retrying when the effort was already inherit', async () => {
@@ -162,17 +160,6 @@ describe('enhanceText', () => {
     expect(calls).toBe(1)
   })
 
-  it('surfaces the error when the deferred retry fails too', async () => {
-    let calls = 0
-    const llm = stubLlm(() => {
-      calls += 1
-      return refusalStream('off')
-    })
-    await expect(enhanceText(llm, baseOptions)).rejects.toMatchObject({ detail: { code: 'upstream' } })
-    // Exactly one deferral: the retry is not itself retried.
-    expect(calls).toBe(2)
-  })
-
   it('surfaces a rejected explicit effort instead of silently replacing it', async () => {
     const llm = stubLlm(() => refusalStream('low'))
     await expect(enhanceText(llm, { ...baseOptions, reasoningEffort: 'low' })).rejects.toMatchObject({ detail: { code: 'effort-unsupported', params: { effort: 'low' } } })
@@ -183,10 +170,9 @@ describe('enhanceText', () => {
 
   // Defence in depth for a host that rejects the effort outside the harness's
   // terminal conversion. Nothing ships that relies on this `catch` — a live host
-  // takes the finish-chunk path above — but the retry must not regress silently
-  // if one ever throws, so both shapes are pinned to the same observable
-  // behaviour: one retry, and the second request carries no effort.
-  it('retries the same way when the refusal arrives as a thrown error', async () => {
+  // takes the finish-chunk path above — but an explicit tier must still surface
+  // `effort-unsupported` instead of being retried with another tier.
+  it('surfaces a thrown tier refusal without retrying', async () => {
     const llm = stubLlm((options) => {
       if (options.reasoningEffort !== undefined) {
         // Deliberately a generator that throws before its first `yield`: it
@@ -199,11 +185,8 @@ describe('enhanceText', () => {
       }
       return textStream(['ok'], { reason: 'stop' })
     })
-    const result = await enhanceText(llm, baseOptions)
-    expect(result.text).toBe('ok')
-    expect(llm.calls).toHaveLength(2)
-    expect(llm.calls[1]).not.toHaveProperty('reasoningEffort')
-    expect(result.reasoningEffort).toBe('inherit')
+    await expect(enhanceText(llm, { ...baseOptions, reasoningEffort: 'max' })).rejects.toMatchObject({ detail: { code: 'effort-unsupported', params: { effort: 'max' } } })
+    expect(llm.calls).toHaveLength(1)
   })
 
   it('strips a wrapping fence from the model output', async () => {

@@ -11,7 +11,7 @@ import type { EnhanceError, EnhanceResult } from './shared/protocol'
 import { normalizeOutput } from './shared/normalize'
 import { frameUserPrompt } from './prompts'
 import type { EnhanceMode } from './prompts'
-import { DEFAULT_CONFIG, type ReasoningEffortChoice } from './config'
+import type { ReasoningEffortChoice } from './config'
 
 /**
  * Producer identity of this plugin's model traffic.
@@ -104,12 +104,8 @@ export interface EnhanceCallOptions {
   hasSlots?: boolean
   temperature: number
   /**
-   * Reasoning budget forwarded verbatim, or `inherit` to omit the field.
-   *
-   * Sent explicitly on purpose: leaving it out makes the adapter apply the
-   * model's own default effort, which is the expensive path (measured on
-   * deepseek-flash: 2897 output tokens at the default `high` versus 252 at
-   * `off`, for the same draft and no better rewrite).
+   * Reasoning budget forwarded verbatim, or `inherit` to omit the field so the
+   * provider applies its own tier (DeepSeek: `high` — the shipped default).
    */
   reasoningEffort: ReasoningEffortChoice
   maxTokens: number
@@ -281,72 +277,57 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
       }
       return { assembler, exhausted }
     }
-    // The configured effort, and the one a downgrade retry falls back to:
-    // `inherit` leaves the field off the request entirely.
+    // `inherit` leaves the field off the request entirely; an explicit tier is
+    // forwarded verbatim so the user's choice reaches the call.
     const requestedEffort: ReasoningEffortChoice = options.reasoningEffort
-    // One model call per attempt; the loop exists only for the single effort
-    // downgrade below, so it can never spin more than twice.
-    let retriedWithoutEffort = false
     const readAttempt = async (): Promise<{ ok: true; blocks: ReturnType<BlockAssembler['blocks']>; usage: BlockAssembler['usage']; truncated: boolean } | { ok: false; detail: EnhanceError }> => {
-      while (true) {
-        let attempt: { assembler: BlockAssembler; exhausted: boolean }
-        try {
-          attempt = await readCall(retriedWithoutEffort ? 'inherit' : requestedEffort)
-        } catch (error) {
-          // Defence for a host that rejects the effort somewhere the harness's
-          // own terminal conversion does not cover; on a current host this does
-          // not fire (see the finish check right below).
-          if (!isEffortRejectionThrow(error)) throw error
-          if (requestedEffort === 'inherit' || retriedWithoutEffort) throw error
-          if (requestedEffort !== DEFAULT_CONFIG.reasoningEffort) {
-            return { ok: false, detail: { code: 'effort-unsupported', params: { effort: requestedEffort } } }
-          }
-          // The shipped default (`off`) is the plugin's compatibility floor: a
-          // route that declares no reasoning rejects it, and the old behavior
-          // of dropping the field keeps those routes working without the user
-          // having to touch the setting.
-          retriedWithoutEffort = true
-          continue
-        }
-        signal.throwIfAborted()
-        // A route whose model declares no reasoning capability rejects an
-        // explicit effort outright (harness code `UNSUPPORTED_REASONING_EFFORT`)
-        // before any provider I/O. The harness delivers that as a terminal
-        // `error` FINISH CHUNK, not a throw: "Adapter selection, dispatch, and
-        // iteration failures become terminal `error` or `aborted` finish chunks;
-        // middleware, nested-call, cleanup, and consumer failures remain
-        // thrown" (dsh-llm/lib/types/index.js). The code is read off the finish
-        // reason itself, because flattening it into our `EnhanceError` loses it.
-        //
-        // The shipped default (`off`) keeps the historical fallback: dropping
-        // the field once keeps routes that declare no reasoning working without
-        // a settings change. Any OTHER explicit id is the user's choice, and
-        // silently replacing it with the provider default would hide that the
-        // chosen tier never ran — so it surfaces as a clear error instead. With
-        // `inherit` configured we sent no effort, so a retry would repeat the
-        // identical request; its original detail is surfaced.
-        const rejected = isEffortRejectionFinish(attempt.assembler.finish)
-        if (!rejected) {
-          const detail = finishToDetail(attempt.assembler.finish)
-          if (detail === undefined) {
-            return { ok: true, blocks: attempt.assembler.blocks(), usage: attempt.assembler.usage, truncated: false }
-          }
-          // A capped generation is a usable partial result, not a failed call:
-          // keep the text and let the panel warn that it may be incomplete.
-          if (attempt.assembler.finish.kind === 'max-tokens') {
-            return { ok: true, blocks: attempt.assembler.blocks(), usage: attempt.assembler.usage, truncated: true }
-          }
-          return { ok: false, detail }
-        }
-        if (requestedEffort === 'inherit' || retriedWithoutEffort) {
-          const detail = finishToDetail(attempt.assembler.finish) ?? { code: 'upstream', params: { reason: 'effort-unsupported' } }
-          return { ok: false, detail }
-        }
-        if (requestedEffort !== DEFAULT_CONFIG.reasoningEffort) {
-          return { ok: false, detail: { code: 'effort-unsupported', params: { effort: requestedEffort } } }
-        }
-        retriedWithoutEffort = true
+      let attempt: { assembler: BlockAssembler; exhausted: boolean }
+      try {
+        attempt = await readCall(requestedEffort)
+      } catch (error) {
+        // Defence for a host that rejects the effort somewhere the harness's
+        // own terminal conversion does not cover; on a current host this does
+        // not fire (see the finish check right below).
+        if (!isEffortRejectionThrow(error)) throw error
+        // With `inherit` no effort was sent, so this refusal cannot belong to a
+        // tier: surface the original error. An explicit tier is the user's
+        // choice, and substituting the provider default would hide that the
+        // chosen tier never ran.
+        if (requestedEffort === 'inherit') throw error
+        return { ok: false, detail: { code: 'effort-unsupported', params: { effort: requestedEffort } } }
       }
+      signal.throwIfAborted()
+      // A route whose model declares no reasoning capability rejects an
+      // explicit effort outright (harness code `UNSUPPORTED_REASONING_EFFORT`)
+      // before any provider I/O. The harness delivers that as a terminal
+      // `error` FINISH CHUNK, not a throw: "Adapter selection, dispatch, and
+      // iteration failures become terminal `error` or `aborted` finish chunks;
+      // middleware, nested-call, cleanup, and consumer failures remain
+      // thrown" (dsh-llm/lib/types/index.js). The code is read off the finish
+      // reason itself, because flattening it into our `EnhanceError` loses it.
+      //
+      // With `inherit` no effort was sent, so the original detail is surfaced
+      // as-is. An explicit tier that the route refuses becomes
+      // `effort-unsupported`: that tier never ran, and hiding it would
+      // misreport the call.
+      const rejected = isEffortRejectionFinish(attempt.assembler.finish)
+      if (!rejected) {
+        const detail = finishToDetail(attempt.assembler.finish)
+        if (detail === undefined) {
+          return { ok: true, blocks: attempt.assembler.blocks(), usage: attempt.assembler.usage, truncated: false }
+        }
+        // A capped generation is a usable partial result, not a failed call:
+        // keep the text and let the panel warn that it may be incomplete.
+        if (attempt.assembler.finish.kind === 'max-tokens') {
+          return { ok: true, blocks: attempt.assembler.blocks(), usage: attempt.assembler.usage, truncated: true }
+        }
+        return { ok: false, detail }
+      }
+      if (requestedEffort === 'inherit') {
+        const detail = finishToDetail(attempt.assembler.finish) ?? { code: 'upstream', params: { reason: 'effort-unsupported' } }
+        return { ok: false, detail }
+      }
+      return { ok: false, detail: { code: 'effort-unsupported', params: { effort: requestedEffort } } }
     }
     const outcome = await readAttempt()
     if (!outcome.ok) {
@@ -380,9 +361,8 @@ export async function enhanceText(llm: LlmStreamFace, options: EnhanceCallOption
       provider: options.route.provider,
       model: options.route.model,
       elapsedMs: Date.now() - started,
-      // What was actually sent: a rejected tier is retried without the field, so
-      // the retry path reports inherit rather than the tier that never ran.
-      reasoningEffort: retriedWithoutEffort ? 'inherit' : requestedEffort,
+      // What was actually sent: `inherit` means the field was omitted.
+      reasoningEffort: requestedEffort,
       ...(reportedUsage === undefined ? {} : { usage: reportedUsage }),
       ...(outcome.truncated ? { truncated: true } : {}),
     }

@@ -16,10 +16,11 @@ export const DEFAULT_VALUES = {
   enabled: true,
   mode: 'prose',
   temperature: 0.3,
-  // A rewrite does not need deep reasoning, and the route default is expensive
-  // (measured: 2897 output tokens at `high` vs 252 at `off` for the same draft).
-  // Sent explicitly, because omitting the field inherits that route default.
-  reasoningEffort: 'off',
+  // The default omits the field, so the provider applies its own tier (DeepSeek:
+  // `high`). Thinking is necessary unless the task is both simple and
+  // context-free; a rewrite has to honour a layered rule set, and weaker models
+  // start dropping constraints at `off`.
+  reasoningEffort: 'inherit',
   maxOutputTokens: 8192,
   maxInputChars: 12000,
   timeoutMs: 60000,

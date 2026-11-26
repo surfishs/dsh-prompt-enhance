@@ -935,8 +935,9 @@ describe('quick settings menu', () => {
 
     // The tier list starts folded into its cell, like the shell's model menu.
     fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
-    fireEvent.click(screen.getByRole('menuitemradio', { name: zh['menu.effortDefault'] }))
-    await waitFor(() => expect(set).toHaveBeenCalledWith('reasoningEffort', 'inherit'))
+    // The shipped default is "model default" (inherit), so Off is the change.
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Off' }))
+    await waitFor(() => expect(set).toHaveBeenCalledWith('reasoningEffort', 'off'))
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
 
     // The output shape is a second drilled cell on the same card.
@@ -1122,6 +1123,8 @@ describe('quick settings menu', () => {
   })
 
   it('follows a model switched outside the card while it is open', async () => {
+    // A stored non-default tier is what the switch below has to clear.
+    setClientSettings({ ...DEFAULT_CLIENT_SETTINGS, reasoningEffort: 'off' })
     // One session directory double: the snapshot swaps when the host reports a
     // model change, exactly like ctx.modelDirectories in the running shell.
     let snapshot: unknown = {
@@ -1230,11 +1233,11 @@ describe('quick settings menu', () => {
     fireEvent.contextMenu(enhanceButton())
     await screen.findByRole('menu')
     fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
-    fireEvent.click(screen.getByRole('menuitemradio', { name: zh['menu.effortDefault'] }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Off' }))
     // Closing does not wait for the host: the card is gone, the write is in flight.
     expect(screen.queryByRole('menu')).toBeNull()
     expect(calls).toHaveLength(1)
-    expect(calls[0]?.value).toBe('inherit')
+    expect(calls[0]?.value).toBe('off')
     calls[0]!.resolve(true)
   })
 
@@ -1243,8 +1246,8 @@ describe('quick settings menu', () => {
     fireEvent.contextMenu(button)
     await screen.findByRole('menu')
     fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
-    // The fixture stores `off`, so picking Off changes nothing.
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Off' }))
+    // The shipped default is "model default" (inherit), so picking it changes nothing.
+    fireEvent.click(screen.getByRole('menuitemradio', { name: zh['menu.effortDefault'] }))
     expect(screen.queryByRole('menu')).toBeNull()
     expect(set).not.toHaveBeenCalled()
   })
@@ -1366,6 +1369,8 @@ describe('quick settings menu', () => {
   }, 10000)
 
   it('drills into the tier pane and Escape backs out before closing', async () => {
+    // A stored tier, so the folded cell has a display name to print.
+    setClientSettings({ ...DEFAULT_CLIENT_SETTINGS, reasoningEffort: 'off' })
     const { button } = setupMenu()
     fireEvent.contextMenu(button)
     await screen.findByRole('menu')

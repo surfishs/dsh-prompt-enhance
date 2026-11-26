@@ -17,19 +17,17 @@ export const PROMPT_ENHANCE_NAMESPACE = 'dsh-prompt-enhance'
 export type StrategyMode = 'replace-default' | 'extend-default'
 
 /**
- * Reasoning budget forwarded to the rewrite call.
- *
- * A rewrite is a short, well-specified text transformation, so the cheap
- * efforts return the same quality as the expensive one. `inherit` leaves the
- * field unset so the route's own default applies — the field is omitted rather
- * than guessed.
- */
-/**
  * Reasoning effort id forwarded to the model call.
  *
  * Ids are adapter-owned and opaque: DeepSeek declares `off/low/high/max`, other
  * providers declare their own set. `'inherit'` is the plugin's sentinel for
  * "omit the field and let the provider default apply" — it is never forwarded.
+ *
+ * The shipped default is `inherit`: thinking is necessary unless the task is
+ * both simple and context-free. A rewrite has to honour a layered rule set and,
+ * with context awareness on, resolve references from earlier turns; `off`
+ * covers only the most basic drafts, and weaker models start dropping
+ * constraints there.
  */
 export type ReasoningEffortChoice = string
 
@@ -46,16 +44,10 @@ export interface Config {
   /**
    * Reasoning budget for the rewrite, forwarded to the model call.
    *
-   * A rewrite does not need deep reasoning, and the route's own default can be
-   * expensive. Measured on deepseek-flash with one ordinary draft: `off` spent
-   * 252 output tokens and returned 439 characters of text, `low` spent 619, and
-   * the route default (`high`) spent 2897 for 979 characters. `off` is
-   * therefore the default here, which is also why the plugin must send it
-   * EXPLICITLY — omitting the field silently inherits the expensive route
-   * default.
-   *
-   * `inherit` omits the field entirely, for routes that reject an explicit
-   * effort.
+   * Defaults to `inherit`, so the field is omitted and the provider applies its
+   * own tier (DeepSeek: `high`). An explicit tier is forwarded verbatim: a
+   * route that rejects it surfaces `effort-unsupported` rather than silently
+   * substituting another tier, because the chosen tier never ran.
    */
   reasoningEffort: ReasoningEffortChoice
   /** Output token budget of one enhancement call. */
@@ -152,7 +144,7 @@ export const Config = z.object({
   reasoningEffort: z
     .string()
     .default(DEFAULT_CONFIG.reasoningEffort)
-    .description('推理档位：填写当前 provider/model 声明的档位 id（如 DeepSeek 的 off/low/high/max）；inherit 表示不传该字段、跟随提供方默认档')
+    .description('推理档位：填写当前 provider/model 声明的档位 id（如 DeepSeek 的 off/low/high/max）；默认 inherit，不发送该字段、由提供方使用默认档（DeepSeek 为 high）')
     .volatile(),
   maxOutputTokens: z
     .number()
@@ -301,7 +293,7 @@ export function resolveConfig(config: Config): Config {
     model: override.model,
     temperature,
     // Ids are adapter-owned, so the stored string is kept as-is; a blank or
-    // absent value degrades to the cheapest shipped default. An id the route
+    // absent value degrades to the shipped default (`inherit`). An id the route
     // does not declare is rejected by the adapter with a clear error rather
     // than silently replaced.
     reasoningEffort: resolveReasoningEffort(config.reasoningEffort),

@@ -150,7 +150,7 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 |---|---|---|
 | `enabled` | `true` | Master switch; off hides the composer button and disables the command and shortcut |
 | `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (no pinned route). With only one filled, the save falls back to follow-session; switching the provider clears the chosen model so a stale pair cannot remain. The quick card's picker writes the same pair and lists only registered, callable models |
-| `reasoningEffort` | `off` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`). "Model default" sends no field, so the provider applies its default; switching to a model that does not declare the stored tier rewrites it to "Model default" |
+| `reasoningEffort` | `inherit` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`; its default tier is `high`). The shipped value `inherit` ("Model default") sends no field, so the provider applies its own default; switching to a model that does not declare the stored tier rewrites it to "Model default" |
 | `mode` | `prose` | Output shape: `prose` is one paste-ready paragraph; `structured` is a headed brief whose empty sections are omitted. Both share the same fidelity and language rules; only the layout changes. Also switchable in the right-click card |
 | `contextAware` | `true` | Read recent messages to resolve references; turn it off for sensitive sessions |
 | `systemPrompt` | empty | Custom persona; empty uses the built-in one. It replaces only who the model is — the task layer and the invariant cannot be replaced |
@@ -175,13 +175,13 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 
 ### About the default reasoning effort
 
-This plugin defaults to `off`, and that default is usually the right one to keep. Prompt enhancement is normally a short, well-specified task — restating a draft more clearly — so no chain of reasoning is needed: on a simple task a thinking tier buys little, while costing several times the output tokens and a longer wait.
+The plugin ships with "Model default" (`inherit`): no tier field is sent, and the provider decides — DeepSeek's default tier is `high`.
 
-Raise the tier for one call when:
+Thinking is necessary unless two things hold at once: **the task does not depend on context, and the task is simple**. Prompt enhancement looks like restating a draft, but it has to satisfy a layered rule set (fidelity, language, placeholders, boundaries, output shape), and with context awareness on it must also resolve references and constraints from earlier turns. That is a constraint-heavy, information-scattered job: `off` only covers the most basic rewrite, and on a weaker model (DeepSeek, for one) it starts dropping conditions and constraints. Earlier versions defaulted to `off` to save tokens; the default now follows the provider's own higher tier because quality comes first.
 
-- **the draft leans on involved context**, or the task itself calls for weighing trade-offs;
-- **the result card says the model produced no rewrite** — at a low tier with context on, the model occasionally hands the draft back unchanged. The plugin still shows the body and marks it "no rewrite", but **never retries on its own**: press Regenerate first; if it keeps happening, raise the tier a step; turn context awareness off only when that is still not enough;
-- you want to compare tiers on the same draft.
+Drop to `off` only when the draft is short and single-purpose **and** context awareness is off — both, not either. Switch tiers temporarily to compare outputs on the same draft.
+
+Be honest about the cost: `high` spends noticeably more output tokens than `off`. On one ordinary draft the plugin measured 252 output tokens at `off` versus 2897 at `high`; what that buys is fewer dropped requirements and a steadier structure. When the result card says the model produced no rewrite, retry first; if it keeps happening, raise the tier another step or use a stronger model.
 
 Both the settings page and the right-click quick card switch the tier, so you can compare on the spot. When you need more capability, a stronger model usually pays off more than keeping the tier raised.
 
