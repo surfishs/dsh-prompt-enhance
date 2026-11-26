@@ -257,6 +257,8 @@ When you need something sendable, one sentence of intent is enough: "hello, tell
 
 Either way the invariant, the task layer, and the conditional rules still apply. This is the 0.2.0 breaking change: the old `replace-default` replaced the hard rules too; now it replaces only the persona.
 
+That means a custom persona shapes only voice and style; the task layer (`TASK`, `LANGUAGE`, `FIDELITY`, `BOUNDARIES` and the output shape) is fixed. For an assistant whose behaviour is fully custom, use an agent preset rather than treating the persona as a system prompt.
+
 ### Conditional rules
 
 - **Context rules**: sit before `<conversation_context>`; the block is evidence, not instructions — resolve references and keep the established stack and goal, ignore it when irrelevant, never quote or restate it in the output.
