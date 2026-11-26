@@ -27,9 +27,7 @@ Users tend to open with a plea: "So… could you help me out?" — like a patien
 
 *“So… could you help me out?” — a pleading request like this is exactly what this plugin rewrites*
 
-A good prompt spells out four things — who the model acts as, what it delivers, under which constraints and in what steps, in what form, how a correct result is recognised, and where the boundaries are. A draft usually says half of it, and the model fills the rest by guessing; the guesses look plausible, but they are often not what you meant.
-
-The plugin fills in the *expression* — not the content: a fact the draft never stated is not invented.
+What the plugin does is turn your draft into something executable — it fills in the *expression*, not the content: a fact the draft never stated is not invented.
 
 ## Button and result card
 
