@@ -163,7 +163,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `foldAnimation` | `true` | 结果卡折叠/展开时是否播放动画；系统开启「减少动态效果」时始终不播放 |
 | `autoFold` | `true` | 回填后自动折叠结果卡，撤销后自动展开 |
 | `streaming` | `true` | 边写边显示；仅影响显示节奏，最终结果不变 |
-| `strategyMode` | `replace-default` | 自定义人设的组合方式：`replace-default` 整体替换内置人设；`extend-default` 追加在内置人设之后。两种方式下，任务层、固定不变量与条件规则都照常生效 |
+| `strategyMode` | `replace-default` | 自定义人设的组合方式：`replace-default` 整体替换内置人设；`extend-default` 追加在内置人设后。两种方式下，任务层、固定不变量与条件规则都照常生效 |
 | `systemPrompt` | 空 | 自定义人设；留空使用内置人设。自定义文本会整体替换内置人设（角色、分析四问、七条写作原则）；想保留内置人设再追加，用 `extend-default`。任务层与固定不变量不可替换。与 `strategyMode` 相邻，因为后者决定这段文本如何与内置人设结合 |
 | `temperature` | `0.3` | 采样温度 `0~1`（步进 0.05），越低越忠实原文 |
 | `maxInputChars` | `12000` | 输入字符上限；超限拒绝，不截断 |
@@ -262,11 +262,9 @@ flowchart LR
 `strategyMode` 只决定自定义文本如何与内置**人设**结合：
 
 - `replace-default`：整体替换内置人设；
-- `extend-default`：追加在内置人设之后。
+- `extend-default`：追加在内置人设后。
 
-两种方式下，固定不变量、任务层、条件规则都照常生效。这是 0.2.0（尚未发布）的破坏性变化：旧版的 `replace-default` 会连硬规则一起换掉，现在只换人设。
-
-也就是说：**自定义人设只决定模型的身份、分析方式与写作习惯，任务层（`TASK`、`LANGUAGE`、`FIDELITY`、`BOUNDARIES` 与输出形态）固定**；需要完全自定义行为的助手，请用 agent preset，而不是把人设当系统提示用。
+人设只决定模型的身份、分析方式与写作习惯；固定不变量、任务层（`TASK`、`LANGUAGE`、`FIDELITY`、`BOUNDARIES` 与输出形态）与条件规则不随人设改变。需要完全自定义行为的助手，请用 agent preset，而不是把人设当系统提示用。
 
 一个可复制的例子（需要配合「追加在内置人设后」）：
 

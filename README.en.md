@@ -261,9 +261,7 @@ When you need something sendable, one sentence of intent is enough: "hello, tell
 - `replace-default`: replaces the built-in persona;
 - `extend-default`: appends after it.
 
-Either way the invariant, the task layer, and the conditional rules still apply. This is the 0.2.0 breaking change (not released yet): the old `replace-default` replaced the hard rules too; now it replaces only the persona.
-
-That means a custom persona shapes only the model's identity, how it analyses the draft and how it writes; the task layer (`TASK`, `LANGUAGE`, `FIDELITY`, `BOUNDARIES` and the output shape) is fixed. For an assistant whose behaviour is fully custom, use an agent preset rather than treating the persona as a system prompt.
+The persona decides only the model's identity, how it analyses the draft and how it writes; the invariant, the task layer (`TASK`, `LANGUAGE`, `FIDELITY`, `BOUNDARIES` and the output shape) and the conditional rules do not change with it. For an assistant whose behaviour is fully custom, use an agent preset rather than treating the persona as a system prompt.
 
 A copyable example (use it with "Append after the built-in persona"):
 
