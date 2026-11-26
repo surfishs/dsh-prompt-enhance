@@ -246,6 +246,14 @@ It is WorkBuddy's system half (role, the four analysis questions, the seven craf
 
 The two modes share every other block verbatim, so switching modes cannot change the fidelity, language, or data-handling rules.
 
+### Fidelity first: why "hello" only gets an empty template
+
+The plugin writes only what the draft says or clearly implies; information only the author knows is marked `(TBD: …)`. So a draft with no task in it ("hello", "got it") comes back as a skeleton with placeholders rather than an invented thing to do.
+
+Some enhancers turn "hello" into "respond to my greeting and list what you can help with" — more useful to read, but that step decides the author's intent for them. This plugin is generic prompt enhancement: it does not know who the downstream assistant is, so it has no basis to invent a capability list. We would rather hand back an empty template than make that decision for you — the same reason the built-in persona drops the "be realistic in the features to add" licence.
+
+When you need something sendable, one sentence of intent is enough: "hello, tell me what you can help with" gives the rewrite something to build on instead of leaving it empty; if you only want to see the shape, take the skeleton and fill in the `(TBD)` markers.
+
 ### Custom personas
 
 `strategyMode` decides only how custom text combines with the built-in **persona**:
@@ -290,7 +298,8 @@ The table is organized by what you see; parameter meanings and defaults are in C
 | Truncated result | Reached `maxOutputTokens` | Check the truncation warning and raise `maxOutputTokens` in settings |
 | The card shows your draft itself, possibly with a full stop added | With a low reasoning tier and context awareness on, the model sometimes produces no rewrite and hands the draft back | The plugin still shows the body and marks it "no rewrite". Retry first; if it keeps happening, raise the reasoning tier a step; turn context awareness off only when that is still not enough |
 | Context usage shows `8/8 messages` (default) | The `contextMaxMessages` message cap (default 8) was reached; this is normal truncation and is not shown as a warning | Usually nothing to do; raise `contextMaxMessages` if you need older messages, though `contextMaxChars` (default 4,000 chars) may be hit first |
-| Context usage shows `4,000/4,000 chars` (default, amber) | The `contextMaxChars` limit (default 4,000) was reached, so earlier content was not sent; if the latest turn was cut, the reason says only its opening was sent | Raise `contextMaxChars`, or trim the conversation/references; more context means more input tokens and cost |
+| Context usage shows `4,000/4,000 chars` (default) | The `contextMaxChars` limit (default 4,000) was reached: the icon is amber when older messages were not sent, with "Character cap reached; earlier messages were not sent"; it is red when the newest message itself did not fit and only its opening went out (or nothing was sent), with "The newest message exceeds the context budget…" | Raise `contextMaxChars`, or trim the conversation/references; more context means more input tokens and cost |
+| A greeting like "hello" comes back as a template with `(TBD: …)` placeholders instead of a sendable task | The fidelity rule at work: the plugin does not invent a task or intent the draft never had | See "Prompt system › Fidelity first"; add one sentence of intent to the draft when you want a directly sendable result |
 | Message says no model is configured for the enhancement (no model route) | No pinned `provider`/`model` pair and no session model route | Set both `provider` and `model` in settings, or send a message in the current session so the plugin can follow the session model |
 | `/enhance` shows only the first line and cannot be expanded | A rendering limit of the DSH chat UI, not this plugin | Put the same text in the composer and use the enhance button; its card wraps and scrolls |
 
