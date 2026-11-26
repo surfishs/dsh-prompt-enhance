@@ -241,17 +241,23 @@ export function formatContextBlock(turns: readonly ContextTurn[]): string {
 }
 
 /**
- * Build the grounding snippet for one enhancement, or nothing at all.
+ * Build the grounding snippet for one enhancement, with the window's usage.
  * @param messages - the session's derived history (untrusted, may be undefined).
  * @param options - the configured window.
  * @param draft - the raw draft being enhanced.
- * @returns the framed snippet, or `undefined` when there is no usable history
- *   — the caller then runs the original single-prompt enhancement.
+ * @returns the framed snippet and its usage; `undefined` when there is nothing
+ *   to ground on. A cap that admitted no turn returns an empty snippet with the
+ *   usage, so the card can report why nothing was sent.
  */
 export function buildConversationContextWithUsage(messages: readonly unknown[] | undefined, options: ContextWindowOptions, draft?: string): { text: string; usage: ContextUsage } | undefined {
   if (messages === undefined) return undefined
   const selection = selectTurnsWithUsage(messages, options, draft)
-  if (selection.turns.length === 0) return undefined
+  if (selection.turns.length === 0) {
+    // A cap that admitted nothing is still an answer worth reporting: the card
+    // shows it as the severe "nothing was sent" state. An empty or disabled
+    // window has no cap to blame and stays silent, like before.
+    return selection.usage.limitedBy === null ? undefined : { text: '', usage: selection.usage }
+  }
   return { text: formatContextBlock(selection.turns), usage: selection.usage }
 }
 
@@ -264,5 +270,6 @@ export function buildConversationContextWithUsage(messages: readonly unknown[] |
  *   — the caller then runs the original single-prompt enhancement.
  */
 export function buildConversationContext(messages: readonly unknown[] | undefined, options: ContextWindowOptions, draft?: string): string | undefined {
-  return buildConversationContextWithUsage(messages, options, draft)?.text
+  const built = buildConversationContextWithUsage(messages, options, draft)
+  return built === undefined || built.text === '' ? undefined : built.text
 }

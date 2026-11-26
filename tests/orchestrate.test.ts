@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
 import { DEFAULT_CONFIG } from '../src/config'
-import { defaultRouteOf, sessionRouteOf } from '../src/orchestrate'
+import { defaultRouteOf, conversationContextWithUsage, sessionRouteOf } from '../src/orchestrate'
 
 /**
  * Minimal cordis stand-in. Cordis services are injected as CONTEXT PROPERTIES
@@ -139,5 +139,27 @@ describe('route resolution helpers', () => {
   it('keeps the defaults constant in sync', () => {
     expect(DEFAULT_CONFIG.maxConcurrent).toBe(2)
     expect(DEFAULT_CONFIG.rateLimitPerMinute).toBe(10)
+  })
+})
+
+describe('conversationContextWithUsage', () => {
+  /** One user turn longer than the tiny budget used below. */
+  const messages = [{ role: 'user', content: [{ type: 'text', text: 'x'.repeat(200) }] }]
+
+  it('reports the usage of a window a tiny cap emptied', () => {
+    // End-to-end wiring for the card's severe state: the snippet is empty, but
+    // the usage must survive so the panel can say nothing was sent and why.
+    const ctx = fakeCtx({ sessions: { get: () => ({ deriveMessages: () => messages }) } })
+    const built = conversationContextWithUsage(ctx, 's1', { ...DEFAULT_CONFIG, contextMaxChars: 10 }, '草稿')
+    expect(built).toEqual({
+      text: '',
+      usage: { usedTurns: 0, maxTurns: DEFAULT_CONFIG.contextMaxMessages, usedChars: 0, maxChars: 10, droppedTurns: 1, limitedBy: 'chars', cutTurn: false },
+    })
+  })
+
+  it('returns nothing when context awareness is off or the session is unknown', () => {
+    const ctx = fakeCtx({ sessions: { get: () => ({ deriveMessages: () => messages }) } })
+    expect(conversationContextWithUsage(ctx, 's1', { ...DEFAULT_CONFIG, contextAware: false }, '草稿')).toBeUndefined()
+    expect(conversationContextWithUsage(fakeCtx({}), 's1', DEFAULT_CONFIG, '草稿')).toBeUndefined()
   })
 })

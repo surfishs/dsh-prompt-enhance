@@ -129,6 +129,25 @@ describe('selectTurnsWithUsage', () => {
     expect(built?.text).toContain('[user] 用 Rust 重写')
     expect(built?.usage.usedChars).toBe('用 Rust 重写'.length)
   })
+
+  it('keeps the usage when a tiny budget admits nothing', () => {
+    // The card's severe state needs this answer: nothing was sent because the
+    // cap was too small even for a truncated head, not because there is no
+    // history. The text stays empty so the prompt is byte-identical.
+    const long = turn('user', 'x'.repeat(200))
+    const built = buildConversationContextWithUsage([long], { maxMessages: 8, maxChars: 10 })
+    expect(built).toEqual({
+      text: '',
+      usage: { usedTurns: 0, maxTurns: 8, usedChars: 0, maxChars: 10, droppedTurns: 1, limitedBy: 'chars', cutTurn: false },
+    })
+    // The text contract is unchanged: no snippet means undefined.
+    expect(buildConversationContext([long], { maxMessages: 8, maxChars: 10 })).toBeUndefined()
+  })
+
+  it('stays silent when the window is disabled', () => {
+    expect(buildConversationContextWithUsage([turn('user', 'hello')], { maxMessages: 8, maxChars: 0 })).toBeUndefined()
+    expect(buildConversationContextWithUsage([turn('user', 'hello')], { maxMessages: 0, maxChars: 4000 })).toBeUndefined()
+  })
 })
 
 describe('buildConversationContext', () => {

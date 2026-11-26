@@ -307,7 +307,10 @@ export async function runEnhance(ctx: Context, config: Config, options: RunEnhan
       throw new EnhanceFailure({ code: 'internal' })
     }
     const derivedContext = options.context === undefined ? conversationContextWithUsage(ctx, options.sessionId, config, options.text) : undefined
-    const context = options.context !== undefined ? options.context : derivedContext?.text
+    // An empty snippet is no snippet: the prompt and the log stay identical to
+    // the no-context call, while `derivedContext.usage` still reports why it
+    // was empty (a cap that admitted nothing).
+    const context = options.context !== undefined ? options.context : derivedContext?.text === '' ? undefined : derivedContext?.text
     // Count only: the route validates the wire shape, but this stays defensive
     // for direct callers, and zero must leave the prompt byte-identical.
     const attachmentCount = options.attachments !== undefined && Number.isSafeInteger(options.attachments.count) && options.attachments.count > 0 ? options.attachments.count : 0
