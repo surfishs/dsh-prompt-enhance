@@ -147,6 +147,7 @@ describe('ResultPanel upstream error copy', () => {
     const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
     const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
     expect(button.classList.contains('is-limited')).toBe(false)
+    expect(button.classList.contains('is-cut')).toBe(false)
     fireEvent.focus(button)
     expect(document.body.textContent).toContain('8/8')
     expect(document.body.textContent).not.toContain(zh['panel.contextCharsLimited'])
@@ -165,8 +166,46 @@ describe('ResultPanel upstream error copy', () => {
     const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
     const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
     expect(button.classList.contains('is-limited')).toBe(true)
+    expect(button.classList.contains('is-cut')).toBe(false)
     fireEvent.focus(button)
     expect(document.body.textContent).toContain(zh['panel.contextCharsLimited'])
+  })
+
+  it('marks the info button red when the newest message itself was cut', () => {
+    const result: EnhanceResult = {
+      text: '增强后的正文',
+      provider: 'p',
+      model: 'm',
+      elapsedMs: 1234,
+      context: { usedTurns: 1, maxTurns: 8, usedChars: 3990, maxChars: 4000, droppedTurns: 3, limitedBy: null, cutTurn: true },
+    }
+    const state: PanelState = { sessionId: 's1', phase: 'result', original: '旧原文', result }
+    const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
+    const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
+    expect(button.classList.contains('is-cut')).toBe(true)
+    expect(button.classList.contains('is-limited')).toBe(false)
+    fireEvent.focus(button)
+    expect(document.body.textContent).toContain(zh['panel.contextCut'])
+    // The warning line follows the red glyph instead of the amber tone.
+    expect(document.querySelector('.dsh-pe-context-reason')?.classList.contains('is-cut')).toBe(true)
+  })
+
+  it('marks the info button red when no turn was admitted at all', () => {
+    // `limitedBy: 'chars'` with nothing admitted is the corner where even a
+    // truncated head had no room: worse than dropping older turns, so it is red.
+    const result: EnhanceResult = {
+      text: '增强后的正文',
+      provider: 'p',
+      model: 'm',
+      elapsedMs: 1234,
+      context: { usedTurns: 0, maxTurns: 8, usedChars: 0, maxChars: 4000, droppedTurns: 2, limitedBy: 'chars', cutTurn: false },
+    }
+    const state: PanelState = { sessionId: 's1', phase: 'result', original: '旧原文', result }
+    const container = render(<ResultPanel state={state} t={t} onApply={() => {}} onCancel={() => {}} />).container
+    const button = container.querySelector('.dsh-pe-context') as HTMLButtonElement
+    expect(button.classList.contains('is-cut')).toBe(true)
+    fireEvent.focus(button)
+    expect(document.body.textContent).toContain(zh['panel.contextUnsent'])
   })
 
   it('warns when the host reports a token-capped rewrite', () => {

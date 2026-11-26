@@ -181,10 +181,15 @@ function totalTokensOf(usage: EnhanceUsage): number {
   return usage.totalTokens ?? usage.inputTokens + usage.outputTokens + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0)
 }
 
+/** Hover opens after the shell's own delay (its info tooltip uses 300ms). */
+const HOVER_DELAY_MS = 300
+
 /**
  * Footer info button: the call's context usage, on hover/focus (and a tap on
- * touch devices, where there is no hover). The card has no room for this in
- * its header, and the footer keeps the action row intact.
+ * touch devices, where there is no hover). A click pins the bubble — it then
+ * survives hover-leave and blur, and the next click, Escape or an outside press
+ * dismisses it, the way the shell's own tooltips behave. The card has no room
+ * for this in its header, and the footer keeps the action row intact.
  *
  * The bubble is placed in viewport coordinates from the trigger's rect AND
  * portaled to `document.body`. Both halves are required:
@@ -200,12 +205,20 @@ function totalTokensOf(usage: EnhanceUsage): number {
 function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: number }; t: TranslateNS<'dsh-prompt-enhance'> }): ReactNode {
   const { usage, attachments, t } = props
   const [open, setOpen] = useState(false)
+  // A pinned bubble outlives hover and blur; the button's click, Escape, or a
+  // press anywhere else is what dismisses it.
+  const [pinned, setPinned] = useState(false)
   // The bubble's viewport coordinates, measured from the trigger.
   const [box, setBox] = useState<{ left: number; bottom: number } | null>(null)
   const trigger = useRef<HTMLButtonElement | null>(null)
-  // Reaching the turn cap is the normal shape of the window, not a warning;
-  // only a character squeeze or a cut turn needs the amber treatment.
-  const limited = usage !== undefined && (usage.cutTurn || usage.limitedBy === 'chars')
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // Reaching the turn cap is the normal shape of the window, not a warning.
+  // Two character squeezes remain, and they are not the same severity:
+  // - red: the newest turn itself did not fit (`cutTurn`), or even its head had
+  //   no room (`limitedBy === 'chars'` with nothing admitted);
+  // - amber: the newest turns went in whole and an older one did not fit.
+  const cut = usage !== undefined && (usage.cutTurn || (usage.limitedBy === 'chars' && usage.usedTurns === 0))
+  const amber = usage !== undefined && !cut && usage.limitedBy === 'chars'
   const percent = usage !== undefined && usage.maxChars > 0 ? Math.round((usage.usedChars / usage.maxChars) * 100) : 0
   const stats =
     usage === undefined
@@ -217,7 +230,8 @@ function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: 
           maxChars: formatTokens(usage.maxChars),
           percent,
         })
-  const reason = usage === undefined ? '' : usage.cutTurn ? t('panel.contextCut') : usage.limitedBy === 'chars' ? t('panel.contextCharsLimited') : ''
+  const reason =
+    usage === undefined ? '' : usage.cutTurn ? t('panel.contextCut') : usage.limitedBy === 'chars' ? (usage.usedTurns === 0 ? t('panel.contextUnsent') : t('panel.contextCharsLimited')) : ''
 
   /** Measure the trigger and sit the bubble 8px above it, inside the viewport. */
   const place = useCallback((): void => {
@@ -230,6 +244,30 @@ function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: 
     place()
     setOpen(true)
   }, [place])
+  /** Drop a pending hover open (leave, focus, click, escape, unmount). */
+  const cancelHover = (): void => {
+    if (hoverTimer.current !== undefined) {
+      clearTimeout(hoverTimer.current)
+      hoverTimer.current = undefined
+    }
+  }
+  // The bubble follows the shell's own timing: a hover waits 300ms (the shell's
+  // info tooltip passes that delay), while focus and click open at once. A
+  // pointer that leaves inside the window cancels the open, so pass-over does
+  // not flash the bubble.
+  const scheduleHover = (): void => {
+    cancelHover()
+    hoverTimer.current = setTimeout(() => {
+      hoverTimer.current = undefined
+      show()
+    }, HOVER_DELAY_MS)
+  }
+  useEffect(
+    () => () => {
+      cancelHover()
+    },
+    [],
+  )
   // Out of the card's flow, the bubble no longer follows the trigger on its own:
   // the shell and the dock can both scroll while a pointer rests on it.
   useEffect(() => {
@@ -243,21 +281,71 @@ function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: 
     }
   }, [open, place])
 
+  // Pinned: the bubble stops following hover and focus, so the ways out are the
+  // button's second click, Escape, or a press anywhere else. The trigger is
+  // skipped because its own click owns the pin; Escape is read at the document
+  // so it also works after focus has moved on (the shell's tooltip does the
+  // same for its click-opened bubbles).
+  useEffect(() => {
+    if (!pinned || !open) return
+    const onPointerDown = (event: PointerEvent): void => {
+      const target = event.target
+      if (target instanceof Node && trigger.current?.contains(target) === true) return
+      setPinned(false)
+      setOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      setPinned(false)
+      setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('keydown', onKeyDown, true)
+    }
+  }, [pinned, open])
+
   return (
     <span className="dsh-pe-context-wrap">
       <button
         ref={trigger}
         type="button"
-        className={`dsh-pe-context${limited ? ' is-limited' : ''}`}
+        className={`dsh-pe-context${cut ? ' is-cut' : amber ? ' is-limited' : ''}`}
         aria-label={t('panel.contextUsage')}
         aria-expanded={open}
-        onMouseEnter={show}
-        onMouseLeave={() => setOpen(false)}
-        onFocus={show}
-        onBlur={() => setOpen(false)}
-        onClick={() => (open ? setOpen(false) : show())}
+        onMouseEnter={scheduleHover}
+        onMouseLeave={() => {
+          cancelHover()
+          if (!pinned) setOpen(false)
+        }}
+        onFocus={() => {
+          cancelHover()
+          show()
+        }}
+        onBlur={() => {
+          cancelHover()
+          if (!pinned) setOpen(false)
+        }}
+        onClick={() => {
+          cancelHover()
+          // The click promotes the transient bubble to a pinned one; the next
+          // click dismisses it. Hover-leave and blur ignore a pinned bubble.
+          if (pinned) {
+            setPinned(false)
+            setOpen(false)
+          } else {
+            setPinned(true)
+            show()
+          }
+        }}
         onKeyDown={(event) => {
-          if (event.key === 'Escape') setOpen(false)
+          if (event.key === 'Escape') {
+            cancelHover()
+            setPinned(false)
+            setOpen(false)
+          }
         }}
       >
         <svg className="dsh-pe-context-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
@@ -270,7 +358,7 @@ function ContextUsageInfo(props: { usage?: ContextUsage; attachments?: { count: 
         createPortal(
           <span role="tooltip" className="dsh-pe-context-tip" style={{ left: box.left, bottom: box.bottom }}>
             <span className="dsh-pe-context-stats">{stats}</span>
-            {reason !== '' && <span className="dsh-pe-context-reason">{reason}</span>}
+            {reason !== '' && <span className={`dsh-pe-context-reason${cut ? ' is-cut' : ''}`}>{reason}</span>}
             {attachments !== undefined && attachments.count > 0 && <span className="dsh-pe-context-attachments">{t('panel.attachmentsCount', { count: attachments.count })}</span>}
           </span>,
           document.body,

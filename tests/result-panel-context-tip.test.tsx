@@ -12,7 +12,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ContextUsage, EnhanceResult } from '../src/shared/protocol'
 import { zh } from '../src/client/locales'
@@ -57,7 +57,7 @@ describe('context usage bubble placement', () => {
     const trigger = screen.getByLabelText(zh['panel.contextUsage'])
     withRect(trigger, { left: 120, top: 500 })
 
-    fireEvent.mouseEnter(trigger)
+    fireEvent.focus(trigger)
 
     const bubble = screen.getByRole('tooltip')
     // Body-level is what keeps the seat's `will-change: transform` from becoming
@@ -72,7 +72,7 @@ describe('context usage bubble placement', () => {
     const trigger = screen.getByLabelText(zh['panel.contextUsage'])
     withRect(trigger, { left: 120, top: 500 })
 
-    fireEvent.mouseEnter(trigger)
+    fireEvent.focus(trigger)
 
     const bubble = screen.getByRole('tooltip')
     // jsdom's viewport is 768px tall: bottom = 768 - 500 + 8.
@@ -87,7 +87,7 @@ describe('context usage bubble placement', () => {
     // bubble rather than a negative offset.
     withRect(trigger, { left: -6, top: 780 })
 
-    fireEvent.mouseEnter(trigger)
+    fireEvent.focus(trigger)
 
     const bubble = screen.getByRole('tooltip')
     expect(bubble.style.left).toBe('8px')
@@ -98,7 +98,7 @@ describe('context usage bubble placement', () => {
     render(<ResultPanel state={state()} t={t} onApply={() => {}} onCancel={() => {}} />)
     const trigger = screen.getByLabelText(zh['panel.contextUsage'])
     withRect(trigger, { left: 120, top: 500 })
-    fireEvent.mouseEnter(trigger)
+    fireEvent.focus(trigger)
 
     withRect(trigger, { left: 40, top: 400 })
     fireEvent.scroll(document)
@@ -139,6 +139,122 @@ describe('context usage bubble placement', () => {
     fireEvent.click(trigger)
     expect(screen.queryByRole('tooltip')).not.toBeNull()
     fireEvent.click(trigger)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+})
+
+describe('context usage bubble timing', () => {
+  it('waits 300ms on hover and cancels the open when the pointer leaves first', () => {
+    vi.useFakeTimers()
+    try {
+      render(<ResultPanel state={state()} t={t} onApply={() => {}} onCancel={() => {}} />)
+      const trigger = screen.getByLabelText(zh['panel.contextUsage'])
+      withRect(trigger, { left: 120, top: 500 })
+
+      fireEvent.mouseEnter(trigger)
+      expect(screen.queryByRole('tooltip')).toBeNull()
+      act(() => {
+        vi.advanceTimersByTime(299)
+      })
+      expect(screen.queryByRole('tooltip')).toBeNull()
+
+      // A pass-over must not flash the bubble after the pointer has gone.
+      fireEvent.mouseLeave(trigger)
+      act(() => {
+        vi.advanceTimersByTime(1)
+      })
+      expect(screen.queryByRole('tooltip')).toBeNull()
+
+      fireEvent.mouseEnter(trigger)
+      act(() => {
+        vi.advanceTimersByTime(300)
+      })
+      expect(screen.queryByRole('tooltip')).not.toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('opens at once on keyboard focus and on click', () => {
+    render(<ResultPanel state={state()} t={t} onApply={() => {}} onCancel={() => {}} />)
+    const trigger = screen.getByLabelText(zh['panel.contextUsage'])
+    withRect(trigger, { left: 120, top: 500 })
+
+    fireEvent.focus(trigger)
+    expect(screen.queryByRole('tooltip')).not.toBeNull()
+    fireEvent.blur(trigger)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+
+    fireEvent.click(trigger)
+    expect(screen.queryByRole('tooltip')).not.toBeNull()
+  })
+})
+
+describe('context usage bubble pinning', () => {
+  it('keeps a clicked bubble open through blur and pointer leave', () => {
+    render(<ResultPanel state={state()} t={t} onApply={() => {}} onCancel={() => {}} />)
+    const trigger = screen.getByLabelText(zh['panel.contextUsage'])
+    withRect(trigger, { left: 120, top: 500 })
+
+    fireEvent.click(trigger)
+    expect(screen.queryByRole('tooltip')).not.toBeNull()
+
+    // The click turns the transient bubble into a pinned one: neither moving
+    // the pointer away nor losing focus may dismiss it.
+    fireEvent.mouseLeave(trigger)
+    fireEvent.blur(trigger)
+    expect(screen.queryByRole('tooltip')).not.toBeNull()
+
+    // The same click toggles it off again.
+    fireEvent.click(trigger)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
+  it('pins a bubble that a hover had already opened', () => {
+    vi.useFakeTimers()
+    try {
+      render(<ResultPanel state={state()} t={t} onApply={() => {}} onCancel={() => {}} />)
+      const trigger = screen.getByLabelText(zh['panel.contextUsage'])
+      withRect(trigger, { left: 120, top: 500 })
+
+      fireEvent.mouseEnter(trigger)
+      act(() => {
+        vi.advanceTimersByTime(300)
+      })
+      expect(screen.queryByRole('tooltip')).not.toBeNull()
+
+      fireEvent.click(trigger)
+      fireEvent.mouseLeave(trigger)
+      // Already open from the hover: the click pins it instead of closing it.
+      expect(screen.queryByRole('tooltip')).not.toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('dismisses a pinned bubble on a press outside the trigger', () => {
+    render(<ResultPanel state={state()} t={t} onApply={() => {}} onCancel={() => {}} />)
+    const trigger = screen.getByLabelText(zh['panel.contextUsage'])
+    withRect(trigger, { left: 120, top: 500 })
+
+    fireEvent.click(trigger)
+    expect(screen.queryByRole('tooltip')).not.toBeNull()
+
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
+  it('dismisses a pinned bubble on escape even after focus has moved on', () => {
+    render(<ResultPanel state={state()} t={t} onApply={() => {}} onCancel={() => {}} />)
+    const trigger = screen.getByLabelText(zh['panel.contextUsage'])
+    withRect(trigger, { left: 120, top: 500 })
+
+    fireEvent.click(trigger)
+    // A pinned bubble survives the blur; Escape must still reach it.
+    fireEvent.blur(trigger)
+    expect(screen.queryByRole('tooltip')).not.toBeNull()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('tooltip')).toBeNull()
   })
 })

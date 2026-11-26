@@ -566,8 +566,8 @@ html:not([data-platform='darwin']) .dsh-pe-menu-group-label { border-radius: var
   border-radius: 8px;
   background: transparent;
   /* The glyph carries the state on its own: grey when the window is healthy,
-     amber when it had to cut something. The precise counts stay in the
-     tooltip. */
+     amber when older turns were dropped, red when the newest turn itself did
+     not fit. The precise counts stay in the tooltip. */
   --pe-context-accent: var(--dsw-alias-label-tertiary, #8a8a8a);
   color: var(--pe-context-accent);
   cursor: default;
@@ -582,6 +582,17 @@ html:not([data-platform='darwin']) .dsh-pe-menu-group-label { border-radius: var
 .dsh-pe-context.is-limited:hover,
 .dsh-pe-context.is-limited:focus-visible {
   background: rgba(180, 83, 9, 0.1);
+}
+/* The severe state: the newest turn itself was cut (or nothing was admitted),
+   so the rewrite ran without the message it was written for. Same hardcoded
+   scheme as the amber pair, one step darker. */
+.dsh-pe-context.is-cut {
+  --pe-context-accent: #b91c1c;
+  color: var(--pe-context-accent);
+}
+.dsh-pe-context.is-cut:hover,
+.dsh-pe-context.is-cut:focus-visible {
+  background: rgba(185, 28, 28, 0.1);
 }
 .dsh-pe-context-icon {
   position: relative;
@@ -644,6 +655,9 @@ html:not([data-platform='darwin']) .dsh-pe-menu-group-label { border-radius: var
    as a layout bug. The reason line may wrap freely. */
 .dsh-pe-context-tip .dsh-pe-context-stats { white-space: nowrap; }
 .dsh-pe-context-tip .dsh-pe-context-reason { color: #f2c185; }
+/* The severe warning's line follows the red glyph (q3): a lighter red for
+   contrast on the dark bubble, one step from the amber tone above. */
+.dsh-pe-context-tip .dsh-pe-context-reason.is-cut { color: #f2a5a5; }
 /* Attachment count is metadata, not a warning: same tooltip body color. */
 .dsh-pe-context-tip .dsh-pe-context-attachments { white-space: nowrap; }
 /* Narrow viewports: the card itself is close to the viewport width, so the
