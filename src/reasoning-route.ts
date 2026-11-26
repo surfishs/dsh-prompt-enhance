@@ -13,7 +13,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import { REASONING_EFFORTS_ENDPOINT } from './shared/reasoning'
 import { resolveReasoningCapabilities } from './reasoning-efforts'
-import { trustRejection } from './trust'
+import { trustRejection, type TrustConfigReader } from './trust'
 import { writeJson } from './http'
 
 /** Read one optional query parameter, treating whitespace as absent. */
@@ -27,9 +27,10 @@ function queryParam(url: URL, name: string): string | undefined {
  * @param ctx - plugin context carrying `llm` (and `agentDefaultModel` when present).
  * @param req - the incoming request.
  * @param res - the outgoing response.
+ * @param readConfig - current config reader for the explicit allowlists.
  */
-export async function serveReasoningEfforts(ctx: Context, req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const rejection = trustRejection(ctx, req)
+export async function serveReasoningEfforts(ctx: Context, req: IncomingMessage, res: ServerResponse, readConfig?: TrustConfigReader): Promise<void> {
+  const rejection = trustRejection(ctx, req, readConfig)
   if (rejection !== undefined) {
     writeJson(res, rejection.status, {
       ok: false,

@@ -5,6 +5,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- Explicit `lanHosts` / `relayHosts` origin allowlists for non-loopback access. Both are empty by default and are consulted only after the host connection gate admits the request; LAN entries reject proxy headers, relay entries allow them. The relay list is an explicit operator risk: the origin is not a secret, and Host/Origin are not authentication.
+
 ### Fixed
 
 - Return distinct trust error codes (`unauthorized`, `forbidden`, `loopback-only`) instead of `internal`, and localize them in the result card.

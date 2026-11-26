@@ -29,6 +29,10 @@ export const DEFAULT_VALUES = {
   shortcut: '',
   maxConcurrent: 2,
   rateLimitPerMinute: 10,
+  /** Newline-separated exact origins allowed for direct LAN access. */
+  lanHosts: '',
+  /** Newline-separated exact origins allowed for a trusted relay. */
+  relayHosts: '',
   streaming: true,
   contextAware: true,
   contextMaxMessages: 8,

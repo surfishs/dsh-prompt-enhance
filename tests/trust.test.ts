@@ -77,4 +77,38 @@ describe('trustRejection', () => {
       code: 'forbidden',
     })
   })
+
+  it('admits a configured LAN origin only after the host gate, without proxy headers', () => {
+    const readConfig = (): { lanHosts: string; relayHosts: string } => ({ lanHosts: 'http://192.168.31.181:3080', relayHosts: '' })
+    expect(trustRejection(ctxOf(allows), req({ host: '192.168.31.181:3080', origin: 'http://192.168.31.181:3080' }), readConfig)).toBeUndefined()
+    expect(trustRejection(ctxOf(allows), req({ host: '192.168.31.181:3080', origin: 'http://192.168.31.181:3080', 'x-forwarded-for': '10.0.0.2' }), readConfig)).toMatchObject({
+      status: 403,
+      code: 'loopback-only',
+    })
+  })
+
+  it('admits a configured relay origin with proxy headers', () => {
+    const readConfig = (): { lanHosts: string; relayHosts: string } => ({ lanHosts: '', relayHosts: 'https://abc.dsh-market.com' })
+    expect(trustRejection(ctxOf(allows), req({ host: 'abc.dsh-market.com', origin: 'https://abc.dsh-market.com', 'x-forwarded-for': '10.0.0.2' }), readConfig)).toBeUndefined()
+  })
+
+  it('never lets an allowlist bypass the host gate or replace the no-connection fence', () => {
+    const readConfig = (): { lanHosts: string; relayHosts: string } => ({ lanHosts: 'http://192.168.31.181:3080', relayHosts: 'https://abc.dsh-market.com' })
+    expect(trustRejection(ctxOf({ requestRejection: () => 401 }), req({ host: '192.168.31.181:3080', origin: 'http://192.168.31.181:3080' }), readConfig)).toMatchObject({
+      status: 401,
+      code: 'unauthorized',
+    })
+    expect(trustRejection(ctxOf(undefined), req({ host: '192.168.31.181:3080', origin: 'http://192.168.31.181:3080' }), readConfig)).toMatchObject({
+      status: 403,
+      code: 'loopback-only',
+    })
+  })
+
+  it('keeps an unconfigured non-loopback host on the loopback fence', () => {
+    const readConfig = (): { lanHosts: string; relayHosts: string } => ({ lanHosts: 'http://192.168.31.181:3080', relayHosts: '' })
+    expect(trustRejection(ctxOf(allows), req({ host: '192.168.31.179:3080', origin: 'http://192.168.31.179:3080' }), readConfig)).toMatchObject({
+      status: 403,
+      code: 'loopback-only',
+    })
+  })
 })

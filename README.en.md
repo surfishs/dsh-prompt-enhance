@@ -172,6 +172,8 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | `contextMaxChars` | `4000` | Character budget of the history snippet (DSH-injected messages excluded); `0` disables |
 | `maxConcurrent` | `2` | Concurrent enhancement limit; a new request past the limit is told to retry later |
 | `rateLimitPerMinute` | `10` | Successful enhancements per minute, counted over any rolling 60 seconds; past the limit the request is told to retry later |
+| `lanHosts` | empty | Direct-LAN allowlist: one full origin per line (e.g. `http://192.168.31.181:3080`). A match permits non-loopback direct access but still requires a DSH session and rejects `X-Forwarded-For` / `Forwarded`. Empty keeps the routes loopback-only. If the same host is in both lists, the LAN rule wins |
+| `relayHosts` | empty | Relay allowlist: one full origin per line (e.g. `https://abc.dsh-market.com`). A match permits `X-Forwarded-For` / `Forwarded` but still requires a DSH session and an exact `Host` / `Origin`. The relay origin is not a secret; empty by default, and the quota/exposure risk is accepted by the operator |
 
 ### About the default reasoning effort
 
@@ -187,8 +189,10 @@ Pick a model that is not noticeably weaker than the one running the session: the
 
 ## Security
 
-- **Local access only**: the enhance route is served by the local DSH host and accepts only requests from this machine (a loopback connection whose `Host` / `Origin` name the local host). A LAN or remote address is refused with HTTP 403 and the `loopback-only` code; the settings page and the result card tell you to use `127.0.0.1` / `localhost` instead of blaming the model configuration.
-- **Do not expose it behind a reverse proxy**: a proxy rewrites `Host` and may drop `Origin`, so the plugin no longer sees the real visitor; requests carrying `X-Forwarded-For` / `Forwarded` are rejected, but that is not enough to make proxying safe. Use the route directly from this machine only.
+- **Local access by default**: the enhance route is served by the local DSH host and normally accepts only requests from this machine (a loopback connection whose `Host` / `Origin` name the local host). Without configuration, a LAN or remote address is refused with HTTP 403 and the `loopback-only` code. The host connection gate still runs first: 401/403 from it is never bypassed.
+- **Allowlists are not authentication**: `lanHosts` / `relayHosts` match `Host` / `Origin`, which a client that can reach the host can forge; `relayHosts` also permits `X-Forwarded-For` / `Forwarded`. Both lists are empty by default, have no wildcards, require exact origins, and are only consulted after the host gate admits the request. Enabling them accepts the model-quota, draft-disclosure and network-exposure risk.
+- **Do not expose it behind a reverse proxy**: by default a proxy rewrites `Host` and may drop `Origin`, so the plugin no longer sees the real visitor; requests carrying `X-Forwarded-For` / `Forwarded` are rejected. Only an explicit `relayHosts` entry permits that relay path, and that is an accepted risk rather than a security guarantee.
+- **Remote access is off by default**: opening the GUI from a LAN or relay address fails with HTTP 403 and the `loopback-only` code. To opt in, configure `lanHosts` (direct LAN) or `relayHosts` (relay) in Advanced, after confirming the host session gate authenticates that path. Once enabled, any DSH session that can reach the host/relay with the exact `Host` / `Origin` may spend model quota and send drafts to the provider; the relay origin is not a secret. This is an explicit risk switch, not secure remote access.
 - **Prompt-injection boundary**: the draft is framed between `<raw_prompt>` tags, and a closing tag inside it is neutralized; this lowers the risk of a tag escape, but a prompt-level boundary is **best effort, not a guarantee**.
 - **No model keys stored**: the plugin does not read or store model API keys; calls reuse the model configuration and credentials already in DSH.
 - **Context sent only when enabled**: with `contextAware` on, the most recent user/assistant messages and the current draft are sent to the configured model provider (default: up to 8 messages and 4,000 characters); system messages, model reasoning, tool results and attachments are excluded; the enhancer is told only how many attachments the draft carries (so it never claims none were provided), never their contents; it may add a task-level pointer ("see the attachment") but must not describe or infer the contents; only messages you sent and assistant replies are counted, and environment/skill/time and other context injected by DSH is neither counted nor charged against the budget. With it off, only the draft is sent.
@@ -301,6 +305,8 @@ The table is organized by what you see; parameter meanings and defaults are in C
 | Message says at most N enhancements per minute | The `rateLimitPerMinute` cap is reached | Wait as the message says, or raise the cap in settings |
 | Enhancement timed out or was cancelled | Over `timeoutMs`, or you pressed Cancel | Retry or raise `timeoutMs` after a timeout; a cancel leaves the draft unchanged — just run it again |
 | Authentication failure | The provider's credentials or API key are invalid | Check that provider's credentials/API key in DSH |
+| A phone or another device cannot use enhancement | The GUI is opened through a LAN or relay address, and the default loopback fence rejects it (`loopback-only`) | Use this machine, or explicitly configure `lanHosts` / `relayHosts` in Advanced (a DSH session is still required, and the risk is yours) |
+| Still 403 after configuring `lanHosts` / `relayHosts` | `Host` / `Origin` do not exactly match the configured origin (scheme, port, case, or a proxy rewrite); a LAN entry also rejects `X-Forwarded-For` / `Forwarded`; or the host gate refused first with 401/403 | Enter the full origin shown in the browser; do not proxy a LAN entry; confirm the DSH session first; `unauthorized` / `forbidden` means the host gate, `loopback-only` means the plugin fence |
 | Truncated result | Reached `maxOutputTokens` | Check the truncation warning and raise `maxOutputTokens` in settings |
 | The card shows your draft itself, possibly with a full stop added | With a low reasoning tier and context awareness on, the model sometimes produces no rewrite and hands the draft back | The plugin still shows the body and marks it "no rewrite". Retry first; if it keeps happening, raise the reasoning tier a step; turn context awareness off only when that is still not enough |
 | Context usage shows `8/8 messages` (default) | The `contextMaxMessages` message cap (default 8) was reached; this is normal truncation and is not shown as a warning | Usually nothing to do; raise `contextMaxMessages` if you need older messages, though `contextMaxChars` (default 4,000 chars) may be hit first |
@@ -384,7 +390,7 @@ src/
 ├── enhance-command.ts     the /enhance slash command
 ├── admission.ts           admission control: sliding-window rate cap, concurrency cap, failure breaker
 ├── context.ts             conversation-context window selection and character budget
-├── trust.ts / loopback.ts trust gate: host connection check, loopback-only fence as fallback
+├── trust.ts / loopback.ts / trusted-hosts.ts trust gate: host connection check, loopback fence and explicit origin allowlists
 ├── http.ts / sse.ts       bounded JSON body/response helpers, backpressure-aware SSE writer
 ├── settings-source.ts     settings reads across DSH generations
 ├── catalog-route.ts       provider/model catalog and route-check endpoints for the settings page

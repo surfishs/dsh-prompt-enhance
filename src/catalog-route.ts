@@ -10,7 +10,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import { LLM_MODELS_ENDPOINT, LLM_PROVIDERS_ENDPOINT, LLM_ROUTE_CHECK_ENDPOINT } from './shared/catalog'
 import { checkRoute, listModelCatalog, listProviderCatalog } from './provider-catalog'
-import { trustRejection } from './trust'
+import { trustRejection, type TrustConfigReader } from './trust'
 import { writeJson } from './http'
 
 /** Read one required query parameter, treating whitespace as absent. */
@@ -25,9 +25,11 @@ function requiredParam(url: URL, name: string): string | undefined {
  * @param req - the incoming request.
  * @param res - the outgoing response.
  * @param pathname - the already-parsed request path.
+ * @param readConfig - current config reader for the explicit allowlists.
+ * @returns the response side effect.
  */
-export async function serveCatalog(ctx: Context, req: IncomingMessage, res: ServerResponse, pathname: string): Promise<void> {
-  const rejection = trustRejection(ctx, req)
+export async function serveCatalog(ctx: Context, req: IncomingMessage, res: ServerResponse, pathname: string, readConfig?: TrustConfigReader): Promise<void> {
+  const rejection = trustRejection(ctx, req, readConfig)
   if (rejection !== undefined) {
     writeJson(res, rejection.status, {
       ok: false,

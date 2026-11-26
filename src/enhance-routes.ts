@@ -58,7 +58,7 @@ function attachmentCountOf(value: unknown): number | undefined {
  *   only the response shape differs.
  */
 async function serveEnhance(ctx: Context, readConfig: () => Config, gate: AdmissionGate, pathname: string, req: IncomingMessage, res: ServerResponse, stream: boolean): Promise<void> {
-  const rejection = trustRejection(ctx, req)
+  const rejection = trustRejection(ctx, req, readConfig)
   if (rejection !== undefined) {
     writeJson(res, rejection.status, {
       ok: false,
@@ -342,9 +342,9 @@ export function registerEnhanceRoute(ctx: Context, readConfig: () => Config, gat
           // One read-only sibling under the same prefix: the settings page asks
           // what tiers the configured route declares. It shares the fence and
           // the per-mount lifetime, and never touches the admission gate.
-          if (pathname === REASONING_EFFORTS_ENDPOINT) return serveReasoningEfforts(ctx, req, res)
+          if (pathname === REASONING_EFFORTS_ENDPOINT) return serveReasoningEfforts(ctx, req, res, readConfig)
           if (pathname === LLM_PROVIDERS_ENDPOINT || pathname === LLM_MODELS_ENDPOINT || pathname === LLM_ROUTE_CHECK_ENDPOINT) {
-            return serveCatalog(ctx, req, res, pathname)
+            return serveCatalog(ctx, req, res, pathname, readConfig)
           }
           return serveEnhance(ctx, readConfig, gate, pathname, req, res, pathname === ENHANCE_STREAM_ENDPOINT)
         },

@@ -89,6 +89,25 @@ export interface Config {
   /** Sliding-window rate cap: enhancements per minute (host-side). */
   rateLimitPerMinute: number
   /**
+   * Newline-separated exact origins allowed to reach the plugin routes over a
+   * direct LAN connection, e.g. `http://192.168.31.181:3080`.
+   *
+   * Empty (the default) keeps the routes loopback-only. A match still has to
+   * pass the host connection gate, and LAN requests carrying
+   * `X-Forwarded-For` / `Forwarded` are still refused.
+   */
+  lanHosts: string
+  /**
+   * Newline-separated exact origins allowed to reach the plugin routes through
+   * a relay/proxy, e.g. `https://abc.dsh-market.com`.
+   *
+   * Empty (the default) keeps the routes loopback-only. A match still has to
+   * pass the host connection gate; unlike `lanHosts`, proxy headers are
+   * permitted. The relay origin is not a secret and this mode is an explicit
+   * risk the operator accepts.
+   */
+  relayHosts: string
+  /**
    * Show the model's output in the panel as it streams instead of waiting for
    * the whole rewrite. Display-only: the final text is still the normalized
    * full result, so the output the user applies never changes.
@@ -194,6 +213,20 @@ export const Config = z.object({
     .max(FIELD_LIMITS.rateLimitPerMinute.max)
     .default(DEFAULT_CONFIG.rateLimitPerMinute)
     .description('每分钟增强次数上限（滑动窗口），超出返回 429')
+    .volatile(),
+  lanHosts: z
+    .string()
+    .role('textarea')
+    .default(DEFAULT_CONFIG.lanHosts)
+    .description('局域网直连白名单：每行一个完整 origin（如 http://192.168.31.181:3080）。命中后仍要求 DSH 会话，并拒绝 X-Forwarded-For / Forwarded；默认空即只允许本机回环')
+    .volatile(),
+  relayHosts: z
+    .string()
+    .role('textarea')
+    .default(DEFAULT_CONFIG.relayHosts)
+    .description(
+      '中继访问白名单：每行一个完整 origin（如 https://abc.dsh-market.com）。命中后允许 X-Forwarded-For / Forwarded，但仍要求 DSH 会话与精确 Host/Origin；中继域名不是密钥，默认空，启用风险由用户承担',
+    )
     .volatile(),
   streaming: z.boolean().default(DEFAULT_CONFIG.streaming).description('增量展示：模型边写边在面板显示（仅影响显示节奏，最终结果不变；宿主或网络不支持时自动回退为一次性返回）').volatile(),
   foldAnimation: z.boolean().default(DEFAULT_CONFIG.foldAnimation).description('卡片折叠动画：展开/收起时播放过渡；关闭后立即切换（系统「减少动态效果」偏好始终优先）').volatile(),
@@ -309,6 +342,8 @@ export function resolveConfig(config: Config): Config {
     shortcut: typeof config.shortcut === 'string' ? config.shortcut : '',
     maxConcurrent: intInRange(config.maxConcurrent, 'maxConcurrent', FIELD_LIMITS.maxConcurrent),
     rateLimitPerMinute: intInRange(config.rateLimitPerMinute, 'rateLimitPerMinute', FIELD_LIMITS.rateLimitPerMinute),
+    lanHosts: typeof config.lanHosts === 'string' ? config.lanHosts : '',
+    relayHosts: typeof config.relayHosts === 'string' ? config.relayHosts : '',
     streaming: typeof config.streaming === 'boolean' ? config.streaming : DEFAULT_CONFIG.streaming,
     foldAnimation: typeof config.foldAnimation === 'boolean' ? config.foldAnimation : DEFAULT_CONFIG.foldAnimation,
     autoFold: typeof config.autoFold === 'boolean' ? config.autoFold : DEFAULT_CONFIG.autoFold,

@@ -173,6 +173,8 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `contextMaxChars` | `4000` | 对话片段的字符预算（DSH 注入消息不计入）；`0` 表示不参考 |
 | `maxConcurrent` | `2` | 同时进行的增强上限；达到上限时新请求会提示稍后再试 |
 | `rateLimitPerMinute` | `10` | 每分钟成功增强次数上限，按任意连续 60 秒计算；超限时提示稍后再试 |
+| `lanHosts` | 空 | 局域网直连白名单：每行一个完整 origin（如 `http://192.168.31.181:3080`）；命中后允许非回环直连，但仍要求 DSH 会话，并拒绝 `X-Forwarded-For` / `Forwarded`。默认空即只允许本机回环。同一地址同时出现在两份名单时按 LAN 处理 |
+| `relayHosts` | 空 | 中继访问白名单：每行一个完整 origin（如 `https://abc.dsh-market.com`）；命中后允许 `X-Forwarded-For` / `Forwarded`，但仍要求 DSH 会话与精确 `Host` / `Origin`。中继域名不是密钥；默认空，开启后的额度与暴露风险由用户承担 |
 
 ### 关于默认的思考档位
 
@@ -188,10 +190,11 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 
 ## 安全
 
-- **仅本机可访问**：增强路由由本机 DSH 宿主提供，信任判断分两层。宿主提供连接校验（`ctx.connection.requestRejection`）时以宿主为准：`Host` 必须是回环或可信主机、`Sec-Fetch-Site` 非 cross-site、`Origin` 与 `Host` 同源，并校验浏览器会话；返回 401/403 即拒绝。宿主放行后，插件只再做结构性检查（socket 回环、`Host` 允许列表、拒绝 `X-Forwarded-For` / `Forwarded`），不再自行判断 `Origin` / `Sec-Fetch-*`——桌面版（Electron 桥接）的请求不带这些头，判断由宿主完成。宿主不提供该服务时退回插件栅栏并记录一次警告，此时按完整规则默认拒绝：缺 `Host`、`Sec-Fetch-Site: cross-site`、非 GET 请求缺 `Origin` 均被拒。宿主提供连接校验时，本机脚本直接调用需要 DSH 会话，否则会收到 401；调试请用 DSH 界面里发起的请求。
+- **默认仅本机可访问**：增强路由由本机 DSH 宿主提供，信任判断分两层。宿主提供连接校验（`ctx.connection.requestRejection`）时以宿主为准：`Host` 必须是回环或可信主机、`Sec-Fetch-Site` 非 cross-site、`Origin` 与 `Host` 同源，并校验浏览器会话；返回 401/403 即拒绝。宿主放行后，默认仍要求 socket 与 `Host` 回环；只有显式配置 `lanHosts` / `relayHosts` 且命中时才跳过这一步。宿主不提供该服务时退回插件栅栏并记录一次警告，此时按完整规则默认拒绝：缺 `Host`、`Sec-Fetch-Site: cross-site`、非 GET 请求缺 `Origin` 均被拒。宿主提供连接校验时，本机脚本直接调用需要 DSH 会话，否则会收到 401；调试请用 DSH 界面里发起的请求。
+- **白名单不是认证**：`lanHosts` / `relayHosts` 匹配的是 `Host` / `Origin`，这些头可以被能到达宿主的客户端伪造；`relayHosts` 还会允许 `X-Forwarded-For` / `Forwarded`。它们是显式风险开关，不能替代 DSH 会话；默认空、无通配符、精确 origin，并且必须保留宿主闸门。开启后的模型额度、草稿发送与网络暴露风险由用户承担。
 - **只接受 JSON 请求体**：缺 `Content-Type` 或不是 `application/json`（含 `+json` 后缀）的请求返回 415，挡掉表单式的简单跨站请求。
-- **不要经反向代理暴露**：代理会改写 `Host`、可能丢弃 `Origin`，插件看到的就不再是访客的真实来源；带 `X-Forwarded-For` / `Forwarded` 的请求会被直接拒绝，但这不足以让反代场景变安全。请只在本机直连使用，不要把本插件的路由放在反向代理后面。
-- **远程访问下不可用**：当 GUI 不是从本机地址（`127.0.0.1` / `localhost`）打开，而是经由远程访问或中继地址打开时，增强会失败并返回 403，错误码 `loopback-only`，消息 `forbidden: loopback-only`。这类请求的 `Host` 不是回环地址，socket 也不在回环上；经代理时还会带 `X-Forwarded-For`，插件的结构性检查一律拒绝。设置页与增强按钮会明确提示改用 `127.0.0.1` / `localhost`，不会再把它归因到模型服务配置。这是有意的安全边界，不是故障；请在本机浏览器中使用增强。
+- **不要经反向代理暴露**：默认情况下，代理会改写 `Host`、可能丢弃 `Origin`，插件看到的就不再是访客的真实来源；带 `X-Forwarded-For` / `Forwarded` 的请求会被直接拒绝。只有显式配置 `relayHosts` 并接受风险时，才允许对应的中继转发。
+- **远程访问默认不可用**：当 GUI 不是从本机地址（`127.0.0.1` / `localhost`）打开，而是经由远程访问或中继地址打开时，默认会失败并返回 403，错误码 `loopback-only`。如果确实需要，可在高级设置填写 `relayHosts`（中继）或 `lanHosts`（局域网直连）；开启前请确认宿主会话认证对这条路径有效，否则不要开启。开启后，任何能到达宿主/中继且满足精确 `Host` / `Origin` 的 DSH 会话都可能调用增强、消耗额度并把草稿发给模型服务商；中继域名不是密钥。这是显式的风险开关，不是安全的远程访问保证。
 - **提示注入边界**：草稿被包在 `<raw_prompt>` 标签里，草稿内出现的闭合标签会被中和；这能降低标签逃逸风险，但提示词层面的边界是**最佳努力，不是硬保证**。
 - **不保存模型密钥**：插件不读取或存储模型 API key，调用复用 DSH 已有的模型配置与凭据。
 - **上下文仅在开启时发送**：`contextAware` 开启时，最近几条 user/assistant 消息和当前草稿会发给当前配置的模型服务商（默认最多 8 条消息、4000 字符）；系统消息、模型推理内容、工具结果和附件不会进入上下文；增强器只会知道草稿附带的附件数量（用于避免误称“没有附件”），不会收到附件内容；它可以在任务描述里写「见附件」这类指代，但不会据此描述或推断其内容；只统计你本人发送的消息与助手回复，DSH 注入的环境/技能/时间等上下文不会计入，也不会消耗这段预算。关闭后只发送草稿。
@@ -304,7 +307,8 @@ flowchart LR
 | 提示「每分钟最多 N 次增强」 | 达到 `rateLimitPerMinute` | 按提示等待，或在设置中调大该值 |
 | 提示增强超时，或增强被取消 | 超过 `timeoutMs`，或你点了「取消」 | 超时可重试或调大 `timeoutMs`；取消不会改动原输入，重新点增强即可 |
 | 提示鉴权失败 | 对应 provider 的凭据或 API key 无效 | 检查该 provider 在 DSH 中的凭据/API key 是否有效 |
-| 手机或另一台设备上，增强不可用 | 页面不是从本机打开，而是经远程访问 / 中继转发进来；插件只接受本机请求 | 改在本机浏览器里使用增强 |
+| 手机或另一台设备上，增强不可用 | 页面不是从本机打开；默认回环围栏拒绝（`loopback-only`） | 在本机浏览器里使用；确实需要时在高级设置填写 `lanHosts` / `relayHosts`（仍需 DSH 会话，风险自担） |
+| 配置了 `lanHosts` / `relayHosts` 仍 403 | `Host` / `Origin` 与填写值不完全一致（scheme、端口、大小写或被代理改写）；LAN 项还拒绝 `X-Forwarded-For` / `Forwarded`；或宿主闸门先返回 401/403 | 按浏览器地址栏填写完整 origin；LAN 不要经过代理；先确认 DSH 会话有效；错误码 `unauthorized` / `forbidden` 表示宿主闸门，`loopback-only` 表示插件结构闸门 |
 | 结果被截断 | 达到 `maxOutputTokens` | 查看截断提示，并在设置中调高 `maxOutputTokens` |
 | 结果卡里是草稿本身（可能只多了一个标点） | 低推理档位 + 上下文感知时，模型偶尔不产生改写，把草稿原样交回 | 插件会照常显示正文，并在结果卡上提示「没有产生改写」。先重试；反复出现时把推理档调高一档；仍不理想再临时关闭上下文感知 |
 | 上下文用量显示 `8/8 条`（默认值） | 达到 `contextMaxMessages` 的消息条数上限（默认 8）；这是正常截断，不显示警告 | 一般无需处理；需要更早的对话时调大 `contextMaxMessages`，但可能先撞上 `contextMaxChars`（默认 4,000 字） |
@@ -388,7 +392,7 @@ src/
 ├── enhance-command.ts     /enhance 斜杠命令
 ├── admission.ts           准入控制：滑动窗口限流、并发上限、连续失败熔断
 ├── context.ts             会话上下文窗口的选取与字符预算
-├── trust.ts / loopback.ts 信任闸门：宿主连接校验，缺失时退回仅回环 fence
+├── trust.ts / loopback.ts / trusted-hosts.ts 信任闸门：宿主连接校验、回环 fence 与显式 origin 白名单
 ├── http.ts / sse.ts       有界 JSON 读写、带回压的 SSE 写出
 ├── settings-source.ts     跨 DSH 代际的设置读取
 ├── catalog-route.ts       设置页的 provider/model 目录与路由检查端点

@@ -204,6 +204,13 @@ export const zh = {
   'settings.row.maxConcurrent.hint': '同时进行的增强上限；达到上限时新请求会提示稍后再试。默认 2。',
   'settings.row.rateLimitPerMinute.label': '每分钟调用上限',
   'settings.row.rateLimitPerMinute.hint': '每分钟增强次数上限（滑动窗口）；超限时提示稍后再试。默认 10。',
+  'settings.row.lanHosts.label': '局域网访问白名单',
+  'settings.row.lanHosts.hint': '每行一个完整 origin，例如 http://192.168.31.181:3080。命中后允许局域网直连，但仍要求 DSH 会话，并拒绝 X-Forwarded-For / Forwarded。留空表示只允许本机回环。',
+  'settings.row.lanHosts.placeholder': 'http://192.168.31.181:3080',
+  'settings.row.relayHosts.label': '中继访问白名单',
+  'settings.row.relayHosts.hint':
+    '每行一个完整 origin，例如 https://abc.dsh-market.com。仅用于中继/代理；命中后允许转发头，但仍要求 DSH 会话与精确 Host/Origin。中继域名不是密钥，开启后的额度与暴露风险由你承担；留空表示禁用。',
+  'settings.row.relayHosts.placeholder': 'https://abc.dsh-market.com',
   'settings.row.shortcut.label': '快捷键',
   'settings.row.shortcut.hint': '默认留空（禁用）；填写后生效，例：ctrl+alt+shift+e（须包含 ctrl/alt/meta 中至少一个修饰键；F13–F24 可单独使用）。',
   'settings.row.shortcut.placeholder': '例：ctrl+alt+shift+e',
@@ -435,6 +442,14 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.row.maxConcurrent.hint': 'Concurrent enhancement limit; a new request past the limit is told to retry later. Default 2.',
   'settings.row.rateLimitPerMinute.label': 'Calls per minute',
   'settings.row.rateLimitPerMinute.hint': 'Successful enhancements per minute (sliding window); past the limit the request is told to retry later. Default 10.',
+  'settings.row.lanHosts.label': 'LAN access allowlist',
+  'settings.row.lanHosts.hint':
+    'One full origin per line, e.g. http://192.168.31.181:3080. A match allows direct LAN access, but still requires a DSH session and rejects X-Forwarded-For / Forwarded. Empty means loopback only.',
+  'settings.row.lanHosts.placeholder': 'http://192.168.31.181:3080',
+  'settings.row.relayHosts.label': 'Relay access allowlist',
+  'settings.row.relayHosts.hint':
+    'One full origin per line, e.g. https://abc.dsh-market.com. For a relay/proxy only; a match permits forwarding headers but still requires a DSH session and an exact Host/Origin. The relay origin is not a secret; enabling it accepts the quota and exposure risk. Empty disables it.',
+  'settings.row.relayHosts.placeholder': 'https://abc.dsh-market.com',
   'settings.row.shortcut.label': 'Shortcut',
   'settings.row.shortcut.hint': 'Empty by default (disabled); set it to enable, e.g. ctrl+alt+shift+e (needs at least one of ctrl/alt/meta; F13–F24 may be used alone).',
   'settings.row.shortcut.placeholder': 'e.g. ctrl+alt+shift+e',

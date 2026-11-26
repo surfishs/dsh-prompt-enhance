@@ -221,6 +221,24 @@ export const ADVANCED_ROWS: readonly Row[] = [
   numberRow('contextMaxChars', 'settings.row.contextMaxChars.label', 'settings.row.contextMaxChars.hint', FIELD_LIMITS.contextMaxChars),
   numberRow('maxConcurrent', 'settings.row.maxConcurrent.label', 'settings.row.maxConcurrent.hint', FIELD_LIMITS.maxConcurrent),
   numberRow('rateLimitPerMinute', 'settings.row.rateLimitPerMinute.label', 'settings.row.rateLimitPerMinute.hint', FIELD_LIMITS.rateLimitPerMinute),
+  // Network access is deployment-specific and security-sensitive: both lists
+  // are hidden under Advanced and empty by default.
+  {
+    key: 'lanHosts',
+    kind: 'text',
+    label: 'settings.row.lanHosts.label',
+    hint: 'settings.row.lanHosts.hint',
+    placeholder: 'settings.row.lanHosts.placeholder',
+    multiline: true,
+  },
+  {
+    key: 'relayHosts',
+    kind: 'text',
+    label: 'settings.row.relayHosts.label',
+    hint: 'settings.row.relayHosts.hint',
+    placeholder: 'settings.row.relayHosts.placeholder',
+    multiline: true,
+  },
 ]
 
 /** Every row both pages edit; the renderer splits it at the Advanced boundary. */

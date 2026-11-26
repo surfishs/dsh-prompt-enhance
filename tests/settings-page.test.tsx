@@ -255,6 +255,15 @@ afterEach(() => {
 })
 
 describe('settings dialog page', () => {
+  it('renders the network allowlists in Advanced as textareas', () => {
+    renderRowPage()
+    for (const key of ['settings.row.lanHosts.label', 'settings.row.relayHosts.label'] as const) {
+      const field = screen.getByLabelText(zhCopy(key)) as HTMLTextAreaElement
+      expect(field.tagName).toBe('TEXTAREA')
+      expect(document.querySelector('.dsh-pe-advanced')?.contains(field)).toBe(true)
+    }
+  })
+
   it('keeps the temperature row inside the advanced disclosure, after the persona row', () => {
     // Sampling temperature is a set-once tuning knob, not a per-use switch: it
     // belongs with the advanced rows, next to the rows that also shape the

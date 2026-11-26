@@ -128,6 +128,7 @@ describe('resolveConfig', () => {
       'contextMaxMessages',
       'enabled',
       'foldAnimation',
+      'lanHosts',
       'maxConcurrent',
       'maxInputChars',
       'maxOutputTokens',
@@ -136,6 +137,7 @@ describe('resolveConfig', () => {
       'provider',
       'rateLimitPerMinute',
       'reasoningEffort',
+      'relayHosts',
       'shortcut',
       'strategyMode',
       'streaming',
@@ -143,6 +145,15 @@ describe('resolveConfig', () => {
       'temperature',
       'timeoutMs',
     ])
+  })
+
+  it('defaults the network allowlists to empty and keeps stored text', () => {
+    expect(resolveConfig({ ...DEFAULT_CONFIG }).lanHosts).toBe('')
+    expect(resolveConfig({ ...DEFAULT_CONFIG }).relayHosts).toBe('')
+    const stored = resolveConfig({ ...DEFAULT_CONFIG, lanHosts: 'http://192.168.1.7:3080\n# note\n', relayHosts: 'https://abc.example.com' })
+    expect(stored.lanHosts).toBe('http://192.168.1.7:3080\n# note\n')
+    expect(stored.relayHosts).toBe('https://abc.example.com')
+    expect(resolveConfig({ ...DEFAULT_CONFIG, lanHosts: 42 as never }).lanHosts).toBe('')
   })
 
   it('defaults the streaming and context window to their documented values', () => {
