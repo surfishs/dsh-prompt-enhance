@@ -157,7 +157,7 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | `autoFold` | `true` | Fold the card after applying and expand it again after undoing |
 | `streaming` | `true` | Show the result as it is written; display only, the final result is unchanged |
 | `strategyMode` | `replace-default` | How a custom persona combines with the built-in one: `replace-default` replaces it, `extend-default` appends after it. Either way the task layer, the fixed invariant, and the conditional rules still apply |
-| `systemPrompt` | empty | Custom persona; empty uses the built-in one. It replaces only who the model is — the task layer and the invariant cannot be replaced. Sits next to `strategyMode`, which decides how this text combines with the built-in persona |
+| `systemPrompt` | empty | Custom persona; empty uses the built-in one. Your text replaces the whole persona (role, the four analysis questions and the seven craft principles); to keep the built-in persona and add to it, use `extend-default`. The task layer and the invariant cannot be replaced. Sits next to `strategyMode`, which decides how this text combines with the built-in persona |
 | `temperature` | `0.3` | Sampling temperature `0~1` (step 0.05); lower stays closer to the original |
 | `maxInputChars` | `12000` | Input character cap; over-limit is rejected, never truncated |
 | `maxOutputTokens` | `8192` | Output token cap per call |
@@ -257,7 +257,13 @@ When you need something sendable, one sentence of intent is enough: "hello, tell
 
 Either way the invariant, the task layer, and the conditional rules still apply. This is the 0.2.0 breaking change: the old `replace-default` replaced the hard rules too; now it replaces only the persona.
 
-That means a custom persona shapes only voice and style; the task layer (`TASK`, `LANGUAGE`, `FIDELITY`, `BOUNDARIES` and the output shape) is fixed. For an assistant whose behaviour is fully custom, use an agent preset rather than treating the persona as a system prompt.
+That means a custom persona shapes only the model's identity, how it analyses the draft and how it writes; the task layer (`TASK`, `LANGUAGE`, `FIDELITY`, `BOUNDARIES` and the output shape) is fixed. For an assistant whose behaviour is fully custom, use an agent preset rather than treating the persona as a system prompt.
+
+A copyable example (use it with "Append after the built-in persona"):
+
+> Every rewrite must use the voice of a tsundere little sister; keep the meaning, the code and the structure intact.
+
+In append mode it is one extra rule after the built-in persona, so the role, the four analysis questions and the seven craft principles stay; in replace mode it becomes the whole persona, and all of those disappear. The "every" and "must" are deliberate: an appended "a little tsundere" is easily diluted by the built-in persona and the task layer.
 
 ### Conditional rules
 

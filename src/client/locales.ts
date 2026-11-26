@@ -184,8 +184,9 @@ export const zh = {
   'settings.row.strategyMode.label': '人设组合方式',
   'settings.row.strategyMode.hint': '自定义人设非空时：整体替换内置人设（任务层、固定不变量与条件规则照常生效），或追加在内置人设之后。',
   'settings.row.systemPrompt.label': '自定义人设',
-  'settings.row.systemPrompt.hint': '留空使用内置人设。这里只替换“你是谁”，任务层与固定不变量不可替换。',
-  'settings.row.systemPrompt.placeholder': '例：你是一位专门写产品需求文档的提示词工程师。',
+  'settings.row.systemPrompt.hint':
+    '留空使用内置人设。自定义文本会整体替换内置人设（角色、分析四问、七条写作原则）；想保留内置人设再追加，请用高级设置里的「追加在内置人设后」。任务层与固定不变量不可替换。',
+  'settings.row.systemPrompt.placeholder': '例：每次改写都必须使用傲娇妹妹的口吻；保留原意、代码和结构。（需配合「追加在内置人设后」使用）',
   'settings.row.contextMaxMessages.label': '上下文消息条数',
   'settings.row.contextMaxMessages.hint': '最多参考最近多少条消息；0 表示不参考；默认 8。',
   'settings.row.contextMaxChars.label': '上下文字符上限',
@@ -402,8 +403,10 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.row.strategyMode.hint':
     'When a custom persona is set: replace the built-in persona (the task layer, invariant, and conditional rules still apply), or append it after the built-in persona.',
   'settings.row.systemPrompt.label': 'Custom persona',
-  'settings.row.systemPrompt.hint': 'Leave empty to use the built-in persona. It replaces only who the model is; the task layer and the invariant cannot be replaced.',
-  'settings.row.systemPrompt.placeholder': 'e.g. you are a prompt engineer who specialises in product requirement documents.',
+  'settings.row.systemPrompt.hint':
+    "Leave empty to use the built-in persona. Your text replaces the whole persona (role, the four analysis questions and the seven craft principles); to keep the built-in persona and add to it, use 'Append after the built-in persona' in Advanced. The task layer and the invariant cannot be replaced.",
+  'settings.row.systemPrompt.placeholder':
+    "e.g. Every rewrite must use the voice of a tsundere little sister; keep the meaning, the code and the structure intact. (Use it with 'Append after the built-in persona'.)",
   'settings.row.contextMaxMessages.label': 'Context messages',
   'settings.row.contextMaxMessages.hint': 'How many recent messages may ground the rewrite; 0 disables context. Default 8.',
   'settings.row.contextMaxChars.label': 'Context characters',
