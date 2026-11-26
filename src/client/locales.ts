@@ -98,7 +98,8 @@ export const zh = {
   'error.internal': '增强失败。请重试；如果反复失败，请查看 DSH 运行日志。你的输入没有被改动。',
   'error.unauthorized': 'DSH 登录状态失效或尚未登录；请重新登录 DSH 后再试。你的输入没有被改动。',
   'error.forbidden': 'DSH 拒绝了这次请求（HTTP 403）；请确认当前页面是从受信任的本机地址打开，并已登录 DSH。你的输入没有被改动。',
-  'error.loopbackOnly': '当前请求不是直接来自本机回环地址（或经过了代理）；本插件只接受本机直连请求，请改用 127.0.0.1 或 localhost，并在本机浏览器中使用增强。你的输入没有被改动。',
+  'error.loopbackOnly':
+    '当前请求不是本机回环地址，也没有命中局域网/中继白名单；本插件默认只接受本机直连。请改用 127.0.0.1 打开 DSH，或把页面地址的完整 origin 加入「设置 → 提示词增强 → 高级」里的局域网访问白名单。你的输入没有被改动。',
   'error.client.unreachable': '连不上 DSH 服务：请确认 DSH 正在运行，然后重试。',
   'error.client.malformed': 'DSH 返回了无法解析的数据。请重试；你的输入没有被改动。',
   'error.client.refused': 'DSH 拒绝了这次请求（HTTP {status}）。请稍后重试。',
@@ -160,7 +161,7 @@ export const zh = {
   'settings.routing.providersLoading': '正在读取已注册的 provider…',
   'settings.routing.providersFailed': '无法读取已注册的 provider，请检查 DSH 的模型服务配置。',
   'settings.routing.providersUnavailable': '无法连接 DSH 读取已注册的 provider；请确认 DSH 正在运行，然后重试。',
-  'settings.routing.loopbackOnly': '当前请求不是直接来自本机回环地址（或经过了代理）；本插件只接受本机直连请求，请改用 127.0.0.1 或 localhost 打开 DSH。',
+  'settings.routing.loopbackOnly': '当前请求不是本机回环地址，也没有命中局域网/中继白名单。请改用 127.0.0.1 打开 DSH，或把页面 origin 加入「高级」里的局域网访问白名单。',
   'settings.routing.unauthorized': 'DSH 登录状态失效或尚未登录；请重新登录后再试。',
   'settings.routing.forbidden': 'DSH 拒绝了这次请求；请确认当前页面从受信任的本机地址打开，并已登录 DSH。',
   'settings.routing.providerMissing': '当前 provider「{value}」不在已注册列表中；增强调用会失败，请先在 DSH 模型服务中配置。',
@@ -331,7 +332,7 @@ export const en: Record<PromptEnhanceKey, string> = {
   'error.unauthorized': 'Your DSH session is missing or has expired. Sign in to DSH again and retry; your input was not changed.',
   'error.forbidden': 'DSH refused this request (HTTP 403). Make sure the page is open on a trusted local address and that you are signed in to DSH; your input was not changed.',
   'error.loopbackOnly':
-    'This request is not a direct local loopback request (or it went through a proxy). The plugin only accepts direct local requests; open DSH via 127.0.0.1 or localhost and use enhancement from this machine. Your input was not changed.',
+    'This request is neither loopback nor on the LAN/relay allowlist, and the plugin accepts local requests by default. Open DSH via 127.0.0.1, or add the page origin to the LAN access allowlist under Advanced in the plugin settings. Your input was not changed.',
   'error.client.unreachable': 'Cannot reach the DSH service — make sure DSH is running, then retry.',
   'error.client.malformed': 'DSH returned data that could not be parsed. Retry; your input was not changed.',
   'error.client.refused': 'DSH refused the request (HTTP {status}). Retry later.',
@@ -394,8 +395,7 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.routing.providersLoading': 'Reading registered providers…',
   'settings.routing.providersFailed': 'Could not read registered providers; check the DSH model services configuration.',
   'settings.routing.providersUnavailable': 'Could not reach DSH to read the registered providers; make sure DSH is running, then retry.',
-  'settings.routing.loopbackOnly':
-    'This request is not a direct local loopback request (or it went through a proxy). The plugin only accepts direct local requests; open DSH via 127.0.0.1 or localhost.',
+  'settings.routing.loopbackOnly': 'This request is neither loopback nor on the LAN/relay allowlist. Open DSH via 127.0.0.1, or add the page origin to the LAN access allowlist under Advanced.',
   'settings.routing.unauthorized': 'Your DSH session is missing or has expired. Sign in again and retry.',
   'settings.routing.forbidden': 'DSH refused this request. Make sure the page is open on a trusted local address and that you are signed in to DSH.',
   'settings.routing.providerMissing': 'Provider “{value}” is not registered; enhancement calls will fail. Configure it in DSH model services first.',

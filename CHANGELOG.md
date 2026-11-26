@@ -5,15 +5,24 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-26
+
 ### Added
 
 - Explicit `lanHosts` / `relayHosts` origin allowlists for non-loopback access. Both are empty by default and are consulted only after the host connection gate admits the request; LAN entries reject proxy headers, relay entries allow them. The relay list is an explicit operator risk: the origin is not a secret, and Host/Origin are not authentication.
+
+### Changed
+
+- The refusal shown on the settings page and in the result card when nothing matches now names the allowlists: it points at `lanHosts` / `relayHosts` in Advanced instead of asking for a loopback URL alone.
 
 ### Fixed
 
 - Stop a focused field from keeping a dark edge after blur: the text shells write the resting border colour back instead of dropping the inline longhand, so multi-line fields return to the default gray frame.
 - Return distinct trust error codes (`unauthorized`, `forbidden`, `loopback-only`) instead of `internal`, and localize them in the result card.
 - Show the actual catalog failure in the settings page: a loopback refusal, an expired session, a host-gate refusal, an offline read and another failure no longer all read as "check the DSH model services configuration".
+- Keep the blank stretch beside a settings row title inert: the label hugs its text inside a group that owns the free width, so only the title itself focuses the field.
+
+Thanks to @heavenzhen999 for reporting the LAN-bound deployment failure and for the improvement suggestions in [#1](https://github.com/surfishs/dsh-prompt-enhance/issues/1).
 
 ## [0.2.0] - 2026-11-26
 
@@ -431,4 +440,6 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.2.0]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.10...v0.2.0
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.2.0...HEAD
+[0.2.1]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.2.0...v0.2.1
+
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.2.1...HEAD
