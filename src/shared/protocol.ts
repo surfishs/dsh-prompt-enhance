@@ -145,7 +145,8 @@ export interface EnhanceResult {
  * a `Retry-After` in seconds with it), while the concurrency cap clears as
  * soon as an in-flight call finishes — no predictable delay to advertise.
  */
-export type EnhanceErrorCode = 'rejected' | 'rate-limit' | 'concurrency-limit' | 'cooldown' | 'timeout' | 'upstream' | 'unconfigured' | 'internal' | 'effort-unsupported'
+export type EnhanceErrorCode =
+  'rejected' | 'rate-limit' | 'concurrency-limit' | 'cooldown' | 'timeout' | 'upstream' | 'unconfigured' | 'internal' | 'effort-unsupported' | 'unauthorized' | 'forbidden' | 'loopback-only'
 
 /**
  * Why the BROWSER half could not turn a response into a result.

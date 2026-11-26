@@ -5,6 +5,11 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Fixed
+
+- Return distinct trust error codes (`unauthorized`, `forbidden`, `loopback-only`) instead of `internal`, and localize them in the result card.
+- Show the actual catalog failure in the settings page: a loopback refusal, an expired session, a host-gate refusal, an offline read and another failure no longer all read as "check the DSH model services configuration".
+
 ## [0.2.0] - 2026-11-26
 
 ### Added

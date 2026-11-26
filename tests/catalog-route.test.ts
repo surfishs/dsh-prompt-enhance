@@ -154,6 +154,32 @@ describe('serveCatalog', () => {
       const res = fakeRes()
       await serveCatalog(rejected(status), { ...trusted, url: LLM_PROVIDERS_ENDPOINT } as never, res as never, LLM_PROVIDERS_ENDPOINT)
       expect(res.status).toBe(status)
+      expect(JSON.parse(res.body)).toMatchObject({
+        ok: false,
+        error: { code: status === 401 ? 'unauthorized' : 'forbidden' },
+      })
     }
+  })
+
+  it('names the plugin loopback refusal instead of the host gate status', async () => {
+    const connectionAllows = {
+      get(name: string) {
+        return name === 'connection' ? { requestRejection: () => undefined } : undefined
+      },
+    } as unknown as Context
+    const res = fakeRes()
+    await serveCatalog(
+      connectionAllows,
+      {
+        method: 'GET',
+        headers: { host: '192.168.1.7:3080' },
+        socket: { remoteAddress: '192.168.1.7' },
+        url: LLM_PROVIDERS_ENDPOINT,
+      } as never,
+      res as never,
+      LLM_PROVIDERS_ENDPOINT,
+    )
+    expect(res.status).toBe(403)
+    expect(JSON.parse(res.body)).toMatchObject({ ok: false, error: { code: 'loopback-only' } })
   })
 })

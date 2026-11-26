@@ -60,9 +60,9 @@ function attachmentCountOf(value: unknown): number | undefined {
 async function serveEnhance(ctx: Context, readConfig: () => Config, gate: AdmissionGate, pathname: string, req: IncomingMessage, res: ServerResponse, stream: boolean): Promise<void> {
   const rejection = trustRejection(ctx, req)
   if (rejection !== undefined) {
-    writeJson(res, rejection, {
+    writeJson(res, rejection.status, {
       ok: false,
-      error: { code: 'internal', message: rejection === 401 ? 'unauthorized' : 'forbidden: loopback-only' },
+      error: { code: rejection.code, message: rejection.message },
     })
     return
   }

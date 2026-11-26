@@ -41,7 +41,20 @@ function jsonBody(body: EnhanceRequestBody): Uint8Array {
 }
 
 /** The stable error codes the host may send; anything else normalizes to `internal`. */
-const KNOWN_ERROR_CODES = new Set<EnhanceErrorCode>(['rejected', 'rate-limit', 'concurrency-limit', 'cooldown', 'timeout', 'upstream', 'unconfigured', 'internal', 'effort-unsupported'])
+const KNOWN_ERROR_CODES = new Set<EnhanceErrorCode>([
+  'rejected',
+  'rate-limit',
+  'concurrency-limit',
+  'cooldown',
+  'timeout',
+  'upstream',
+  'unconfigured',
+  'internal',
+  'effort-unsupported',
+  'unauthorized',
+  'forbidden',
+  'loopback-only',
+])
 
 /** Narrow one wire error, normalizing unknown codes. `message`/`params` are optional. */
 function parseError(value: unknown): EnhanceError {

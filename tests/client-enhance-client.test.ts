@@ -47,6 +47,14 @@ afterEach(() => {
 })
 
 describe('requestEnhanceStream: refusal handling', () => {
+  it('keeps the loopback-only refusal code for the result card', async () => {
+    stubFetch(
+      () => new Response(JSON.stringify({ ok: false, error: { code: 'loopback-only', message: 'forbidden: loopback-only' } }), { status: 403, headers: { 'content-type': 'application/json' } }),
+    )
+
+    await expect(requestEnhanceStream({ text: '写个爬虫' }, { onDelta: (): void => {} })).rejects.toMatchObject({ detail: { code: 'loopback-only' } })
+  })
+
   it('surfaces a 429 envelope instead of resending the request', async () => {
     const calls = stubFetch(() => new Response(JSON.stringify({ ok: false, error: { code: 'rate-limit', params: { limit: 60 } } }), { status: 429, headers: { 'content-type': 'application/json' } }))
 

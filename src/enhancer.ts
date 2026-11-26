@@ -468,6 +468,15 @@ export function formatEnhanceError(error: EnhanceError): string {
     case 'unconfigured':
       text = '尚未确定增强用的模型：请在插件设置中成对填写 provider/model，或先在当前会话发送一条消息（将跟随会话模型）。'
       break
+    case 'unauthorized':
+      text = 'DSH 会话未认证，请重新登录后再试；原输入未改动。'
+      break
+    case 'forbidden':
+      text = 'DSH 拒绝了请求，请确认从受信任的本机地址打开并已登录；原输入未改动。'
+      break
+    case 'loopback-only':
+      text = '插件只接受本机回环地址的请求，请改用 127.0.0.1 或 localhost；原输入未改动。'
+      break
     case 'upstream':
       text = typeof params.reason === 'string' ? (REASON_HINTS[params.reason as UpstreamReason] ?? '模型服务返回错误，请重试；原输入未改动。') : '模型服务返回错误，请重试；原输入未改动。'
       break

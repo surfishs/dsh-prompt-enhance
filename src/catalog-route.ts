@@ -29,9 +29,9 @@ function requiredParam(url: URL, name: string): string | undefined {
 export async function serveCatalog(ctx: Context, req: IncomingMessage, res: ServerResponse, pathname: string): Promise<void> {
   const rejection = trustRejection(ctx, req)
   if (rejection !== undefined) {
-    writeJson(res, rejection, {
+    writeJson(res, rejection.status, {
       ok: false,
-      error: { code: 'internal', message: rejection === 401 ? 'unauthorized' : 'forbidden: loopback-only' },
+      error: { code: rejection.code, message: rejection.message },
     })
     return
   }

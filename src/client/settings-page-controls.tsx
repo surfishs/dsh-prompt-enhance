@@ -8,7 +8,8 @@ import { useEffect, useRef, useState, type ReactElement, type ReactNode } from '
 import { SegmentedControl, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ReasoningCapabilities } from '../shared/reasoning'
 import { fetchReasoningCapabilities } from './reasoning-options'
-import type { LlmRoutingState } from './llm-catalog'
+import type { LlmRoutingState, CatalogFailure } from './llm-catalog'
+import type { PromptEnhanceKey } from './locales'
 import type { RowProps } from './settings-page-spec'
 import type { RowCopy } from './settings-page-copy'
 import {
@@ -28,6 +29,36 @@ import {
   WARN_STYLE,
 } from './settings-page-styles'
 import { shortcutSpecOf } from './shortcut'
+
+/** Copy key for a provider-catalog failure, keeping trust refusals distinct. */
+function providerFailureKey(failure: CatalogFailure): PromptEnhanceKey {
+  switch (failure) {
+    case 'loopback-only':
+      return 'settings.routing.loopbackOnly'
+    case 'unauthorized':
+      return 'settings.routing.unauthorized'
+    case 'forbidden':
+      return 'settings.routing.forbidden'
+    case 'offline':
+      return 'settings.routing.providersUnavailable'
+    default:
+      return 'settings.routing.providersFailed'
+  }
+}
+
+/** Copy key for a model-catalog failure; an empty list keeps its own message. */
+function modelFailureKey(failure: CatalogFailure): PromptEnhanceKey {
+  switch (failure) {
+    case 'loopback-only':
+      return 'settings.routing.loopbackOnly'
+    case 'unauthorized':
+      return 'settings.routing.unauthorized'
+    case 'forbidden':
+      return 'settings.routing.forbidden'
+    default:
+      return 'settings.routing.modelsUnavailable'
+  }
+}
 
 /**
  * The "overridden" badge and its reset button, as the text rows draw them.
@@ -305,9 +336,10 @@ export function SelectControl(props: { id: string; value: string; disabled?: boo
  */
 export function ProviderRow(props: RowProps & { routing: LlmRoutingState }): ReactElement {
   const current = props.view.text
+  const failure = props.routing.providers.failure
   const known = props.routing.providers.entries.find((entry) => entry.id === current)
-  const missing = current !== '' && known === undefined
-  const unconfigured = known !== undefined && !known.registered
+  const missing = failure === null && current !== '' && known === undefined
+  const unconfigured = failure === null && known !== undefined && !known.registered
   const registered = props.routing.providers.entries.filter((entry) => entry.registered)
   return (
     <div style={ROW_STYLE}>
@@ -339,8 +371,8 @@ export function ProviderRow(props: RowProps & { routing: LlmRoutingState }): Rea
       </SelectControl>
       <p style={HINT_STYLE}>{props.hint}</p>
       {props.routing.providers.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.providersLoading')}</p> : null}
-      {props.routing.providers.failed ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.providersFailed')}</p> : null}
-      {props.routing.providers.failed ? (
+      {failure !== null ? <p style={STATUS_STYLE}>{props.copy.choice(providerFailureKey(failure))}</p> : null}
+      {failure !== null ? (
         <button type="button" style={REFRESH_STYLE} onClick={props.routing.providers.reload}>
           {props.copy.choice('settings.routing.retry')}
         </button>
@@ -361,6 +393,7 @@ export function ProviderRow(props: RowProps & { routing: LlmRoutingState }): Rea
 export function ModelRow(props: RowProps & { routing: LlmRoutingState; providerValue: string }): ReactElement {
   const current = props.view.text
   const provider = props.providerValue
+  const failure = props.routing.models.failure
   const providerEntry = props.routing.providers.entries.find((entry) => entry.id === provider)
   const providerUnconfigured = providerEntry !== undefined && !providerEntry.registered
   const [customMode, setCustomMode] = useState(false)
@@ -368,7 +401,10 @@ export function ModelRow(props: RowProps & { routing: LlmRoutingState; providerV
   // A stored model outside the advertised catalog is still editable, so the
   // custom input opens automatically for it instead of hiding the value. A
   // dormant provider offers no model options at all: none of them would run.
-  const showCustom = !providerUnconfigured && provider !== '' && (customMode || (current !== '' && !known))
+  // A failed catalog read is not evidence that the stored model is unknown, so
+  // it never auto-opens the custom input; the explicit "Custom…" entry still
+  // works for a typed id.
+  const showCustom = !providerUnconfigured && (customMode || (failure === null && provider !== '' && current !== '' && !known))
   const pairIncomplete = provider !== '' && current === ''
   const routeUnavailable = provider !== '' && current !== '' && props.routing.route.available === false
   return (
@@ -400,7 +436,7 @@ export function ModelRow(props: RowProps & { routing: LlmRoutingState; providerV
                 {entry.name}
               </option>
             ))}
-        {provider !== '' && current !== '' && (providerUnconfigured || !known) ? (
+        {provider !== '' && current !== '' && failure === null && (providerUnconfigured || !known) ? (
           <option value={current} title={current}>
             {props.copy.interpolate('settings.routing.currentModel', { value: current })}
           </option>
@@ -419,7 +455,8 @@ export function ModelRow(props: RowProps & { routing: LlmRoutingState; providerV
       <p style={HINT_STYLE}>{props.hint}</p>
       {providerUnconfigured ? <p style={WARN_STYLE}>{props.copy.choice('settings.routing.providerUnconfiguredModels')}</p> : null}
       {!providerUnconfigured && props.routing.models.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsLoading')}</p> : null}
-      {!providerUnconfigured && props.routing.models.failed && !showCustom ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsFailed')}</p> : null}
+      {!providerUnconfigured && !showCustom && failure !== null ? <p style={STATUS_STYLE}>{props.copy.choice(modelFailureKey(failure))}</p> : null}
+      {!providerUnconfigured && !showCustom && failure === null && props.routing.models.empty ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsFailed')}</p> : null}
       {!providerUnconfigured && pairIncomplete ? <p style={WARN_STYLE}>{props.copy.choice('settings.routing.pairIncomplete')}</p> : null}
       {!providerUnconfigured && routeUnavailable ? <p style={WARN_STYLE}>{props.copy.choice('settings.routing.routeUnavailable')}</p> : null}
     </div>

@@ -129,6 +129,12 @@ function localizedErrorMessage(t: ResultPanelProps['t'], code: EnhanceError['cod
       return t('error.unconfigured')
     case 'effort-unsupported':
       return t('error.effortUnsupported', params)
+    case 'unauthorized':
+      return t('error.unauthorized')
+    case 'forbidden':
+      return t('error.forbidden')
+    case 'loopback-only':
+      return t('error.loopbackOnly')
     case 'upstream':
       return t('error.upstream')
     default:

@@ -96,6 +96,12 @@ describe('ResultPanel upstream error copy', () => {
     expect(container.textContent).toContain(expected)
   })
 
+  it('localizes a loopback-only refusal as a local-access problem', () => {
+    const container = renderError({ code: 'loopback-only' })
+    expect(container.textContent).toContain(zh['error.loopbackOnly'])
+    expect(container.textContent).not.toContain(zh['error.internal'])
+  })
+
   it('renders the result phase with the enhanced body and the route metadata', () => {
     const result: EnhanceResult = { text: '增强后的正文', provider: 'p', model: 'm', elapsedMs: 1234 }
     const state: PanelState = { sessionId: 's1', phase: 'result', original: '旧原文', result }

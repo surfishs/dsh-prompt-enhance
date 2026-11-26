@@ -363,6 +363,27 @@ describe('settings dialog page', () => {
     expect(select.querySelector('option[value="qwen"]')).toBeNull()
   })
 
+  it('explains a loopback-only catalog refusal instead of blaming model configuration', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: URL) => {
+        const href = String(url)
+        if (href.includes('llm-providers')) {
+          return new Response(JSON.stringify({ ok: false, error: { code: 'loopback-only', message: 'forbidden: loopback-only' } }), {
+            status: 403,
+            headers: { 'content-type': 'application/json' },
+          })
+        }
+        if (href.includes('llm-models')) return jsonResponse({ ok: true, value: { models: [] } })
+        if (href.includes('llm-route-check')) return jsonResponse({ ok: true, value: { available: true } })
+        return jsonResponse({ ok: true, value: { efforts: [], source: 'unavailable' } })
+      }),
+    )
+    renderSection()
+    expect(await screen.findByText(zhCopy('settings.routing.loopbackOnly'))).toBeTruthy()
+    expect(screen.queryByText(zhCopy('settings.routing.providersFailed'))).toBeNull()
+  })
+
   it('keeps a saved provider that is no longer configured, with a warning', async () => {
     stubCatalogFetch({
       providers: [
