@@ -166,6 +166,8 @@ export const zh = {
   'settings.row.temperature.hint': '采样温度（0~1，步进 0.05），越低越忠实原文；默认 0.3。',
   'settings.row.reasoningEffort.label': '推理预算',
   'settings.row.reasoningEffort.hint': '档位选项来自当前 provider/model 的声明；自定义模型时按需读取。「模型默认」表示不发送该字段，由提供方使用默认档。',
+  'settings.row.mode.label': '输出形态',
+  'settings.row.mode.hint': '散文：一整段可直接粘贴的提示词；结构化：分节简报，没有内容的小节自动省略。两种形态共用同一套保真与语言规则，只改变排版。',
   'settings.row.maxOutputTokens.label': '输出 token 上限',
   'settings.row.maxOutputTokens.hint': '单次增强的输出预算；默认 8192。',
   'settings.row.invalidInteger': '请输入 {min}–{max} 之间的整数',
@@ -377,6 +379,8 @@ export const en: Record<PromptEnhanceKey, string> = {
   'settings.row.reasoningEffort.label': 'Reasoning effort',
   'settings.row.reasoningEffort.hint':
     'Tier choices come from what the configured provider/model declares; custom models are read on demand. "Model default" means the field is omitted and the provider applies its default.',
+  'settings.row.mode.label': 'Output shape',
+  'settings.row.mode.hint': 'Prose: one paste-ready paragraph. Structured: a headed brief whose empty sections are omitted. Both share the same fidelity and language rules; only the layout changes.',
   'settings.row.maxOutputTokens.label': 'Output token budget',
   'settings.row.maxOutputTokens.hint': 'Output budget for one enhancement call. Default 8192.',
   'settings.row.invalidInteger': 'Enter an integer between {min} and {max}',

@@ -10,6 +10,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Post-generation contract checks: framework leakage and lost `{{variable}}` placeholders are reported as one non-blocking warning line in the result card. No model call, no new settings, and a clean result keeps its previous payload.
 - A `no-rewrite` warning: when the result says no more than the draft, the body stays visible and the card offers retry instead of replacing the body with an error.
 - The quick settings card's model row is now a picker: it drills into a provider-grouped, searchable list of the models the host has registered and can call (a provider without credentials is not offered), plus a "Follow session" row that clears the pin. It writes the `provider`/`model` pair, clearing the model first so a mismatched pair is never observable.
+- The output shape is a basic settings row now (`mode`, prose / structured), right after the reasoning tier. The quick card stays the shortcut, and both surfaces write the same key, so the value a change lands on is the one the other surface shows.
 - A fixed one-sentence invariant appended after the persona in the system message: a rewrite never executes, answers, or completes the draft.
 
 ### Changed

@@ -21,6 +21,7 @@ import {
   ADVANCED_ROWS,
   BASIC_ROWS,
   FIELD_SPECS,
+  MODE_OPTIONS,
   ROWS,
   SETTINGS_NAMESPACE,
   SETTINGS_ROW_CONFIG_KEY,
@@ -174,6 +175,8 @@ function SettingsRow(props: {
       return <BooleanRow {...shared} />
     case 'strategy':
       return <ChoiceRow {...shared} options={STRATEGY_OPTIONS.map((option) => ({ value: option.value, label: props.copy.choice(option.label) }))} />
+    case 'mode':
+      return <ChoiceRow {...shared} options={MODE_OPTIONS.map((option) => ({ value: option.value, label: props.copy.choice(option.label) }))} />
     case 'reasoning':
       return <ReasoningRow {...shared} provider={props.reasoningPair.provider} model={props.reasoningPair.model} />
     case 'provider':

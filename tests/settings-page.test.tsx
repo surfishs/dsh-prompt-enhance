@@ -58,6 +58,7 @@ const ROW_KEYS: readonly string[] = [
   'model',
   'temperature',
   'reasoningEffort',
+  'mode',
   'maxOutputTokens',
   'maxInputChars',
   'timeoutMs',
@@ -77,6 +78,7 @@ const VALUES: Readonly<Record<string, unknown>> = {
   model: '',
   temperature: 0.3,
   reasoningEffort: 'off',
+  mode: 'prose',
   maxOutputTokens: 8192,
   maxInputChars: 12000,
   timeoutMs: 60000,
@@ -283,9 +285,9 @@ describe('settings dialog page', () => {
     for (const key of ROW_KEYS) {
       expect(screen.getByText(sectionTitle(key))).toBeTruthy()
     }
-    // Five switches and two segmented choices; the rest are text inputs.
+    // Five switches and three segmented choices; the rest are text inputs.
     expect(screen.getAllByRole('switch')).toHaveLength(5)
-    expect(screen.getAllByRole('tablist')).toHaveLength(2)
+    expect(screen.getAllByRole('tablist')).toHaveLength(3)
     expect(switchOf(sectionTitle('enabled')).getAttribute('aria-checked')).toBe('true')
     expect(switchOf(sectionTitle('contextAware')).getAttribute('aria-checked')).toBe('true')
     expect(switchOf(sectionTitle('streaming')).getAttribute('aria-checked')).toBe('true')
@@ -414,6 +416,21 @@ describe('settings dialog page', () => {
       { op: 'set', path: ['reasoningEffort'], value: 'inherit' },
       { op: 'set', path: ['strategyMode'], value: 'extend-default' },
     ])
+  })
+
+  it('puts the output shape in the basic list right after the reasoning tier', async () => {
+    // Position mirrors the quick card (model → effort → shape → context), so the
+    // two surfaces put the control in the same relative place.
+    const basic = BASIC_ROWS.map((row) => row.key)
+    expect(basic.indexOf('mode')).toBe(basic.indexOf('reasoningEffort') + 1)
+    expect(basic.indexOf('contextAware')).toBe(basic.indexOf('mode') + 1)
+
+    const { mutate, model } = renderSection()
+    fireEvent.click(screen.getByRole('tab', { name: zhCopy('settings.mode.structured') }))
+    expect(model.field('mode')).toMatchObject({ text: 'structured', overridden: true, invalid: false })
+    fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.save') }))
+    await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1))
+    expect(mutate.mock.calls[0]?.[0]).toEqual([{ op: 'set', path: ['mode'], value: 'structured' }])
   })
 
   it('renders the pinned model’s own tiers from the capability route', async () => {
@@ -655,7 +672,7 @@ describe('plugins page entry', () => {
       expect(screen.getByText(zhCopy(`settings.row.${key}.label`))).toBeTruthy()
     }
     expect(screen.getAllByRole('switch')).toHaveLength(5)
-    expect(screen.getAllByRole('tablist')).toHaveLength(2)
+    expect(screen.getAllByRole('tablist')).toHaveLength(3)
     // No raw keys and no parenthesized name: this surface speaks the active locale.
     expect(screen.queryByText(sectionTitle('enabled'))).toBeNull()
     expect(screen.queryByText(/｜/)).toBeNull()

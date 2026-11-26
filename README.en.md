@@ -42,7 +42,7 @@ The rewritten prompt appears in a card docked above the composer without coverin
 | Feature | What it does |
 |---|---|
 | 🐋 **One-click enhance** | The composer toolbar button (the DeepSeek whale mark with a sparkle in its corner); the shortcut is off by default and can be set in settings |
-| 🧾 **Two output shapes** | Prose (default): one paste-ready paragraph. Structured: a four-section brief with empty sections omitted. Both share the same fidelity and language rules. Switch it in the right-click card, next to the reasoning tier |
+| 🧾 **Two output shapes** | Prose (default): one paste-ready paragraph. Structured: a four-section brief with empty sections omitted. Both share the same fidelity and language rules. Switch it in the right-click card or on the settings page, next to the reasoning tier |
 | 🎛️ **Right-click quick settings** | Right-click or long-press the composer button: switch the reasoning tier (pick one inside), the output shape (prose / structured), pin the model (a searchable model picker inside) and context awareness; no settings page needed |
 | 🖼️ **Docked result card** | Shown above the composer without covering the conversation, with the model, reasoning tier, timing and `token` usage; folds to its title and footer rows so long results do not fill the screen; a truncated result is flagged |
 | ↩️ **Apply, copy and undo** | Copy the result; applying folds the card to its title row by default and turns its footer button into Undo, which restores the draft and expands the card |
@@ -151,6 +151,7 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | `enabled` | `true` | Master switch; off hides the composer button and disables the command and shortcut |
 | `provider` + `model` | empty | Pick from the DSH-registered LLM providers and their models; the model can switch to “Custom…” to type an id; unconfigured providers are greyed out until set up in DSH model services; empty follows the session model (no pinned route). With only one filled, the save falls back to follow-session; switching the provider clears the chosen model so a stale pair cannot remain. The quick card's picker writes the same pair and lists only registered, callable models |
 | `reasoningEffort` | `off` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`). "Model default" sends no field, so the provider applies its default; switching to a model that does not declare the stored tier rewrites it to "Model default" |
+| `mode` | `prose` | Output shape: `prose` is one paste-ready paragraph; `structured` is a headed brief whose empty sections are omitted. Both share the same fidelity and language rules; only the layout changes. Also switchable in the right-click card |
 | `contextAware` | `true` | Read recent messages to resolve references; turn it off for sensitive sessions |
 | `systemPrompt` | empty | Custom persona; empty uses the built-in one. It replaces only who the model is — the task layer and the invariant cannot be replaced |
 | `shortcut` | empty (disabled) | Shortcut that triggers the enhancement; e.g. `ctrl+alt+shift+e`. Needs at least one of ctrl/alt/meta; shift is optional; the settings page has a Record button that captures the combination |

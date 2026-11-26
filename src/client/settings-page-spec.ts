@@ -106,8 +106,14 @@ export const STRATEGY_OPTIONS: readonly { value: string; label: PromptEnhanceKey
   { value: 'extend-default', label: 'settings.strategy.extend' },
 ]
 
+/** Choices of `mode`, by dictionary key. */
+export const MODE_OPTIONS: readonly { value: string; label: PromptEnhanceKey }[] = [
+  { value: 'prose', label: 'settings.mode.prose' },
+  { value: 'structured', label: 'settings.mode.structured' },
+]
+
 /** How one row is edited, which picks both its control and its descriptor. */
-export type RowKind = 'text' | 'number' | 'boolean' | 'strategy' | 'reasoning' | 'provider' | 'model'
+export type RowKind = 'text' | 'number' | 'boolean' | 'strategy' | 'mode' | 'reasoning' | 'provider' | 'model'
 
 /** One row of both pages, in display order. */
 export interface Row {
@@ -162,15 +168,19 @@ function numberRow(key: string, label: PromptEnhanceKey, hint: PromptEnhanceKey,
 
 /**
  * Every row both pages edit, in display order: the master switch, routing and
- * reasoning, then the context switch, the custom prompt, and the shortcut last.
- * Display-only switches live in {@link ADVANCED_ROWS}, with the rest of the
- * set-once tuning.
+ * reasoning, the output shape, then the context switch, the custom prompt, and
+ * the shortcut last. Display-only switches live in {@link ADVANCED_ROWS}, with
+ * the rest of the set-once tuning.
  */
 export const BASIC_ROWS: readonly Row[] = [
   { key: 'enabled', kind: 'boolean', label: 'settings.row.enabled.label', hint: 'settings.row.enabled.hint' },
   { key: 'provider', kind: 'provider', label: 'settings.row.provider.label', hint: 'settings.row.provider.hint' },
   { key: 'model', kind: 'model', label: 'settings.row.model.label', hint: 'settings.row.model.hint' },
   { key: 'reasoningEffort', kind: 'reasoning', label: 'settings.row.reasoningEffort.label', hint: 'settings.row.reasoningEffort.hint' },
+  // The shape of the returned text, not a set-once limit: it sits with the
+  // reasoning tier because the two decide what the rewrite looks like, and it
+  // keeps the quick card's order (model, effort, shape, context).
+  { key: 'mode', kind: 'mode', label: 'settings.row.mode.label', hint: 'settings.row.mode.hint' },
   { key: 'contextAware', kind: 'boolean', label: 'settings.row.contextAware.label', hint: 'settings.row.contextAware.hint' },
   { key: 'systemPrompt', kind: 'text', label: 'settings.row.systemPrompt.label', hint: 'settings.row.systemPrompt.hint', placeholder: 'settings.row.systemPrompt.placeholder' },
   {
@@ -223,6 +233,11 @@ export function descriptorOf(row: Row): SettingsFieldDescriptor {
       return settingsEnumField(
         row.key,
         STRATEGY_OPTIONS.map((option) => option.value),
+      )
+    case 'mode':
+      return settingsEnumField(
+        row.key,
+        MODE_OPTIONS.map((option) => option.value),
       )
     case 'reasoning':
       // Effort ids are adapter-owned and discovered at render time, so the
