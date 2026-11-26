@@ -5,6 +5,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-26
+
 ### Added
 
 - Post-generation contract checks: framework leakage and lost `{{variable}}` placeholders are reported as one non-blocking warning line in the result card. No model call, no new settings, and a clean result keeps its previous payload.
@@ -37,7 +39,6 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ### Fixed
 
 - Map the missing-fact marker to the output language: `(待补充：…)` in a Chinese output, `(TBD: …)` otherwise. 0.1.9 kept a single language-neutral wording and relied on the language rule to translate it; observation says otherwise — the marker is a literal token, so a Chinese draft came back carrying `TBD` verbatim.
-
 - The context-usage tooltip is no longer cut in half on a folded card, and no longer lands a sidebar-width to the right of its chip. It is portaled to the document body and placed in viewport coordinates from its trigger: the card clips its own overflow, and the composer seat declares `will-change: transform`, which makes it the containing block for fixed descendants. It also re-measures while open, so scrolling cannot strand it.
 - The result card follows the conversation column when the sidebar or a workspace panel opens or closes. The dock entry copies the composer card's width and left margin, and now re-measures when its own ancestors resize: the column narrows inside an unchanged viewport, so watching the window alone left the old width and margin applied and the card overflowed the column.
 - The model picker's search field matches the shell's own (ModelSelect `.searchRow`/`.search`): a chrome-less 5px/7px box with 12px text at `line-height: normal` instead of the 32px Input, so the row is 34px instead of 46px and the placeholder sits 11px from the card edge instead of 17px. The placeholder is `label-caption` (bluish-400), not `label-dimmed`, and item/group-label insets dropped to the same 7px, so the search text, group labels and model names line up.
@@ -418,4 +419,6 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 [0.1.5]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.4...v0.1.5
 
-[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.10...HEAD
+[0.2.0]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.1.10...v0.2.0
+
+[Unreleased]: https://github.com/surfishs/dsh-prompt-enhance/compare/v0.2.0...HEAD
