@@ -11,6 +11,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - A `no-rewrite` warning: when the result says no more than the draft, the body stays visible and the card offers retry instead of replacing the body with an error.
 - The quick settings card's model row is now a picker: it drills into a provider-grouped, searchable list of the models the host has registered and can call (a provider without credentials is not offered), plus a "Follow session" row that clears the pin. It writes the `provider`/`model` pair, clearing the model first so a mismatched pair is never observable.
 - The output shape is a basic settings row now (`mode`, prose / structured), right after the reasoning tier. The quick card stays the shortcut, and both surfaces write the same key, so the value a change lands on is the one the other surface shows.
+- The custom persona (`systemPrompt`) moved from the basic settings to Advanced, directly after `strategyMode` — the mode that decides how a non-empty persona combines with the built-in one — so the text and its combination rule read as one pair.
+- The custom persona is edited in a multi-line textarea now, matching the schema's `textarea` role: Enter inserts a newline, and blur or Ctrl/Cmd+Enter commits. The single-line input could not hold the paragraph breaks a persona is written with.
 - A fixed one-sentence invariant appended after the persona in the system message: a rewrite never executes, answers, or completes the draft.
 
 ### Changed

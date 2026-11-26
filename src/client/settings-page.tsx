@@ -188,6 +188,7 @@ function SettingsRow(props: {
         <ValueRow
           {...shared}
           numeric={props.row.kind === 'number'}
+          multiline={props.row.multiline === true}
           placeholder={placeholderOf(props.row, props.view, props.copy)}
           invalidMessage={invalidMessageOf(props.row, props.view.text, props.copy)}
           recordable={props.row.recordable === true}

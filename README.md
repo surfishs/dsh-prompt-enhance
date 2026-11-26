@@ -148,7 +148,6 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `reasoningEffort` | `inherit` | 档位由当前 provider/model 的声明决定；DeepSeek 为 `off` / `low` / `high` / `max`，默认档是 `high`。默认值 `inherit`（「模型默认」）不发送该字段，由提供方使用默认档；切换到不声明当前档位的模型时，插件会自动改回「模型默认」 |
 | `mode` | `prose` | 输出形态：`prose` 是一整段可直接粘贴的提示词；`structured` 是分节简报，没有内容的小节自动省略。两种形态共用同一套保真与语言规则，只改变排版；右键快捷卡里也能切换 |
 | `contextAware` | `true` | 读取最近几条消息以消解指代；含敏感内容的会话建议关闭 |
-| `systemPrompt` | 空 | 自定义人设；留空使用内置人设。它只替换「你是谁」，任务层与固定不变量不可替换 |
 | `shortcut` | 空（禁用） | 触发增强的快捷键；例如 `ctrl+alt+shift+e`。须包含 ctrl/alt/meta 中至少一个修饰键，shift 可选；F13–F24 这类物理键盘上通常没有、由宏键盘或改键工具发出的键可单独使用（无修饰键）；设置页可点「录制」直接按键录入 |
 
 ### 高级设置
@@ -159,6 +158,7 @@ dsh plugin --profile <profile> remove @surfishs/dsh-prompt-enhance
 | `autoFold` | `true` | 回填后自动折叠结果卡，撤销后自动展开 |
 | `streaming` | `true` | 边写边显示；仅影响显示节奏，最终结果不变 |
 | `strategyMode` | `replace-default` | 自定义人设的组合方式：`replace-default` 整体替换内置人设；`extend-default` 追加在内置人设之后。两种方式下，任务层、固定不变量与条件规则都照常生效 |
+| `systemPrompt` | 空 | 自定义人设；留空使用内置人设。它只替换「你是谁」，任务层与固定不变量不可替换。与 `strategyMode` 相邻，因为后者决定这段文本如何与内置人设结合 |
 | `temperature` | `0.3` | 采样温度 `0~1`（步进 0.05），越低越忠实原文 |
 | `maxInputChars` | `12000` | 输入字符上限；超限拒绝，不截断 |
 | `maxOutputTokens` | `8192` | 单次调用的输出 token 上限 |

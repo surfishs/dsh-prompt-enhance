@@ -141,6 +141,11 @@ export interface Row {
   readonly range?: NumericRange & { readonly integer?: boolean }
   /** Offer the press-a-combination recorder next to the input (the shortcut row). */
   readonly recordable?: boolean
+  /**
+   * Render the text row as a multi-line editor. Enter inserts a newline there
+   * (Ctrl/Cmd+Enter commits); the persona is prose, not a one-line value.
+   */
+  readonly multiline?: boolean
 }
 
 /** Whether one staged numeric text is writable: empty clears, otherwise an in-range number. */
@@ -168,9 +173,9 @@ function numberRow(key: string, label: PromptEnhanceKey, hint: PromptEnhanceKey,
 
 /**
  * Every row both pages edit, in display order: the master switch, routing and
- * reasoning, the output shape, then the context switch, the custom prompt, and
- * the shortcut last. Display-only switches live in {@link ADVANCED_ROWS}, with
- * the rest of the set-once tuning.
+ * reasoning, the output shape, then the context switch and the shortcut last.
+ * Display-only switches and set-once prompt tuning live in
+ * {@link ADVANCED_ROWS}, together with the rest of the tuning.
  */
 export const BASIC_ROWS: readonly Row[] = [
   { key: 'enabled', kind: 'boolean', label: 'settings.row.enabled.label', hint: 'settings.row.enabled.hint' },
@@ -182,7 +187,6 @@ export const BASIC_ROWS: readonly Row[] = [
   // keeps the quick card's order (model, effort, shape, context).
   { key: 'mode', kind: 'mode', label: 'settings.row.mode.label', hint: 'settings.row.mode.hint' },
   { key: 'contextAware', kind: 'boolean', label: 'settings.row.contextAware.label', hint: 'settings.row.contextAware.hint' },
-  { key: 'systemPrompt', kind: 'text', label: 'settings.row.systemPrompt.label', hint: 'settings.row.systemPrompt.hint', placeholder: 'settings.row.systemPrompt.placeholder' },
   {
     key: 'shortcut',
     kind: 'text',
@@ -203,8 +207,12 @@ export const ADVANCED_ROWS: readonly Row[] = [
   // three changes the text that gets applied — and does not earn a basic slot.
   { key: 'streaming', kind: 'boolean', label: 'settings.row.streaming.label', hint: 'settings.row.streaming.hint' },
   { key: 'strategyMode', kind: 'strategy', label: 'settings.row.strategyMode.label', hint: 'settings.row.strategyMode.hint' },
-  // Set-once tuning, not a per-use switch: it sits next to the strategy row
-  // because both shape how the rewrite is produced, not how often it runs.
+  // The custom persona sits next to the strategy that decides how it combines
+  // with the built-in one (replace or append); both are set-once prompt tuning,
+  // not per-use switches.
+  { key: 'systemPrompt', kind: 'text', label: 'settings.row.systemPrompt.label', hint: 'settings.row.systemPrompt.hint', placeholder: 'settings.row.systemPrompt.placeholder', multiline: true },
+  // Set-once tuning, not a per-use switch: it follows the prompt-shaping rows
+  // because it shapes how the rewrite is produced, not how often it runs.
   numberRow('temperature', 'settings.row.temperature.label', 'settings.row.temperature.hint', TEMPERATURE, false),
   numberRow('maxInputChars', 'settings.row.maxInputChars.label', 'settings.row.maxInputChars.hint', FIELD_LIMITS.maxInputChars),
   numberRow('maxOutputTokens', 'settings.row.maxOutputTokens.label', 'settings.row.maxOutputTokens.hint', FIELD_LIMITS.maxOutputTokens),

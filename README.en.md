@@ -147,7 +147,6 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | `reasoningEffort` | `inherit` | Tiers come from what the configured provider/model declares (DeepSeek: `off` / `low` / `high` / `max`; its default tier is `high`). The shipped value `inherit` ("Model default") sends no field, so the provider applies its own default; switching to a model that does not declare the stored tier rewrites it to "Model default" |
 | `mode` | `prose` | Output shape: `prose` is one paste-ready paragraph; `structured` is a headed brief whose empty sections are omitted. Both share the same fidelity and language rules; only the layout changes. Also switchable in the right-click card |
 | `contextAware` | `true` | Read recent messages to resolve references; turn it off for sensitive sessions |
-| `systemPrompt` | empty | Custom persona; empty uses the built-in one. It replaces only who the model is — the task layer and the invariant cannot be replaced |
 | `shortcut` | empty (disabled) | Shortcut that triggers the enhancement; e.g. `ctrl+alt+shift+e`. Needs at least one of ctrl/alt/meta; shift is optional; the settings page has a Record button that captures the combination |
 
 ### Advanced settings
@@ -158,6 +157,7 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 | `autoFold` | `true` | Fold the card after applying and expand it again after undoing |
 | `streaming` | `true` | Show the result as it is written; display only, the final result is unchanged |
 | `strategyMode` | `replace-default` | How a custom persona combines with the built-in one: `replace-default` replaces it, `extend-default` appends after it. Either way the task layer, the fixed invariant, and the conditional rules still apply |
+| `systemPrompt` | empty | Custom persona; empty uses the built-in one. It replaces only who the model is — the task layer and the invariant cannot be replaced. Sits next to `strategyMode`, which decides how this text combines with the built-in persona |
 | `temperature` | `0.3` | Sampling temperature `0~1` (step 0.05); lower stays closer to the original |
 | `maxInputChars` | `12000` | Input character cap; over-limit is rejected, never truncated |
 | `maxOutputTokens` | `8192` | Output token cap per call |

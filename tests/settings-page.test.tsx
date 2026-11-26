@@ -255,16 +255,30 @@ afterEach(() => {
 })
 
 describe('settings dialog page', () => {
-  it('keeps the temperature row inside the advanced disclosure, after the strategy row', () => {
+  it('keeps the temperature row inside the advanced disclosure, after the persona row', () => {
     // Sampling temperature is a set-once tuning knob, not a per-use switch: it
-    // belongs with the advanced rows, next to the row that also shapes the
+    // belongs with the advanced rows, next to the rows that also shape the
     // rewrite, and the basic list must not carry it any more.
     const advancedKeys = ADVANCED_ROWS.map((row) => row.key)
     expect(BASIC_ROWS.map((row) => row.key)).not.toContain('temperature')
-    expect(advancedKeys.indexOf('temperature')).toBe(advancedKeys.indexOf('strategyMode') + 1)
+    expect(advancedKeys.indexOf('systemPrompt')).toBe(advancedKeys.indexOf('strategyMode') + 1)
+    expect(advancedKeys.indexOf('temperature')).toBe(advancedKeys.indexOf('systemPrompt') + 1)
 
     renderRowPage()
     const input = screen.getByLabelText(zhCopy('settings.row.temperature.label'))
+    expect(document.querySelector('.dsh-pe-advanced')?.contains(input)).toBe(true)
+  })
+
+  it('keeps the custom persona inside the advanced disclosure, next to the strategy row', () => {
+    // The persona is set-once prompt tuning whose meaning depends on how it
+    // combines with the built-in one, so it moved out of the basic list and
+    // stays directly after the strategy row.
+    const advancedKeys = ADVANCED_ROWS.map((row) => row.key)
+    expect(BASIC_ROWS.map((row) => row.key)).not.toContain('systemPrompt')
+    expect(advancedKeys.indexOf('systemPrompt')).toBe(advancedKeys.indexOf('strategyMode') + 1)
+
+    renderRowPage()
+    const input = screen.getByLabelText(zhCopy('settings.row.systemPrompt.label'))
     expect(document.querySelector('.dsh-pe-advanced')?.contains(input)).toBe(true)
   })
 
@@ -796,5 +810,21 @@ describe('plugins page entry', () => {
     fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.save') }))
     await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1))
     expect(mutate.mock.calls[0]?.[0]).toEqual([{ op: 'set', path: ['contextAware'], value: false }])
+  })
+
+  it('edits the custom persona as a multiline textarea that keeps newlines', async () => {
+    // The persona is prose: a single-line input cannot hold the paragraph
+    // breaks the built-in persona itself is written with.
+    const { mutate } = renderRowPage()
+    const control = screen.getByLabelText(zhCopy('settings.row.systemPrompt.label')) as HTMLTextAreaElement
+    expect(control.tagName).toBe('TEXTAREA')
+
+    const persona = '你是产品需求文档的提示词工程师。\n只输出 Markdown 小节，不要解释。'
+    fireEvent.change(control, { target: { value: persona } })
+    expect(control.value).toBe(persona)
+    fireEvent.blur(control)
+
+    fireEvent.click(screen.getByRole('button', { name: zhCopy('settings.save') }))
+    await waitFor(() => expect(mutate).toHaveBeenCalledWith(expect.arrayContaining([{ op: 'set', path: ['systemPrompt'], value: persona }])))
   })
 })

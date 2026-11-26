@@ -444,6 +444,7 @@ export function TextControl(props: {
   numeric?: boolean
   invalid?: boolean
   disabled?: boolean
+  multiline?: boolean
   onChange: (value: string) => void
   onCommit?: () => void
 }): ReactElement {
@@ -454,42 +455,77 @@ export function TextControl(props: {
   }, [props.invalid])
   const showInvalid = props.invalid === true && revealedInvalid
   const borderColor = showInvalid ? 'var(--dsw-alias-state-error-primary, #f85149)' : focused ? 'var(--dsw-alias-state-business-primary, #4f8cff)' : undefined
+  const multiline = props.multiline === true
+  const commit = (): void => {
+    if (props.invalid === true) setRevealedInvalid(true)
+    props.onCommit?.()
+  }
   return (
     // Host primitives Input: a flex shell centers a borderless inner input, so
     // the text sits on the shell's center line instead of relying on a fixed
-    // height plus a line-height to be centered by the browser.
-    <div style={{ ...FIELD_SHELL_STYLE, ...(borderColor === undefined ? {} : { borderColor }) }}>
-      <input
-        id={props.id}
-        type="text"
-        inputMode={props.numeric === true ? 'numeric' : undefined}
-        aria-invalid={showInvalid || undefined}
-        disabled={props.disabled}
-        placeholder={props.placeholder}
-        value={props.value}
-        style={{
-          ...FIELD_INPUT_STYLE,
-          ...(props.disabled === true ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {}),
-        }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => {
-          setFocused(false)
-          if (props.invalid === true) setRevealedInvalid(true)
-          props.onCommit?.()
-        }}
-        onKeyDown={(event) => {
-          if (event.key !== 'Enter') return
-          event.preventDefault()
-          if (props.invalid === true) setRevealedInvalid(true)
-          props.onCommit?.()
-        }}
-        onChange={(event) => props.onChange(event.target.value)}
-      />
+    // height plus a line-height to be centered by the browser. The multiline
+    // variant grows instead of centering: its rows are prose, not one value.
+    <div style={{ ...(multiline ? { ...FIELD_SHELL_STYLE, height: 'auto', padding: '8px 12px', alignItems: 'stretch' } : FIELD_SHELL_STYLE), ...(borderColor === undefined ? {} : { borderColor }) }}>
+      {multiline ? (
+        <textarea
+          id={props.id}
+          rows={5}
+          aria-invalid={showInvalid || undefined}
+          disabled={props.disabled}
+          placeholder={props.placeholder}
+          value={props.value}
+          style={{
+            ...FIELD_INPUT_STYLE,
+            height: 'auto',
+            minHeight: 88,
+            resize: 'vertical',
+            ...(props.disabled === true ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {}),
+          }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            setFocused(false)
+            commit()
+          }}
+          onKeyDown={(event) => {
+            // Enter belongs to the text here; Ctrl/Cmd+Enter commits without
+            // leaving the field, so a keyboard user can still save a paragraph.
+            if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey)) return
+            event.preventDefault()
+            commit()
+          }}
+          onChange={(event) => props.onChange(event.target.value)}
+        />
+      ) : (
+        <input
+          id={props.id}
+          type="text"
+          inputMode={props.numeric === true ? 'numeric' : undefined}
+          aria-invalid={showInvalid || undefined}
+          disabled={props.disabled}
+          placeholder={props.placeholder}
+          value={props.value}
+          style={{
+            ...FIELD_INPUT_STYLE,
+            ...(props.disabled === true ? { color: 'var(--dsw-alias-label-tertiary, inherit)', cursor: 'default' } : {}),
+          }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            setFocused(false)
+            commit()
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return
+            event.preventDefault()
+            commit()
+          }}
+          onChange={(event) => props.onChange(event.target.value)}
+        />
+      )}
     </div>
   )
 }
 
-export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string; invalidMessage?: string; recordable?: boolean }): ReactElement {
+export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: string; invalidMessage?: string; recordable?: boolean; multiline?: boolean }): ReactElement {
   // Two sources of "invalid": the descriptor refused the staged text (numbers),
   // and the row's own client-side validation (the shortcut format).
   const invalid = props.view.invalid || props.invalidMessage !== undefined
@@ -562,6 +598,7 @@ export function ValueRow(props: RowProps & { numeric: boolean; placeholder?: str
         value={props.view.text}
         placeholder={props.placeholder}
         numeric={props.numeric}
+        multiline={props.multiline}
         invalid={invalid}
         disabled={props.disabled}
         onChange={(text: string) => {
