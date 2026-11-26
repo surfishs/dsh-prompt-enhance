@@ -175,17 +175,15 @@ Edit in **Settings → Prompt enhance** (or Plugins → `dsh-prompt-enhance` →
 
 ### About the default reasoning effort
 
-The plugin ships with "Model default" (`inherit`): no tier field is sent, and the provider decides — DeepSeek's default tier is `high`.
+The plugin ships with "Model default" (`inherit`): no tier field is sent, and the provider decides — DeepSeek's default tier is `high`; every other provider uses its own.
 
-Thinking is necessary unless two things hold at once: **the task does not depend on context, and the task is simple**. Prompt enhancement looks like restating a draft, but it has to satisfy a layered rule set (fidelity, language, placeholders, boundaries, output shape), and with context awareness on it must also resolve references and constraints from earlier turns. That is a constraint-heavy, information-scattered job: `off` only covers the most basic rewrite, and on a weaker model (DeepSeek, for one) it starts dropping conditions and constraints. Earlier versions defaulted to `off` to save tokens; the default now follows the provider's own higher tier because quality comes first.
+Prompt enhancement is not about polishing a sentence; it has to satisfy several layers of rules at once (fidelity, language, placeholders, boundaries, output shape), and with context awareness on it also has to carry references and constraints from earlier turns. That kind of constraint-heavy, information-scattered job is better left to the provider's own default tier than to a low tier the plugin hard-codes.
 
-Drop to `off` only when the draft is short and single-purpose **and** context awareness is off — both, not either. Switch tiers temporarily to compare outputs on the same draft.
+`off` used to be the plugin's default tier. The default now follows the model; `off` stays available as an option, but only fits drafts that meet both conditions: the task is simple, **and** it does not depend on context. If either is missing (a reference to the previous turn, for instance), keep the default. That line is a judgement from experience, not the result of a controlled comparison.
 
-Be honest about the cost: `high` spends noticeably more output tokens than `off`. On one ordinary draft the plugin measured 252 output tokens at `off` versus 2897 at `high`; what that buys is fewer dropped requirements and a steadier structure. When the result card says the model produced no rewrite, retry first; if it keeps happening, raise the tier another step or use a stronger model.
+Cost: `high` spends more output tokens than `off`, and most of the extra is thinking you never see rather than visible text; on a simple, context-free draft the two can look close. Both the settings page and the right-click quick card switch the tier, so you can compare on the spot.
 
-Both the settings page and the right-click quick card switch the tier, so you can compare on the spot. When you need more capability, a stronger model usually pays off more than keeping the tier raised.
-
-Do not pick a model that is too weak for the job: the output is a task description handed to the downstream model, and a noticeably weaker model tends to make it vaguer, drop key constraints, or drift from what you meant — **a lower-quality prompt can be worse than no rewrite at all**. Do not route prompt optimisation through a model weaker than the one running the current session.
+Pick a model that is not noticeably weaker than the one running the session: the output is a task description handed to the downstream model, and a weaker model tends to state requirements vaguely, drop key constraints, or drift from your intent — **a worse prompt can be worse than no rewrite at all**. The plugin follows the session model by default; when you pin a route, prefer one at least as capable, and when you need more capability, a stronger model usually pays off more than keeping the tier raised.
 
 ## Security
 
