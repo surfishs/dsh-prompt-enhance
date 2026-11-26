@@ -78,6 +78,12 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
   /** The shell's info glyph, drawn at 11px beside a label. */
   export const IconInfoOutlineRegular: any
 
+  /**
+   * The shell's status mark. `state="ongoing"` draws the animated 24-unit
+   * spinner at `size` px (14 by default); other states draw a small colored dot.
+   */
+  export const StateDot: any
+
   /** The shell's segmented choice control (`role="tablist"`), for enum rows. */
   export const SegmentedControl: any
 

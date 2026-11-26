@@ -949,6 +949,43 @@ describe('quick settings menu', () => {
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
   })
 
+  it('shows a saving dot while a quick setting is written, then a failure badge until the next success', async () => {
+    let mode: 'pending' | 'ok' | 'refuse' = 'pending'
+    let settle: ((ok: boolean) => void) | undefined
+    const set = vi.fn((field: string) => {
+      if (field !== 'reasoningEffort') return Promise.resolve(true)
+      if (mode === 'ok') return Promise.resolve(true)
+      if (mode === 'refuse') return Promise.resolve(false)
+      return new Promise<boolean>((resolve) => {
+        settle = resolve
+      })
+    })
+    setSettingsWriter({ set: set as never, unset: vi.fn(async () => true) })
+    const input = makeFakeInput({ draft: '写个爬虫' })
+    renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+    const button = enhanceButton()
+
+    fireEvent.contextMenu(button)
+    await screen.findByRole('menu')
+    fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Off' }))
+    await waitFor(() => expect(document.querySelector('[data-dsh-pe-save="saving"]')).toBeTruthy())
+    expect(button.title).toContain(zh['settings.saving'])
+
+    settle?.(false)
+    await waitFor(() => expect(document.querySelector('[data-dsh-pe-save="failed"]')).toBeTruthy())
+    expect(document.querySelector('[data-dsh-pe-save="saving"]')).toBeNull()
+    expect(button.title).toContain(zh['button.saveFailedTitle'])
+
+    // The next successful write clears the badge.
+    mode = 'ok'
+    fireEvent.contextMenu(button)
+    await screen.findByRole('menu')
+    fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Off' }))
+    await waitFor(() => expect(document.querySelector('[data-dsh-pe-save="failed"]')).toBeNull())
+  })
+
   it('turns the route row into a model picker with a search field', async () => {
     setClientSettings({ ...DEFAULT_CLIENT_SETTINGS, provider: 'zhipu', model: 'glm-4.6' })
     const { button } = setupMenu()
@@ -1011,6 +1048,77 @@ describe('quick settings menu', () => {
       await waitFor(() => expect(set).toHaveBeenCalledWith('provider', 'zhipu'))
       await waitFor(() => expect(set).toHaveBeenCalledWith('model', 'glm-4.6'))
       await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('shows the route just picked on the next open, names included', async () => {
+    const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const href = String(input)
+        if (href.includes('/llm-providers')) return json({ ok: true, value: { providers: [{ id: 'zhipu', name: 'Zhipu', registered: true }] } })
+        if (href.includes('provider=zhipu')) return json({ ok: true, value: { models: [{ id: 'glm-4.6', name: 'GLM-4.6' }] } })
+        if (href.includes('llm-route-check')) return json({ ok: true, value: { available: true } })
+        return json({ ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } })
+      }),
+    )
+    try {
+      const unset = vi.fn(async () => true)
+      const set = vi.fn(async () => true)
+      setSettingsWriter({ set, unset })
+      const input = makeFakeInput({ draft: '写个爬虫' })
+      renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+      const button = enhanceButton()
+
+      fireEvent.contextMenu(button)
+      await screen.findByRole('menu')
+      fireEvent.click(screen.getByRole('menuitem', { name: /^模型/ }))
+      fireEvent.click(await screen.findByRole('menuitemradio', { name: 'GLM-4.6' }))
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+
+      // Reopen before the settings mirror reflects the write: the row paints the
+      // picked route with the name it was clicked under, not the old route or a
+      // bare id while the catalog reloads.
+      fireEvent.contextMenu(button)
+      const row = await screen.findByText(zh['menu.model'])
+      await waitFor(() => expect(row.parentElement?.textContent).toContain('Zhipu / GLM-4.6'))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('falls back to the stored route when the route write is refused', async () => {
+    const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const href = String(input)
+        if (href.includes('/llm-providers')) return json({ ok: true, value: { providers: [{ id: 'zhipu', name: 'Zhipu', registered: true }] } })
+        if (href.includes('provider=zhipu')) return json({ ok: true, value: { models: [{ id: 'glm-4.6', name: 'GLM-4.6' }] } })
+        if (href.includes('llm-route-check')) return json({ ok: true, value: { available: true } })
+        return json({ ok: true, value: { efforts: [], source: 'unavailable', reason: 'no-efforts' } })
+      }),
+    )
+    try {
+      const unset = vi.fn(async () => true)
+      const set = vi.fn(async () => false)
+      setSettingsWriter({ set, unset })
+      const input = makeFakeInput({ draft: '写个爬虫' })
+      renderComposer(input, { setDraft: vi.fn() } as never, 's1')
+      const button = enhanceButton()
+
+      fireEvent.contextMenu(button)
+      await screen.findByRole('menu')
+      fireEvent.click(screen.getByRole('menuitem', { name: /^模型/ }))
+      fireEvent.click(await screen.findByRole('menuitemradio', { name: 'GLM-4.6' }))
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull())
+
+      fireEvent.contextMenu(button)
+      const row = await screen.findByText(zh['menu.model'])
+      await waitFor(() => expect(row.parentElement?.textContent).toContain(zh['menu.modelFollow']))
     } finally {
       vi.unstubAllGlobals()
     }

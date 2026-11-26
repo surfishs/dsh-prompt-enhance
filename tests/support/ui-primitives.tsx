@@ -425,6 +425,11 @@ export function IconInfoOutlineRegular(props: { size?: number; 'aria-hidden'?: b
   return createElement('span', { 'data-icon': 'info', 'aria-hidden': props['aria-hidden'] })
 }
 
+/** The shell's status mark. */
+export function StateDot(props: { state?: string; size?: number; className?: string }): ReactElement {
+  return createElement('span', { 'data-state': props.state, className: props.className, style: { width: props.size, height: props.size, display: 'inline-block' } })
+}
+
 /** The shell's segmented choice control. */
 export function SegmentedControl(props: {
   id: string

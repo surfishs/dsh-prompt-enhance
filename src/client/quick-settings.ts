@@ -69,11 +69,22 @@ export interface QuickSettingsData {
   readonly effortReason?: ReasoningReason
 }
 
+/** A route picked in the card, used before the host mirror reflects the write. */
+export interface QuickRouteOverride {
+  readonly provider: string
+  readonly model: string
+  /** Names captured from the list at click time; they avoid an id-only flash. */
+  readonly providerLabel?: string
+  readonly modelLabel?: string
+}
+
 /** Input of one menu open. */
 export interface QuickSettingsInput {
   readonly ctx?: QuickContext
   readonly sessionId?: string
   readonly settings: ClientSettings
+  /** A route just picked in this card, ahead of the written mirror. */
+  readonly route?: QuickRouteOverride
 }
 
 /** The sentinel config value meaning "omit the field, let the provider decide". */
@@ -216,11 +227,16 @@ export async function resolveQuickSettings(input: QuickSettingsInput): Promise<Q
   const effort = stored === '' ? INHERIT_EFFORT : stored
   const contextAware = input.settings.contextAware === true
   const mode = input.settings.mode === 'structured' ? 'structured' : 'prose'
-  const provider = input.settings.provider?.trim() ?? ''
-  const model = input.settings.model?.trim() ?? ''
+  const override = input.route
+  const provider = override !== undefined ? override.provider : (input.settings.provider?.trim() ?? '')
+  const model = override !== undefined ? override.model : (input.settings.model?.trim() ?? '')
   // Start the catalog read with the capability read so the card opens once, not
-  // twice in a row.
-  const labelsPromise = routeLabelsOf(provider, model)
+  // twice in a row. A local pick already carries the names it was clicked with,
+  // so a reopen paints those before any catalog answer.
+  const labelsPromise =
+    override !== undefined && override.providerLabel !== undefined && override.modelLabel !== undefined
+      ? Promise.resolve({ providerLabel: override.providerLabel, modelLabel: override.modelLabel })
+      : routeLabelsOf(provider, model)
 
   if (provider !== '' && model !== '') {
     const capabilities = await fetchReasoningCapabilities(provider, model)

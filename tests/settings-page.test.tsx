@@ -350,7 +350,7 @@ describe('settings dialog page', () => {
     expect(screen.getByRole('button', { name: enCopy('settings.save') })).toBeTruthy()
   })
 
-  it('lists registered providers and greys out unconfigured ones', async () => {
+  it('lists only configured providers in the settings page', async () => {
     stubCatalogFetch({
       providers: [
         { id: 'deepseek-official', name: 'DeepSeek', registered: true },
@@ -360,9 +360,27 @@ describe('settings dialog page', () => {
     renderSection()
     const select = screen.getByLabelText(sectionTitle('provider')) as HTMLSelectElement
     await waitFor(() => expect(select.querySelector('option[value="deepseek-official"]')).toBeTruthy())
-    const dormant = select.querySelector('option[value="qwen"]') as HTMLOptionElement
-    expect(dormant.disabled).toBe(true)
-    expect(dormant.textContent).toContain(zhCopy('settings.routing.unconfiguredSuffix'))
+    expect(select.querySelector('option[value="qwen"]')).toBeNull()
+  })
+
+  it('keeps a saved provider that is no longer configured, with a warning', async () => {
+    stubCatalogFetch({
+      providers: [
+        { id: 'deepseek-official', name: 'DeepSeek', registered: true },
+        { id: 'qwen', name: 'Qwen', registered: false },
+      ],
+      models: [],
+    })
+    renderSection({ values: { provider: 'qwen', model: 'qwen-plus' } })
+    const select = screen.getByLabelText(sectionTitle('provider')) as HTMLSelectElement
+    await waitFor(() => expect(select.querySelector('option[value="deepseek-official"]')).toBeTruthy())
+    const saved = select.querySelector('option[value="qwen"]') as HTMLOptionElement
+    expect(saved).toBeTruthy()
+    expect(saved.textContent).toContain(zhCopy('settings.routing.unconfiguredSuffix'))
+    expect(await screen.findByText(zhCopy('settings.routing.providerUnconfiguredModels'))).toBeTruthy()
+    const modelSelect = screen.getByLabelText(sectionTitle('model')) as HTMLSelectElement
+    expect(modelSelect.disabled).toBe(true)
+    expect(modelSelect.querySelector('option[value="__custom__"]')).toBeNull()
   })
 
   it('loads the chosen provider’s models and accepts a custom model', async () => {

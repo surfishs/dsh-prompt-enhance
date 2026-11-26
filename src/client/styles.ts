@@ -768,7 +768,11 @@ html:not([data-platform='darwin']) .dsh-pe-menu-group-label { border-radius: var
 .dsh-pe-btn.is-empty { opacity: 0.4; cursor: not-allowed; }
 .dsh-pe-btn.is-empty:hover { opacity: 0.4; background: transparent; }
 .dsh-pe-btn:disabled { opacity: 0.45; cursor: default; }
-.dsh-pe-btn .dsh-pe-btn-icon { display: inline-flex; align-items: center; }
+.dsh-pe-btn .dsh-pe-btn-icon { display: inline-flex; align-items: center; position: relative; }
+/* The saving dot and the refused badge share the icon's bottom-right corner.
+   Both are absolute so the toolbar never reflows while a setting is written. */
+.dsh-pe-btn-saving { position: absolute; right: -2px; bottom: -2px; display: inline-flex; line-height: 0; pointer-events: none; }
+.dsh-pe-btn-save-failed { color: var(--dsw-alias-state-error-primary, #f85149); }
 @keyframes dsh-pe-spin { to { transform: rotate(360deg); } }
 
 .dsh-pe-undo {

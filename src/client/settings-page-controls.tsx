@@ -295,8 +295,11 @@ export function SelectControl(props: { id: string; value: string; disabled?: boo
 }
 
 /**
- * The provider select: registered providers plus dormant ones rendered
- * disabled, and a synthetic entry for a stored value outside the registry.
+ * The provider select: the configured (registered) providers, plus a synthetic
+ * entry for a stored value that is no longer configured. The dormant catalog is
+ * never offered as an option — the quick card lists only configured models, and
+ * the settings page must agree; a saved dormant value stays visible and warned
+ * about instead of being silently dropped.
  * @param props - the row, its state, and the catalog reads.
  * @returns the row element.
  */
@@ -305,6 +308,7 @@ export function ProviderRow(props: RowProps & { routing: LlmRoutingState }): Rea
   const known = props.routing.providers.entries.find((entry) => entry.id === current)
   const missing = current !== '' && known === undefined
   const unconfigured = known !== undefined && !known.registered
+  const registered = props.routing.providers.entries.filter((entry) => entry.registered)
   return (
     <div style={ROW_STYLE}>
       <div style={HEAD_STYLE}>
@@ -319,28 +323,19 @@ export function ProviderRow(props: RowProps & { routing: LlmRoutingState }): Rea
           <option value={current} title={current}>
             {props.copy.interpolate('settings.routing.currentProvider', { value: current })}
           </option>
+        ) : unconfigured && known !== undefined ? (
+          <option value={current} title={props.copy.choice('settings.routing.unconfiguredTitle')}>
+            {known.name}
+            {props.copy.choice('settings.routing.unconfiguredSuffix')}
+          </option>
         ) : null}
         <optgroup label={props.copy.choice('settings.routing.groupRegistered')}>
-          {props.routing.providers.entries
-            .filter((entry) => entry.registered)
-            .map((entry) => (
-              <option key={entry.id} value={entry.id} title={entry.id}>
-                {entry.name}
-              </option>
-            ))}
+          {registered.map((entry) => (
+            <option key={entry.id} value={entry.id} title={entry.id}>
+              {entry.name}
+            </option>
+          ))}
         </optgroup>
-        {props.routing.providers.entries.some((entry) => !entry.registered) ? (
-          <optgroup label={props.copy.choice('settings.routing.groupDormant')}>
-            {props.routing.providers.entries
-              .filter((entry) => !entry.registered)
-              .map((entry) => (
-                <option key={entry.id} value={entry.id} disabled title={props.copy.choice('settings.routing.unconfiguredTitle')}>
-                  {entry.name}
-                  {props.copy.choice('settings.routing.unconfiguredSuffix')}
-                </option>
-              ))}
-          </optgroup>
-        ) : null}
       </SelectControl>
       <p style={HINT_STYLE}>{props.hint}</p>
       {props.routing.providers.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.providersLoading')}</p> : null}
@@ -366,11 +361,14 @@ export function ProviderRow(props: RowProps & { routing: LlmRoutingState }): Rea
 export function ModelRow(props: RowProps & { routing: LlmRoutingState; providerValue: string }): ReactElement {
   const current = props.view.text
   const provider = props.providerValue
+  const providerEntry = props.routing.providers.entries.find((entry) => entry.id === provider)
+  const providerUnconfigured = providerEntry !== undefined && !providerEntry.registered
   const [customMode, setCustomMode] = useState(false)
   const known = props.routing.models.entries.some((entry) => entry.id === current)
   // A stored model outside the advertised catalog is still editable, so the
-  // custom input opens automatically for it instead of hiding the value.
-  const showCustom = provider !== '' && (customMode || (current !== '' && !known))
+  // custom input opens automatically for it instead of hiding the value. A
+  // dormant provider offers no model options at all: none of them would run.
+  const showCustom = !providerUnconfigured && provider !== '' && (customMode || (current !== '' && !known))
   const pairIncomplete = provider !== '' && current === ''
   const routeUnavailable = provider !== '' && current !== '' && props.routing.route.available === false
   return (
@@ -384,7 +382,7 @@ export function ModelRow(props: RowProps & { routing: LlmRoutingState; providerV
       <SelectControl
         id={props.id}
         value={showCustom ? '__custom__' : current}
-        disabled={props.disabled || provider === ''}
+        disabled={props.disabled || provider === '' || providerUnconfigured}
         onChange={(value) => {
           if (value === '__custom__') {
             setCustomMode(true)
@@ -395,17 +393,19 @@ export function ModelRow(props: RowProps & { routing: LlmRoutingState; providerV
         }}
       >
         <option value="">{provider === '' ? props.copy.choice('settings.routing.followSession') : props.copy.choice('settings.routing.selectModel')}</option>
-        {props.routing.models.entries.map((entry) => (
-          <option key={entry.id} value={entry.id} title={entry.id}>
-            {entry.name}
-          </option>
-        ))}
-        {provider !== '' && current !== '' && !known ? (
+        {providerUnconfigured
+          ? null
+          : props.routing.models.entries.map((entry) => (
+              <option key={entry.id} value={entry.id} title={entry.id}>
+                {entry.name}
+              </option>
+            ))}
+        {provider !== '' && current !== '' && (providerUnconfigured || !known) ? (
           <option value={current} title={current}>
             {props.copy.interpolate('settings.routing.currentModel', { value: current })}
           </option>
         ) : null}
-        {provider !== '' ? <option value="__custom__">{props.copy.choice('settings.routing.custom')}</option> : null}
+        {provider !== '' && !providerUnconfigured ? <option value="__custom__">{props.copy.choice('settings.routing.custom')}</option> : null}
       </SelectControl>
       {showCustom ? (
         <TextControl
@@ -417,10 +417,11 @@ export function ModelRow(props: RowProps & { routing: LlmRoutingState; providerV
         />
       ) : null}
       <p style={HINT_STYLE}>{props.hint}</p>
-      {props.routing.models.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsLoading')}</p> : null}
-      {props.routing.models.failed && !showCustom ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsFailed')}</p> : null}
-      {pairIncomplete ? <p style={WARN_STYLE}>{props.copy.choice('settings.routing.pairIncomplete')}</p> : null}
-      {routeUnavailable ? <p style={WARN_STYLE}>{props.copy.choice('settings.routing.routeUnavailable')}</p> : null}
+      {providerUnconfigured ? <p style={WARN_STYLE}>{props.copy.choice('settings.routing.providerUnconfiguredModels')}</p> : null}
+      {!providerUnconfigured && props.routing.models.loading ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsLoading')}</p> : null}
+      {!providerUnconfigured && props.routing.models.failed && !showCustom ? <p style={STATUS_STYLE}>{props.copy.choice('settings.routing.modelsFailed')}</p> : null}
+      {!providerUnconfigured && pairIncomplete ? <p style={WARN_STYLE}>{props.copy.choice('settings.routing.pairIncomplete')}</p> : null}
+      {!providerUnconfigured && routeUnavailable ? <p style={WARN_STYLE}>{props.copy.choice('settings.routing.routeUnavailable')}</p> : null}
     </div>
   )
 }

@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -32,6 +33,7 @@ import {
   writeQuickMode,
   writeQuickRoute,
   type QuickContext,
+  type QuickRouteOverride,
   type QuickSettingsData,
 } from './quick-settings'
 import { useSessionKey, serverSessionId } from './session-key'
@@ -134,6 +136,21 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   const writer = useSyncExternalStore(subscribeSettingsWriter, getSettingsWriter)
   const [menu, setMenu] = useState<{ anchor: QuickMenuAnchor; data: QuickSettingsData } | null>(null)
   const [menuError, setMenuError] = useState<string | undefined>(undefined)
+  // Settings writes started from this card. The count drives the corner saving
+  // dot; the failure flag keeps the red badge until the next successful write.
+  const [savePending, setSavePending] = useState(0)
+  const [saveFailed, setSaveFailed] = useState(false)
+
+  /**
+   * Count one settings write so the button can show the saving dot until the
+   * last one settles. A refusal keeps the failure badge until a later write
+   * succeeds; the card is already closed by then, so this is its only notice.
+   * @param write - the writer promise for one settings change.
+   */
+  const trackSave = useCallback((write: Promise<boolean>): void => {
+    setSavePending((pending) => pending + 1)
+    void write.then((ok) => setSaveFailed(!ok)).finally(() => setSavePending((pending) => Math.max(0, pending - 1)))
+  }, [])
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const longPressOrigin = useRef<{ x: number; y: number } | null>(null)
   const longPressFired = useRef(false)
@@ -179,7 +196,9 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     state.running = true
     state.inFlight = target
     const ticket = ++state.seq
-    void writeQuickContext(writer, target).then((ok) => {
+    const write = writeQuickContext(writer, target)
+    trackSave(write)
+    void write.then((ok) => {
       state.running = false
       state.inFlight = null
       if (ticket !== state.seq) {
@@ -222,7 +241,9 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     if (!supersededValue && target === accepted) return
     state.closing = true
     const ticket = ++state.seq
-    void writeQuickContext(writer, target).then((ok) => {
+    const write = writeQuickContext(writer, target)
+    trackSave(write)
+    void write.then((ok) => {
       state.closing = false
       if (!ok) {
         console.warn('[dsh-prompt-enhance] the contextAware write was refused while closing the quick settings card')
@@ -232,6 +253,29 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     })
   }
   flushContextRef.current = flushContextWrite
+
+  // The route the user just picked, with the names captured from the list at
+  // click time. The host mirror can lag the write; until it catches up (and
+  // after it lands) the card shows this instead of an old route or a bare id.
+  const routeWrites = useRef<{ route: QuickRouteOverride; baseline: { provider: string; model: string } } | null>(null)
+
+  /**
+   * The optimistic route for this render, if the mirror has not moved past it.
+   *
+   * `pending` means the write has not reached the settings mirror yet;
+   * `landed` means it has. A third value means another writer won and the
+   * local choice is stale.
+   * @returns the route to paint, or undefined to use the stored settings.
+   */
+  const localRoute = useCallback((): QuickRouteOverride | undefined => {
+    const stored = routeWrites.current
+    if (stored === null) return undefined
+    const pending = settings.provider === stored.baseline.provider && settings.model === stored.baseline.model
+    const landed = settings.provider === stored.route.provider && settings.model === stored.route.model
+    if (pending || landed) return stored.route
+    routeWrites.current = null
+    return undefined
+  }, [settings.provider, settings.model])
 
   /** Close the card, flushing a pending context flip first. */
   const dismissMenu = useCallback((): void => {
@@ -255,14 +299,16 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       if (writer === undefined) return data
       if (data.effort === '' || data.effort === INHERIT_EFFORT) return data
       if (data.efforts.some((effort) => effort.id === data.effort)) return data
-      const cleared = await writeQuickEffort(writer, INHERIT_EFFORT)
+      const write = writeQuickEffort(writer, INHERIT_EFFORT)
+      trackSave(write)
+      const cleared = await write
       if (!cleared) {
         console.warn('[dsh-prompt-enhance] could not clear the stored reasoning effort for the current model')
         return data
       }
       return { ...data, effort: INHERIT_EFFORT }
     },
-    [writer],
+    [writer, trackSave],
   )
 
   // The stored settings feed the accepted baseline until the first write.
@@ -290,7 +336,8 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       if (timer !== undefined) clearTimeout(timer)
       timer = setTimeout(() => {
         timer = undefined
-        void resolveQuickSettings({ ctx: props.__ctx, sessionId, settings }).then(async (resolved) => {
+        const route = localRoute()
+        void resolveQuickSettings({ ctx: props.__ctx, sessionId, settings, ...(route === undefined ? {} : { route }) }).then(async (resolved) => {
           const data = await reconcileEffort(resolved)
           if (cancelled) return
           const local = contextWrites.current.desired ?? contextWrites.current.accepted
@@ -317,13 +364,14 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       if (timer !== undefined) clearTimeout(timer)
       stop?.()
     }
-  }, [menuOpen, props.__ctx, sessionId, settings, reconcileEffort])
+  }, [menuOpen, props.__ctx, sessionId, settings, reconcileEffort, localRoute])
 
   const openMenu = useCallback(
     async (rect: DOMRect): Promise<void> => {
       const anchor = { right: rect.right, top: rect.top }
       setMenuError(undefined)
-      const resolved = await resolveQuickSettings({ ctx: props.__ctx, sessionId, settings })
+      const route = localRoute()
+      const resolved = await resolveQuickSettings({ ctx: props.__ctx, sessionId, settings, ...(route === undefined ? {} : { route }) })
       const data = await reconcileEffort(resolved)
       // A flip that the mirror has not reflected yet still wins on reopen.
       const local = contextWrites.current.desired ?? contextWrites.current.accepted
@@ -342,7 +390,7 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
         )
       })
     },
-    [props.__ctx, sessionId, settings, reconcileEffort],
+    [props.__ctx, sessionId, settings, reconcileEffort, localRoute],
   )
 
   const pickEffort = (id: string): void => {
@@ -353,7 +401,9 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     const unchanged = menu !== null && menu.data.effort === id
     dismissMenu()
     if (unchanged) return
-    void writeQuickEffort(writer, id).then((ok) => {
+    const write = writeQuickEffort(writer, id)
+    trackSave(write)
+    void write.then((ok) => {
       if (!ok) console.warn('[dsh-prompt-enhance] the reasoningEffort write was refused')
     })
   }
@@ -365,7 +415,9 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
     const unchanged = menu !== null && menu.data.mode === mode
     dismissMenu()
     if (unchanged) return
-    void writeQuickMode(writer, mode).then((ok) => {
+    const write = writeQuickMode(writer, mode)
+    trackSave(write)
+    void write.then((ok) => {
       if (!ok) console.warn('[dsh-prompt-enhance] the mode write was refused')
     })
   }
@@ -373,10 +425,32 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   const pickRoute = (route: { provider: string; model: string } | null): void => {
     if (writer === undefined) return
     const unchanged = menu !== null && (route === null ? menu.data.provider === '' || menu.data.model === '' : menu.data.provider === route.provider && menu.data.model === route.model)
+    // The click is the decision: capture the names from the list the user just
+    // clicked, park them as the route to paint, and let the write land behind
+    // the closed card. Reopening before the mirror catches up therefore shows
+    // the picked names, never the old route or a bare id.
+    const labels =
+      route === null
+        ? { providerLabel: '', modelLabel: '' }
+        : (() => {
+            const group = menu?.data.modelGroups.find((entry) => entry.id === route.provider)
+            const model = group?.models.find((entry) => entry.id === route.model)
+            return { providerLabel: group?.name ?? '', modelLabel: model?.name ?? '' }
+          })()
+    routeWrites.current = {
+      route: route === null ? { provider: '', model: '', ...labels } : { ...route, ...labels },
+      baseline: { provider: settings.provider, model: settings.model },
+    }
     dismissMenu()
     if (unchanged) return
-    void writeQuickRoute(writer, route).then((ok) => {
-      if (!ok) console.warn('[dsh-prompt-enhance] the provider/model write was refused')
+    const write = writeQuickRoute(writer, route)
+    trackSave(write)
+    void write.then((ok) => {
+      if (ok) return
+      // The card is gone and the write was refused: drop the optimistic route so
+      // the next open tells the truth instead of showing a value that never stuck.
+      routeWrites.current = null
+      console.warn('[dsh-prompt-enhance] the provider/model write was refused')
     })
   }
 
@@ -548,7 +622,10 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
   // The hint names the way in while the card is actually reachable on hover; the
   // busy states are short-lived and keep their own single message.
   const quickHint = writer === undefined || busy || otherBusy ? '' : t('button.quickHint')
-  const buttonLabel = statusTitle + quickHint
+  // Hovering the button says what the corner mark means; the mark itself only
+  // carries the failure title because its wrapper is decorative for AT.
+  const saveLabel = savePending > 0 ? ` · ${t('settings.saving')}` : saveFailed ? ` · ${t('button.saveFailedTitle')}` : ''
+  const buttonLabel = statusTitle + quickHint + saveLabel
 
   return (
     <>
@@ -585,6 +662,19 @@ export function EnhanceButton(props: EnhanceButtonProps): ReactNode {
       >
         <span className="dsh-pe-btn-icon" aria-hidden>
           <SparkleFishIcon size={15} spinning={busy} />
+          {savePending > 0 ? (
+            <span className="dsh-pe-btn-saving" data-dsh-pe-save="saving">
+              <StateDot state="ongoing" size={10} />
+            </span>
+          ) : saveFailed ? (
+            <span className="dsh-pe-btn-saving dsh-pe-btn-save-failed" data-dsh-pe-save="failed" title={t('button.saveFailedTitle')}>
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
+                <circle cx="5" cy="5" r="5" fill="currentColor" />
+                <path d="M5 2.3v3.2" stroke="var(--dsw-alias-label-primary-inverted, #fff)" strokeWidth="1.4" strokeLinecap="round" />
+                <circle cx="5" cy="7.5" r=".75" fill="var(--dsw-alias-label-primary-inverted, #fff)" />
+              </svg>
+            </span>
+          ) : null}
         </span>
       </button>
       {menu === null ? null : (

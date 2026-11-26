@@ -127,6 +127,22 @@ describe('resolveQuickSettings', () => {
     expect(data.source).toBe('static')
   })
 
+  it('paints a locally picked route with its captured names', async () => {
+    vi.mocked(fetchReasoningCapabilities).mockResolvedValue({ efforts: [], source: 'unavailable', reason: 'no-efforts' })
+    const data = await resolveQuickSettings({
+      settings: baseSettings,
+      route: { provider: 'zhipu', model: 'glm-4.6', providerLabel: 'Zhipu', modelLabel: 'GLM-4.6' },
+    })
+    expect(fetchReasoningCapabilities).toHaveBeenCalledWith('zhipu', 'glm-4.6')
+    expect(data).toMatchObject({
+      provider: 'zhipu',
+      model: 'glm-4.6',
+      providerLabel: 'Zhipu',
+      modelLabel: 'GLM-4.6',
+      source: 'override',
+    })
+  })
+
   it('treats a blank stored effort as the shipped default', async () => {
     const data = await resolveQuickSettings({ settings: { ...baseSettings, reasoningEffort: '' } })
     expect(data.effort).toBe('inherit')
